@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# Logs
+*.log
+logs/
+*.out
+*.pid
+
+# Data directories
+data/uploads/
+data/outputs/
+data/processed/
+freesurfer_subjects/
+singularity_cache/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Docker volumes
+docker-volumes/
+
+# Node modules (if any)
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+*.pyc
+
+# Temporary files
+*.tmp
+*.bak
+nohup.out
+backend_restart.log
+celery_worker*.log
+
+# Secrets and configs (if any)
+.env.local
+secrets/

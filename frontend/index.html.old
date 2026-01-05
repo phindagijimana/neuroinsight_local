@@ -1,0 +1,2448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>NeuroInsight - Hippocampal Analysis Platform (v20251217161811)</title>
+  <script src="/static/js/react.development.js"></script>
+  <script src="/static/js/react-dom.development.js"></script>
+  <script src="/static/js/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script> -->
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!--
+    NeuroInsight UI (single-file React for simplicity)
+    - Pages: Home, Jobs, Dashboard, Viewer
+    - Uses Vite dev proxy: frontend /api -> backend 8000
+    - Keep inline scripts for HPC/No-build environments
+  -->
+  <script type="text/babel">
+    // @ts-check
+    /**
+     * @fileoverview NeuroInsight Frontend - Single-file React application
+     * @description Main application entry point with configuration and API services
+     */
+
+
+    const { useState, useEffect, useRef } = React;
+    
+    // ============================================================================
+    // MODULE: Configuration
+    // ============================================================================
+    /**
+     * Application configuration object
+     * Centralizes all app settings and environment detection
+     * @type {Object}
+     * @property {Object} api - API configuration
+     * @property {Object} ui - UI configuration
+     * @property {string} environment - Current environment (development/production)
+     */
+    const CONFIG = {
+      api: {
+        baseUrl: (function() {
+          // Check if running in Electron desktop mode (window.electronAPI is set by preload)
+          if (window.electronAPI && window.electronAPI.getBackendURL) {
+            // We'll fetch this asynchronously, but for now return a placeholder
+            // The actual URL will be fetched when needed
+            return 'http://localhost:8001'; // Placeholder, will be replaced
+          }
+          
+          // Since frontend is served by FastAPI backend, API is on the same port
+          let apiUrl = `${window.location.protocol}//${window.location.hostname}:${window.location.port || (window.location.protocol === 'https:' ? '443' : '80')}`;
+          
+          // Allow override via query parameter: ?api=http://localhost:8000
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('api')) {
+            apiUrl = urlParams.get('api');
+          }
+          
+          console.log('Web mode detected, using API URL:', apiUrl);
+          return apiUrl;
+        })(),
+      },
+      ui: {
+        refreshInterval: 5000, // milliseconds
+        maxUploadSize: 1024 * 1024 * 1024, // 1 GB
+      },
+      environment: (function() {
+        // Detect environment - can be overridden via query param ?env=development
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('env')) {
+          return urlParams.get('env');
+        }
+        // Default to production if accessed via non-localhost
+        return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? 'development'
+          : 'production';
+      })()
+    };
+    
+    // Backward compatibility: keep existing global variable
+    // CRITICAL: Use a getter so it always reads the current CONFIG value
+    /** @type {string} */
+    Object.defineProperty(window, 'API_BASE_URL', {
+      get: () => CONFIG.api.baseUrl,
+      configurable: true
+    });
+    
+    console.log('API Base URL:', window.API_BASE_URL);
+    console.log('Current page URL:', window.location.href);
+    console.log('Config:', CONFIG);
+    
+    // ============================================================================
+    // MODULE: API Service
+    // ============================================================================
+    /**
+     * API Service - Centralized API communication layer
+     * @namespace ApiService
+     * @description Provides methods for all API interactions. Currently used alongside
+     *              direct fetch calls; can be gradually migrated to replace them.
+     */
+    const ApiService = {
+      /**
+       * Fetch all jobs from the API
+       * @returns {Promise<Array<Object>>} Array of job objects
+       */
+      async getJobs() {
+        try {
+          console.log('Fetching jobs from:', `${CONFIG.api.baseUrl}/jobs/`);
+          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/`);
+          console.log('Response status:', response.status, response.statusText);
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error:', errorText);
+            throw new Error(`Failed to fetch jobs: ${response.status} ${response.statusText}`);
+          }
+          const data = await response.json();
+          console.log('API returned jobs:', data);
+          console.log('Number of jobs:', data?.length || 0);
+          return data;
+        } catch (error) {
+          console.error('Failed to load jobs:', error);
+          console.error('Error details:', error.message);
+          // Show error in UI but don't block the page
+          return [];
+        }
+      },
+      
+      /**
+       * Upload a file to the API
+       * @param {File} file - The file to upload
+       * @param {function(number): void} [onProgress] - Progress callback (0-100)
+       * @param {Object} [metadata={}] - Optional metadata to attach
+       * @returns {Promise<Object>} Uploaded job object
+       */
+      async uploadFile(file, onProgress, metadata = {}) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Add patient metadata if provided
+        if (metadata && Object.keys(metadata).length > 0) {
+          // Only append non-empty fields
+          Object.entries(metadata).forEach(([key, value]) => {
+            if (value && value.trim() !== '') {
+              formData.append(key, value);
+            }
+          });
+        }
+        
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable && onProgress) {
+              const percent = Math.round((e.loaded * 100) / e.total);
+              onProgress(percent);
+            }
+          });
+          
+          xhr.addEventListener('load', () => {
+            if (xhr.status === 200 || xhr.status === 201) {
+              resolve(JSON.parse(xhr.responseText));
+            } else {
+              let errorMsg = `Upload failed: ${xhr.statusText}`;
+              try {
+                const errorData = JSON.parse(xhr.responseText);
+                if (errorData.detail) {
+                  errorMsg = `Upload failed: ${errorData.detail}`;
+                }
+              } catch (e) {
+                // If response isn't JSON, use statusText
+              }
+              console.error('Upload error:', xhr.status, errorMsg, xhr.responseText);
+              reject(new Error(errorMsg));
+            }
+          });
+          
+          xhr.addEventListener('error', (e) => {
+            console.error('Upload network error:', e);
+            reject(new Error('Upload failed: Network error - please check if the backend is running'));
+          });
+          
+          xhr.addEventListener('abort', () => {
+            console.error('Upload aborted');
+            reject(new Error('Upload was cancelled'));
+          });
+          
+          console.log('Uploading to:', `${CONFIG.api.baseUrl}/upload/`);
+          xhr.open('POST', `${CONFIG.api.baseUrl}/upload/`);
+          xhr.send(formData);
+        });
+      },
+      
+      /**
+       * Get a specific job by ID
+       * @param {string} jobId - UUID of the job
+       * @returns {Promise<Object|null>} Job object or null if not found
+       */
+      async getJob(jobId) {
+        try {
+          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/${jobId}`);
+          if (!response.ok) throw new Error('Failed to fetch job');
+          return await response.json();
+        } catch (error) {
+          console.error('Failed to load job:', error);
+          return null;
+        }
+      },
+      
+      /**
+       * Get metrics for a specific job
+       * @param {string} jobId - UUID of the job
+       * @returns {Promise<Array<Object>|null>} Array of metrics or null if not found
+       */
+      async getMetrics(jobId) {
+        try {
+          // Try /jobs/{jobId}/metrics first, fallback to /metrics/{jobId}
+          let response = await fetch(`${CONFIG.api.baseUrl}/jobs/${jobId}/metrics`);
+          if (!response.ok) {
+            response = await fetch(`${CONFIG.api.baseUrl}/metrics/${jobId}`);
+          }
+          if (!response.ok) {
+            // If metrics endpoint doesn't exist, get metrics from job data
+            const jobData = await this.getJob(jobId);
+            return jobData.metrics || null;
+          }
+          return await response.json();
+        } catch (error) {
+          console.error('Failed to load metrics:', error);
+          // Try to get metrics from job data as fallback
+          try {
+            const jobData = await this.getJob(jobId);
+            return jobData.metrics || null;
+          } catch {
+            return null;
+          }
+        }
+      },
+      
+      /**
+       * Delete a job by ID
+       * @param {string} jobId - UUID of the job to delete
+       * @returns {Promise<boolean>} True if deletion was successful
+       */
+      async deleteJob(jobId) {
+        try {
+          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/${jobId}`, { method: 'DELETE' });
+          if (!response.ok) throw new Error('Failed to delete job');
+          return true;
+        } catch (error) {
+          console.error('Failed to delete job:', error);
+          throw error;
+        }
+      }
+    };
+    
+    // ============================================================================
+    // MODULE: Utilities & Helpers
+    // ============================================================================
+    /**
+     * Normalize backend job status to UI status
+     * @param {string} status - Backend status string
+     * @returns {string} Normalized UI status
+     */
+    const normalizeStatus = (status) => {
+      if (status === 'running') return 'processing';
+      if (status === 'pending') return 'pending';
+      if (status === 'completed') return 'completed';
+      if (status === 'failed') return 'failed';
+      return 'queued';
+    };
+    
+    /**
+     * Format date string for display
+     * @param {string} dateString - ISO date string
+     * @returns {string} Formatted date string
+     */
+    const formatDate = (dateString) => {
+      if (!dateString) return 'N/A';
+      try {
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', { 
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit', 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false 
+        });
+      } catch {
+        return dateString;
+      }
+    };
+    
+    /**
+     * Convert backend job object to UI format
+     * @param {Object} job - Backend job object
+     * @returns {Object} UI-formatted job object
+     */
+    const toUiJob = (job) => {
+      const normalizedStatus = normalizeStatus(job.status);
+      return {
+        id: job.id || job.job_id,
+        filename: job.filename || job.file_path?.split('/').pop() || 'unknown',
+        status: normalizedStatus,
+        progress: job.progress ?? (normalizedStatus === 'completed' ? 100 : normalizedStatus === 'processing' ? 50 : 0),
+        uploadedAt: formatDate(job.created_at || job.started_at),
+        completedAt: formatDate(job.completed_at),
+        processingTime: job.processing_time || '',
+        currentStep: job.current_step ?? (normalizedStatus === 'processing' ? 'Processing...' : normalizedStatus === 'pending' ? 'Queued for processing' : ''),
+        errorMessage: job.error_message || null,
+      };
+    };
+    
+    // ============================================================================
+    // MODULE: UI Components - Charts
+    // ============================================================================
+    /**
+     * Recharts library wrapper with fallback
+     * @namespace ChartComponents
+     */
+    const RechartsLib = window.Recharts || {};
+    const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = RechartsLib;
+    
+    /**
+     * Simple fallback chart component if Recharts fails to load
+     * @param {Object} props - Component props
+     * @param {Array<Object>} props.data - Chart data
+     * @returns {React.ReactElement}
+     */
+    const SimpleChart = ({ data }) => (
+      <div className="h-96 flex items-end justify-center gap-4 p-4">
+        {data.map((item, idx) => (
+          <div key={idx} className="flex flex-col items-center">
+            <div className="w-20 bg-blue-500 text-white text-center px-2 py-1 rounded-t" style={{ height: `${(item.volume / Math.max(...data.map(d => d.volume))) * 300}px` }}>
+              {Number(item.volume).toFixed(1)}
+            </div>
+            <div className="mt-2 text-sm text-gray-600">{item.hemisphere}</div>
+          </div>
+        ))}
+      </div>
+    );
+
+    // ============================================================================
+    // MODULE: UI Components - Icons
+    // ============================================================================
+    /**
+     * SVG Icon Components (Fallbacks for Lucide React)
+     * All icons accept a className prop for styling
+     */
+    const Brain = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+      </svg>
+    );
+    const Upload = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+      </svg>
+    );
+    const Clock = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    );
+    const CheckCircle = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    );
+    const XCircle = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    );
+    const AlertCircle = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    );
+    const Trash2 = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+      </svg>
+    );
+    const Eye = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+      </svg>
+    );
+    const FileText = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+    );
+    const Download = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+      </svg>
+    );
+    const ChevronLeft = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+      </svg>
+    );
+    const ChevronRight = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
+    );
+    const Info = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    );
+    const ZoomIn = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+      </svg>
+    );
+    const ZoomOut = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+      </svg>
+    );
+    
+    const Maximize2 = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+      </svg>
+    );
+    const RotateCw = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+    );
+    const Activity = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    );
+    const Shield = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+    );
+    const Zap = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    );
+
+    // Calculate total volumes and asymmetry from metrics
+    const calculateVolumes = (metrics) => {
+      if (!metrics || !Array.isArray(metrics) || metrics.length === 0) {
+        return { left: 0, right: 0, ai: 0, aiDecimal: 0 };
+      }
+      
+      const left = metrics.reduce((sum, m) => sum + (m.left_volume || m.left || 0), 0);
+      const right = metrics.reduce((sum, m) => sum + (m.right_volume || m.right || 0), 0);
+      const aiDecimal = left > 0 && right > 0 
+        ? ((left - right) / (left + right))
+        : 0;
+      const ai = aiDecimal * 100;
+      
+      return { left, right, ai, aiDecimal };
+    };
+
+    const HS_THRESHOLDS = {
+      LEFT_HS: -0.070839747728063,
+      RIGHT_HS: 0.046915816971433,
+    };
+
+    const getHSClassification = (aiDecimal) => {
+      if (aiDecimal < HS_THRESHOLDS.LEFT_HS) {
+        return {
+          classification: 'Left HS',
+          status: 'abnormal',
+          message: 'Left hippocampal sclerosis suspected - Left volume significantly smaller than right'
+        };
+      } else if (aiDecimal > HS_THRESHOLDS.RIGHT_HS) {
+        return {
+          classification: 'Right HS',
+          status: 'abnormal',
+          message: 'Right hippocampal sclerosis suspected - Right volume significantly smaller than left'
+        };
+      } else {
+        return {
+          classification: 'No HS',
+          status: 'normal',
+          message: 'Hippocampal volumes within normal asymmetry range'
+        };
+      }
+    };
+
+    // ============================================================================
+    // MODULE: Page Components
+    // ============================================================================
+    /**
+     * Navigation component - Main navigation bar
+     * @param {Object} props - Component props
+     * @param {string} props.activePage - Currently active page
+     * @param {function(string): void} props.setActivePage - Page navigation handler
+     * @returns {React.ReactElement}
+     */
+    function Navigation({ activePage, setActivePage }) {
+      return (
+        <header className="bg-white border-b border-blue-100 shadow-sm sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActivePage('home')}>
+                <div className="bg-blue-600 p-2 rounded-lg">
+                  <Brain className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">NeuroInsight</h1>
+                  <p className="text-xs text-gray-500">Hippocampal Analysis Platform</p>
+                </div>
+              </div>
+              <nav className="flex gap-6">
+                <button
+                  onClick={() => setActivePage('home')}
+                  className={`transition ${
+                    activePage === 'home' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                >
+                  Home
+                </button>
+                <button
+                  onClick={() => setActivePage('jobs')}
+                  className={`transition ${
+                    activePage === 'jobs' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                >
+                  Jobs
+                </button>
+                <button
+                  onClick={() => setActivePage('dashboard')}
+                  className={`transition ${
+                    activePage === 'dashboard' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setActivePage('viewer')}
+                  className={`transition ${
+                    activePage === 'viewer' ? 'text-blue-600 font-semibold' : 'text-gray-600 hover:text-blue-600'
+                  }`}
+                >
+                  Viewer
+                </button>
+              </nav>
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    // Home Page
+    function HomePage({ setActivePage }) {
+      const [isDragging, setIsDragging] = useState(false);
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
+          <main className="max-w-7xl mx-auto px-6 py-16">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div className="space-y-6">
+                {/* Removed top badge per request */}
+                
+                <h2 className="text-5xl font-bold text-gray-900 leading-tight">
+                  Automated Hippocampal
+                  <span className="text-blue-600"> Volumetric Analysis</span>
+                </h2>
+                
+                <p className="text-lg text-gray-600 leading-relaxed">
+                  Advanced neuroimaging platform for processing T1-weighted MRI scans, computing hippocampal asymmetry indices, and detecting hippocampal sclerosis with precision and efficiency.
+                </p>
+
+                <div className="grid grid-cols-1 gap-3 pt-4">
+                  {[
+                    { icon: Zap, text: 'Fast automated segmentation with FreeSurfer' },
+                    { icon: Activity, text: 'Precise asymmetry index calculation' },
+                    { icon: CheckCircle, text: 'Clinical-grade HS classification' }
+                  ].map((feature, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <div className="bg-blue-100 p-2 rounded-lg">
+                        <feature.icon className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <span className="text-gray-700">{feature.text}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-6">
+                  <button
+                    onClick={() => setActivePage('jobs')}
+                    className="group flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl"
+                  >
+                    Get Started
+                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="relative">
+                <div className="absolute top-10 right-10 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+                <div className="absolute bottom-10 left-10 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse" style={{ animationDelay: '1s' }}></div>
+                
+                <div className="relative bg-white rounded-2xl shadow-2xl p-8 border border-blue-100">
+                  <svg viewBox="0 0 400 400" className="w-full h-auto">
+                    <defs>
+                      <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.8" />
+                        <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.6" />
+                      </linearGradient>
+                    </defs>
+                    
+                    <ellipse cx="200" cy="200" rx="150" ry="170" fill="#f0f9ff" stroke="#3b82f6" strokeWidth="3"/>
+                    <line x1="200" y1="30" x2="200" y2="370" stroke="#93c5fd" strokeWidth="2" strokeDasharray="5,5" opacity="0.5"/>
+                    
+                    <path d="M 80 150 Q 100 100, 150 120 T 180 160" fill="none" stroke="#3b82f6" strokeWidth="2" opacity="0.7"/>
+                    <path d="M 70 200 Q 90 180, 130 190 T 170 210" fill="none" stroke="#3b82f6" strokeWidth="2" opacity="0.7"/>
+                    <path d="M 85 250 Q 110 230, 150 245 T 180 270" fill="none" stroke="#3b82f6" strokeWidth="2" opacity="0.7"/>
+                    
+                    <path d="M 320 150 Q 300 100, 250 120 T 220 160" fill="none" stroke="#3b82f6" strokeWidth="2" opacity="0.7"/>
+                    <path d="M 330 200 Q 310 180, 270 190 T 230 210" fill="none" stroke="#3b82f6" strokeWidth="2" opacity="0.7"/>
+                    <path d="M 315 250 Q 290 230, 250 245 T 220 270" fill="none" stroke="#3b82f6" strokeWidth="2" opacity="0.7"/>
+                    
+                    <ellipse cx="140" cy="260" rx="25" ry="50" fill="url(#brainGradient)" opacity="0.8">
+                      <animate attributeName="opacity" values="0.6;0.9;0.6" dur="3s" repeatCount="indefinite" />
+                    </ellipse>
+                    <text x="140" y="335" fill="#1e40af" fontSize="16" fontWeight="bold" textAnchor="middle">L</text>
+                    
+                    <ellipse cx="260" cy="260" rx="23" ry="48" fill="url(#brainGradient)" opacity="0.8">
+                      <animate attributeName="opacity" values="0.6;0.9;0.6" dur="3s" repeatCount="indefinite" begin="0.5s" />
+                    </ellipse>
+                    <text x="260" y="335" fill="#1e40af" fontSize="16" fontWeight="bold" textAnchor="middle">R</text>
+                    
+                    <circle cx="140" cy="260" r="55" fill="none" stroke="#60a5fa" strokeWidth="2" strokeDasharray="3,3" opacity="0.5"/>
+                    <circle cx="260" cy="260" r="55" fill="none" stroke="#60a5fa" strokeWidth="2" strokeDasharray="3,3" opacity="0.5"/>
+                  </svg>
+                  
+                  <div className="mt-4 text-center">
+                    <p className="text-sm text-gray-500">Hippocampal Regions Highlighted</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-24 grid md:grid-cols-3 gap-8">
+              {[
+                {
+                  icon: Shield,
+                  title: 'HIPAA Compliant',
+                  description: 'Enterprise-grade security and privacy protection for patient data'
+                },
+                {
+                  icon: Zap,
+                  title: 'Fast Processing',
+                  description: 'Automated pipeline delivers results in minutes, not hours'
+                },
+                {
+                  icon: Activity,
+                  title: 'Clinical Accuracy',
+                  description: 'Validated asymmetry thresholds for hippocampal sclerosis detection'
+                }
+              ].map((feature, idx) => (
+                <div key={idx} className="bg-white rounded-xl p-6 shadow-lg border border-blue-100 hover:shadow-xl transition">
+                  <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+                    <feature.icon className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h4>
+                  <p className="text-gray-600">{feature.description}</p>
+                </div>
+              ))}
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    // Jobs Page
+    function JobsPage({ setActivePage, setSelectedJobId }) {
+      const [jobs, setJobs] = useState([]);
+      const [isDragging, setIsDragging] = useState(false);
+      const [selectedFile, setSelectedFile] = useState(null);
+      const [uploadProgress, setUploadProgress] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [pollingJobId, setPollingJobId] = useState(null);
+      const [patientInfo, setPatientInfo] = useState({
+        patient_name: '',
+        age: '',
+        sex: '',
+        scanner: '',
+        sequence: '',
+        notes: ''
+      });
+      
+      // Load jobs on mount and auto-refresh
+      useEffect(() => {
+        console.log('JobsPage mounted, loading jobs...');
+        loadJobs();
+        const interval = setInterval(() => {
+          loadJobs();
+        }, 10000); // Auto-refresh every 10 seconds
+        return () => clearInterval(interval);
+      }, []);
+      
+      // Debug: Log when jobs state changes
+      useEffect(() => {
+        console.log('Jobs state changed! New count:', jobs.length);
+        console.log('Jobs array:', jobs);
+        jobs.forEach((job, idx) => {
+          console.log(`  Job ${idx}: ${job.filename} (${job.status})`);
+        });
+      }, [jobs]);
+      
+      const loadJobs = async () => {
+        try {
+          console.log('=== Starting loadJobs ===');
+          setLoading(true);
+          console.log('Loading state set to true');
+          console.log('API Base URL:', CONFIG.api.baseUrl);
+          console.log('Current jobs state:', jobs.length);
+          
+          console.log('About to call ApiService.getJobs()');
+          let data;
+          try {
+            data = await ApiService.getJobs();
+            console.log('ApiService.getJobs() completed successfully');
+          } catch (apiError) {
+            console.error('API call failed:', apiError);
+            console.log('Trying direct fetch fallback...');
+            // Fallback: Try direct fetch with credentials
+            try {
+              console.log('Making direct fetch request to:', `${CONFIG.api.baseUrl}/jobs/`);
+              const response = await fetch(`${CONFIG.api.baseUrl}/jobs/`, {
+                method: 'GET',
+                headers: {
+                  'Accept': 'application/json',
+                },
+                mode: 'cors',
+              });
+              console.log('Direct fetch response received:', response.status, response.statusText);
+              if (response.ok) {
+                data = await response.json();
+                console.log('Direct fetch JSON parsed successfully, data length:', data.length);
+              } else {
+                const errorText = await response.text();
+                console.error('Direct fetch failed with response:', errorText);
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+              }
+            } catch (fetchError) {
+              console.error('Direct fetch also failed:', fetchError);
+              // Last resort: Use mock data to test rendering
+              console.warn('API unreachable; using empty array');
+              data = [];
+            }
+          }
+          
+          console.log('Raw API data:', data);
+          console.log('Data type:', typeof data);
+          console.log('Is array:', Array.isArray(data));
+          console.log('Data length:', data?.length);
+          
+          if (!data || !Array.isArray(data)) {
+            console.error('Invalid data format:', data);
+            console.error('Data type:', typeof data);
+            console.error('Is array:', Array.isArray(data));
+            setJobs([]);
+            return;
+          }
+          
+          const uiJobs = data.map(toUiJob);
+          console.log('Converted UI jobs:', uiJobs);
+          console.log('UI jobs count:', uiJobs.length);
+          
+          // Debug: Log each job's status
+          uiJobs.forEach((job, idx) => {
+            console.log(`Job ${idx}:`, {
+              id: job.id,
+              filename: job.filename,
+              status: job.status,
+              rawStatus: data[idx]?.status
+            });
+          });
+          
+          // Debug: Log completed jobs
+          const completedJobs = uiJobs.filter(j => j.status === 'completed');
+          console.log('Completed jobs count:', completedJobs.length);
+          console.log('Completed jobs:', completedJobs);
+          
+          console.log('Data processing completed, uiJobs length:', uiJobs.length);
+          console.log('Setting jobs state...');
+          setJobs(uiJobs);
+          console.log('Jobs state updated successfully');
+        } catch (err) {
+          console.error('Failed to load jobs:', err);
+          console.error('Error stack:', err.stack);
+          console.log('Setting jobs to empty array due to error');
+          setJobs([]);
+        } finally {
+          console.log('Setting loading to false...');
+          setLoading(false);
+          console.log('=== Loading Complete ===');
+        }
+      };
+      
+      const handleFileSelect = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          const validFormats = ['.nii', '.gz', '.dcm', '.dicom'];
+          const isValid = validFormats.some(format => file.name.toLowerCase().endsWith(format));
+          if (isValid) {
+            setSelectedFile(file);
+          } else {
+            alert('Invalid file format. Please upload .nii, .gz, .dcm, or .dicom files.');
+          }
+        }
+      };
+      
+      const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          const validFormats = ['.nii', '.gz', '.dcm', '.dicom'];
+          const isValid = validFormats.some(format => file.name.toLowerCase().endsWith(format));
+          if (isValid) {
+            setSelectedFile(file);
+          }
+        }
+      };
+      
+      const handleUpload = async () => {
+        if (!selectedFile) return;
+        
+        try {
+          setUploadProgress(0);
+          const job = await ApiService.uploadFile(selectedFile, (progress) => {
+            setUploadProgress(progress);
+          }, patientInfo);
+          
+          const uiJob = toUiJob(job);
+          setJobs([uiJob, ...jobs]);
+          setPollingJobId(uiJob.id);
+          setSelectedFile(null);
+          setUploadProgress(null);
+          // Reset patient info form
+          setPatientInfo({
+            patient_name: '',
+            age: '',
+            sex: '',
+            scanner: '',
+            sequence: '',
+            notes: ''
+          });
+          // Begin polling this job until completion
+          pollJobUntilDone(uiJob.id);
+        } catch (error) {
+          console.error('Upload failed:', error);
+          setUploadProgress(null);
+          alert('Upload failed. Please try again.');
+        }
+      };
+
+      const pollJobUntilDone = async (jobId) => {
+        console.log('Start polling job', jobId);
+        let attempts = 0;
+        const maxAttempts = 200; // ~10 minutes at 3s interval
+        const intervalMs = 3000;
+        const timer = setInterval(async () => {
+          attempts += 1;
+          try {
+            const job = await ApiService.getJob(jobId);
+            if (job) {
+              const uiJob = toUiJob(job);
+              setJobs((prev) => {
+                const others = prev.filter(j => j.id !== jobId);
+                return [uiJob, ...others];
+              });
+              if (uiJob.status === 'completed' || uiJob.status === 'failed') {
+                clearInterval(timer);
+                setPollingJobId(null);
+                if (uiJob.status === 'completed') {
+                  setSelectedJobId(jobId);
+                  setActivePage('dashboard');
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Polling failed for job', jobId, e);
+          }
+          if (attempts >= maxAttempts) {
+            console.warn('Polling timed out for job', jobId);
+            clearInterval(timer);
+            setPollingJobId(null);
+          }
+        }, intervalMs);
+      };
+      
+      const handlePatientInfoChange = (field, value) => {
+        setPatientInfo(prev => ({
+          ...prev,
+          [field]: value
+        }));
+      };
+      
+      // Calculate stats from jobs with robust error handling
+      const safeJobs = Array.isArray(jobs) ? jobs : [];
+      let stats = { total: 0, completed: 0, processing: 0, failed: 0 };
+      try {
+        stats = {
+          total: safeJobs.length || 0,
+          completed: safeJobs.filter(j => j?.status === 'completed').length || 0,
+          processing: safeJobs.filter(j => j?.status === 'processing').length || 0,
+          pending: safeJobs.filter(j => j?.status === 'pending').length || 0,
+          failed: safeJobs.filter(j => j?.status === 'failed').length || 0,
+        };
+      } catch (error) {
+        console.error('Error calculating stats:', error);
+      }
+      console.log('Calculated stats:', stats);
+
+      const getStatusIcon = (status) => {
+        switch (status) {
+          case 'completed':
+            return <CheckCircle className="w-5 h-5 text-green-600" />;
+          case 'processing':
+            return <Clock className="w-5 h-5 text-blue-600 animate-spin" />;
+          case 'pending':
+            return <Clock className="w-5 h-5 text-yellow-600" />;
+          case 'queued':
+            return <Clock className="w-5 h-5 text-gray-400" />;
+          case 'failed':
+            return <XCircle className="w-5 h-5 text-red-600" />;
+          default:
+            return <AlertCircle className="w-5 h-5 text-gray-400" />;
+        }
+      };
+
+      const getStatusColor = (status) => {
+        switch (status) {
+          case 'completed':
+            return 'bg-green-50 text-green-700 border-green-200';
+          case 'processing':
+            return 'bg-blue-50 text-blue-700 border-blue-200';
+          case 'pending':
+            return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+          case 'queued':
+            return 'bg-gray-50 text-gray-700 border-gray-200';
+          case 'failed':
+            return 'bg-red-50 text-red-700 border-red-200';
+          default:
+            return 'bg-gray-50 text-gray-700 border-gray-200';
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload New MRI Scan</h2>
+              <p className="text-gray-600 mb-6">Upload T1-weighted MRI scans in DICOM or NIfTI format</p>
+              
+              {/* Patient Information Section */}
+              <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-blue-600" />
+                  Patient Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Patient Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={patientInfo.patient_name}
+                      onChange={(e) => handlePatientInfoChange('patient_name', e.target.value)}
+                      placeholder="Enter patient name"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Age
+                    </label>
+                    <input
+                      type="number"
+                      value={patientInfo.age}
+                      onChange={(e) => handlePatientInfoChange('age', e.target.value)}
+                      placeholder="Enter age"
+                      min="0"
+                      max="120"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sex
+                    </label>
+                    <select
+                      value={patientInfo.sex}
+                      onChange={(e) => handlePatientInfoChange('sex', e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select...</option>
+                      <option value="M">Male</option>
+                      <option value="F">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Scanner
+                    </label>
+                    <input
+                      type="text"
+                      value={patientInfo.scanner}
+                      onChange={(e) => handlePatientInfoChange('scanner', e.target.value)}
+                      placeholder="e.g., Siemens, GE, Philips"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sequence
+                    </label>
+                    <input
+                      type="text"
+                      value={patientInfo.sequence}
+                      onChange={(e) => handlePatientInfoChange('sequence', e.target.value)}
+                      placeholder="e.g., T1w, T2w, FLAIR"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Notes
+                    </label>
+                    <input
+                      type="text"
+                      value={patientInfo.notes}
+                      onChange={(e) => handlePatientInfoChange('notes', e.target.value)}
+                      placeholder="Additional notes (optional)"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              {/* File Upload Section */}
+              <div
+                onDrop={handleDrop}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                className={`border-2 border-dashed rounded-2xl p-12 transition border-blue-200 bg-white hover:border-blue-400 hover:bg-blue-50 ${isDragging ? 'border-blue-400 bg-blue-50' : ''}`}
+              >
+                <div className="text-center space-y-4">
+                  <div className="flex justify-center">
+                    <div className="bg-blue-100 p-6 rounded-full">
+                      <Upload className="w-12 h-12 text-blue-600" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold text-gray-900 mb-2">
+                      {selectedFile ? selectedFile.name : 'Drop your T1-weighted MRI scan here'}
+                    </p>
+                    <p className="text-gray-500">or click to browse files</p>
+                  </div>
+                  <label className="inline-block">
+                    <input
+                      type="file"
+                      accept=".nii,.gz,.dcm,.dicom"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <span className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition cursor-pointer inline-block">
+                    Select Files
+                    </span>
+                  </label>
+                  <p className="text-xs text-gray-400 mt-4">
+                    Accepted formats: .dcm, .nii, .nii.gz • Max size: 500MB
+                  </p>
+                </div>
+              </div>
+              {uploadProgress !== null && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Uploading...</span>
+                    <span className="text-sm font-medium text-gray-700">{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }}></div>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={handleUpload}
+                disabled={!selectedFile || uploadProgress !== null}
+                className="mt-4 w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Start Processing
+              </button>
+            </div>
+
+            <div className="grid grid-cols-5 gap-4 mb-8">
+              {[
+                { label: 'Total Jobs', value: (stats?.total ?? 0).toString(), icon: FileText, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
+                { label: 'Completed', value: (stats?.completed ?? 0).toString(), icon: CheckCircle, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
+                { label: 'Processing', value: (stats?.processing ?? 0).toString(), icon: Clock, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
+                { label: 'Pending', value: (stats?.pending ?? 0).toString(), icon: Clock, bgColor: 'bg-yellow-100', iconColor: 'text-yellow-600' },
+                { label: 'Failed', value: (stats?.failed ?? 0).toString(), icon: XCircle, bgColor: 'bg-red-100', iconColor: 'text-red-600' }
+              ].map((stat, idx) => (
+                <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
+                      <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                    </div>
+                    <div className={`${stat.bgColor} p-3 rounded-lg`}>
+                      <stat.icon className={`w-6 h-6 ${stat.iconColor}`} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+              <div className="px-6 py-4 border-b border-blue-100 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Recent Jobs</h2>
+                <div className="text-sm text-gray-500">
+                  Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+                  {(stats?.completed > 0) && ` (${stats.completed} completed)`}
+                  {pollingJobId ? ` • monitoring ${pollingJobId}` : ''}
+                </div>
+              </div>
+
+
+              {loading && jobs.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Clock className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+                  <p className="text-gray-600">Loading jobs...</p>
+                </div>
+              ) : jobs.length === 0 ? (
+                <div className="p-12 text-center text-gray-500">
+                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-semibold mb-2">No jobs found</p>
+                  <p className="text-sm">Try uploading a file to get started.</p>
+                </div>
+              ) : (
+              <div className="divide-y divide-blue-100">
+                {jobs.map((job) => (
+                  <div key={job.id} className="p-6 hover:bg-blue-50 transition">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 flex-1">
+                        {getStatusIcon(job.status)}
+                        
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-gray-900">{job.filename}</h3>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(job.status)}`}>
+                              {job.status.toUpperCase()}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <span>ID: {job.id}</span>
+                            <span>•</span>
+                            <span>Uploaded: {job.uploadedAt}</span>
+                            {job.completedAt && (
+                              <>
+                                <span>•</span>
+                                <span>Completed: {job.completedAt}</span>
+                              </>
+                            )}
+                          </div>
+
+                          {(job.status === 'processing' || job.status === 'pending') && (
+                            <div className="mt-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm text-gray-600">{job.currentStep}</span>
+                                <span className={`text-sm font-semibold ${job.status === 'processing' ? 'text-blue-600' : 'text-yellow-600'}`}>
+                                  {job.status === 'pending' ? 'Queued' : `${job.progress}%`}
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div className={`h-2 rounded-full transition-all duration-500 ${job.status === 'processing' ? 'bg-blue-600' : 'bg-yellow-600'}`} style={{ width: `${job.progress}%` }}></div>
+                              </div>
+                            </div>
+                          )}
+
+                          {job.status === 'failed' && job.errorMessage && (
+                            <div className="mt-3 bg-red-50 border-2 border-red-300 rounded-lg p-4 shadow-sm">
+                              <div className="flex items-start gap-3">
+                                <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                  <p className="text-base font-bold text-red-900 mb-3"> Job Failed</p>
+                                  {(() => {
+                                    // More robust error detection
+                                    const errMsg = job.errorMessage.toLowerCase();
+                                    const isDockerError = errMsg.includes('docker') && 
+                                                         (errMsg.includes('not running') || 
+                                                          errMsg.includes('not installed') || 
+                                                          errMsg.includes('not available'));
+                                    const isFilenameError = errMsg.includes('filename') && 
+                                                           (errMsg.includes('does not contain') || 
+                                                            errMsg.includes('rename'));
+                                    const isT1wError = (errMsg.includes('t1') || 
+                                                       errMsg.includes('t2') ||
+                                                       errMsg.includes('flair') ||
+                                                       errMsg.includes('dwi') ||
+                                                       errMsg.includes('image type') ||
+                                                       errMsg.includes('sequence')) && !isFilenameError;
+                                    
+                                    if (isDockerError) {
+                                      return (
+                                        <div>
+                                          <p className="text-base text-red-900 mb-4 font-semibold">
+                                            Docker Desktop is not running
+                                          </p>
+                                          <p className="text-sm text-red-800 mb-3">
+                                            NeuroInsight requires Docker to process MRI scans.
+                                          </p>
+                                          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-md p-4 mb-3">
+                                            <p className="text-sm font-bold text-gray-900 mb-3"> Quick Fix:</p>
+                                            <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
+                                              <li className="pl-2">Open <strong className="font-bold">Docker Desktop</strong> from your Applications folder</li>
+                                              <li className="pl-2">Wait for the whale icon to appear in your menu bar (Mac) or system tray (Windows/Linux)</li>
+                                              <li className="pl-2">The icon should be <strong>steady</strong> (not animating)</li>
+                                              <li className="pl-2">Return here and upload your MRI file again</li>
+                                            </ol>
+                                          </div>
+                                          <details className="text-xs">
+                                            <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold"> Show full error details</summary>
+                                            <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.errorMessage}</pre>
+                                          </details>
+                                        </div>
+                                      );
+                                    } else if (isFilenameError) {
+                                      return (
+                                        <div>
+                                          <p className="text-base text-red-900 mb-4 font-semibold">
+                                            Please rename your file
+                                          </p>
+                                          <p className="text-sm text-red-800 mb-3">
+                                            Your filename must contain <strong>'T1'</strong> to indicate it's a T1-weighted MRI scan.
+                                          </p>
+                                          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-md p-4 mb-3">
+                                            <p className="text-sm font-bold text-gray-900 mb-3"> Good filename examples:</p>
+                                            <ul className="text-sm text-gray-800 space-y-2 list-disc list-inside ml-4 mb-4">
+                                              <li className="pl-1 font-mono">subject_T1w.nii</li>
+                                              <li className="pl-1 font-mono">brain_T1.nii</li>
+                                              <li className="pl-1 font-mono">patient_01_MPRAGE_T1.nii</li>
+                                              <li className="pl-1 font-mono">scan_T1-weighted.nii</li>
+                                            </ul>
+                                            <p className="text-sm font-bold text-gray-900 mb-2"> Steps to fix:</p>
+                                            <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
+                                              <li className="pl-2">Rename your file to include <strong>'T1'</strong> in the filename</li>
+                                              <li className="pl-2">Make sure you're using a T1-weighted scan (MPRAGE, SPGR, or 3D T1)</li>
+                                              <li className="pl-2">Upload the renamed file</li>
+                                            </ol>
+                                          </div>
+                                          <p className="text-xs text-gray-700 italic mb-2">
+ Why? This helps ensure you're uploading the correct scan type. FreeSurfer requires T1-weighted images.
+                                          </p>
+                                          <details className="text-xs">
+                                            <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold"> Show full error details</summary>
+                                            <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.errorMessage}</pre>
+                                          </details>
+                                        </div>
+                                      );
+                                    } else if (isT1wError) {
+                                      return (
+                                        <div>
+                                          <p className="text-base text-red-900 mb-4 font-semibold">
+ Wrong MRI sequence type detected
+                                          </p>
+                                          <p className="text-sm text-red-800 mb-3">
+                                            This file appears to be a <strong>non-T1w</strong> MRI scan.
+                                          </p>
+                                          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-md p-4 mb-3">
+                                            <p className="text-sm font-bold text-green-800 mb-2"> Accepted T1w sequences:</p>
+                                            <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside ml-4 mb-4">
+                                              <li className="pl-1"><strong>MPRAGE</strong> (most common)</li>
+                                              <li className="pl-1"><strong>SPGR</strong> (Spoiled Gradient Recalled Echo)</li>
+                                              <li className="pl-1"><strong>T1-FLAIR</strong></li>
+                                              <li className="pl-1"><strong>3D T1</strong> (volumetric)</li>
+                                            </ul>
+                                            <p className="text-sm font-bold text-red-800 mb-2"> NOT supported:</p>
+                                            <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside ml-4 mb-3">
+                                              <li className="pl-1">T2-weighted</li>
+                                              <li className="pl-1">FLAIR (unless T1-FLAIR)</li>
+                                              <li className="pl-1">DWI/DTI</li>
+                                              <li className="pl-1">fMRI/BOLD</li>
+                                            </ul>
+                                            <p className="text-sm font-bold text-gray-900 mb-2"> What to do:</p>
+                                            <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
+                                              <li className="pl-2">Find your T1-weighted scan in your MRI data</li>
+                                              <li className="pl-2">Rename the file to include <strong>'T1'</strong></li>
+                                              <li className="pl-2">Upload the correct T1-weighted file</li>
+                                            </ol>
+                                          </div>
+                                          <p className="text-xs text-gray-700 italic mb-2">
+ Tip: Look for "T1" or "MPRAGE" in your scan series names
+                                          </p>
+                                          <details className="text-xs">
+                                            <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold"> Show full error details</summary>
+                                            <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.errorMessage}</pre>
+                                          </details>
+                                        </div>
+                                      );
+                                    } else {
+                                      return (
+                                        <div>
+                                          <p className="text-sm text-red-800 mb-3 font-semibold">An error occurred during processing</p>
+                                          <details className="text-xs" open>
+                                            <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold mb-2"> Error details</summary>
+                                            <pre className="p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.errorMessage}</pre>
+                                          </details>
+                                        </div>
+                                      );
+                                    }
+                                  })()}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 ml-4">
+                        {job.status === 'completed' && (
+                            <>
+                          <button
+                                onClick={() => {
+                                  setSelectedJobId(job.id);
+                                  setActivePage('dashboard');
+                                }}
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                                title="View Statistics"
+                          >
+                            <Eye className="w-5 h-5" />
+                          </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedJobId(job.id);
+                                  setActivePage('viewer');
+                                }}
+                                className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition"
+                                title="View 2D Slices"
+                              >
+                                <Activity className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    const response = await fetch(`${CONFIG.api.baseUrl}/reports/${job.id}/pdf`);
+                                    if (response.ok) {
+                                      const blob = await response.blob();
+                                      const url = window.URL.createObjectURL(blob);
+                                      const a = document.createElement('a');
+                                      a.href = url;
+                                      a.download = `neuroinsight_report_${job.id}.pdf`;
+                                      document.body.appendChild(a);
+                                      a.click();
+                                      document.body.removeChild(a);
+                                      window.URL.revokeObjectURL(url);
+                                    } else {
+                                      alert('Failed to generate report. Please try again.');
+                                    }
+                                  } catch (error) {
+                                    console.error('Report generation failed:', error);
+                                    alert('Failed to generate report. Please try again.');
+                                  }
+                                }}
+                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition"
+                                title="Generate PDF Report"
+                              >
+                                <Download className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={async () => {
+                              if (confirm('Delete this job?')) {
+                                try {
+                                  await ApiService.deleteJob(job.id);
+                                  setJobs(jobs.filter(j => j.id !== job.id));
+                                } catch (error) {
+                                  console.error('Delete failed:', error);
+                                  alert('Failed to delete job');
+                                }
+                              }
+                            }}
+                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
+                          >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                  {jobs.length === 0 && (
+                    <div className="p-12 text-center text-gray-500">
+                      No jobs yet. Upload a file to get started.
+              </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Stats Page
+    function DashboardPage({ selectedJobId, setSelectedJobId }) {
+      const [metrics, setMetrics] = useState(null);
+      const [patientInfo, setPatientInfo] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [availableJobs, setAvailableJobs] = useState([]);
+
+      useEffect(() => {
+        loadAvailableJobs();
+      }, []);
+
+      useEffect(() => {
+        if (selectedJobId) {
+          loadStats();
+        }
+      }, [selectedJobId]);
+
+      const loadAvailableJobs = async () => {
+        try {
+          const data = await ApiService.getJobs();
+          const completedJobs = (data || []).filter(j =>
+            normalizeStatus(j.status) === 'completed'
+          ).map(toUiJob);
+          setAvailableJobs(completedJobs);
+
+          // Auto-select first completed job if none selected
+          if (!selectedJobId && completedJobs.length > 0) {
+            setSelectedJobId(completedJobs[0].id);
+          }
+        } catch (error) {
+          console.error('Failed to load jobs:', error);
+        }
+      };
+      
+      const loadStats = async () => {
+        if (!selectedJobId) return;
+        
+        try {
+          setLoading(true);
+          const [jobData, metricsData] = await Promise.all([
+            ApiService.getJob(selectedJobId),
+            ApiService.getMetrics(selectedJobId).catch(() => null)
+          ]);
+          
+          // Extract patient info from job metadata if available
+          const jobAny = jobData || {};
+          setPatientInfo({
+            id: jobAny.id || jobAny.job_id || selectedJobId,
+            name: jobAny.patient_name || jobAny.metadata?.patient_name || 'N/A',
+            age: jobAny.age || jobAny.metadata?.age || 'N/A',
+            sex: jobAny.sex || jobAny.metadata?.sex || 'N/A',
+            scanDate: jobAny.created_at || 'N/A',
+            processedDate: jobAny.completed_at || 'N/A',
+            scanner: jobAny.scanner || jobAny.metadata?.scanner || 'N/A',
+            sequence: jobAny.sequence || jobAny.metadata?.sequence || 'T1-MPRAGE'
+          });
+          
+          if (metricsData) {
+            setMetrics(metricsData);
+          }
+        } catch (error) {
+          console.error('Failed to load stats:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      const totalHippocampalVolume = calculateVolumes(metrics);
+      const hsClassification = getHSClassification(totalHippocampalVolume.aiDecimal);
+      
+      if (!selectedJobId) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center">
+            <div className="text-center max-w-md mx-auto">
+              <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">No Job Selected</h2>
+              <p className="text-gray-600 mb-6">Please select a completed job to view statistics</p>
+              {availableJobs.length > 0 ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Job:</label>
+                  <select
+                    value={selectedJobId || ''}
+                    onChange={(e) => setSelectedJobId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                  >
+                    <option value="">-- Select a job --</option>
+                    {availableJobs.map(job => (
+                      <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p className="text-gray-500">No completed jobs available. Please upload and process an MRI scan first.</p>
+              )}
+            </div>
+          </div>
+        );
+      }
+      
+      if (loading) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center">
+            <div className="text-center">
+              <Clock className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+              <p className="text-gray-600">Loading statistics...</p>
+            </div>
+          </div>
+        );
+      }
+      
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+
+            {/* Generate Report Button - Top right corner */}
+            {patientInfo && (
+            <div className="flex justify-end mb-8">
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`${CONFIG.api.baseUrl}/reports/${selectedJobId}/pdf`);
+                    if (response.ok) {
+                      const blob = await response.blob();
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `neuroinsight_report_${selectedJobId}.pdf`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      window.URL.revokeObjectURL(url);
+                    } else {
+                      alert('Failed to generate report. Please try again.');
+                    }
+                  } catch (error) {
+                    console.error('Report generation failed:', error);
+                    alert('Failed to generate report. Please try again.');
+                  }
+                }}
+                className="flex items-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                style={{ backgroundColor: '#3b82f6' }} // Same blue as chart bars
+              >
+                <Download className="w-6 h-6" />
+                Generate PDF Report
+              </button>
+            </div>
+            )}
+
+            {patientInfo && (
+            <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-semibold text-gray-900">Patient Information</h2>
+              </div>
+              <div className="grid grid-cols-4 gap-6">
+                <div>
+                  <p className="text-sm text-gray-500">Patient ID</p>
+                  <p className="font-semibold text-gray-900">{patientInfo.id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Age / Sex</p>
+                  <p className="font-semibold text-gray-900">{patientInfo.age} / {patientInfo.sex}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Scan Date</p>
+                  <p className="font-semibold text-gray-900">{patientInfo.scanDate}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Scanner</p>
+                  <p className="font-semibold text-gray-900">{patientInfo.scanner}</p>
+                </div>
+              </div>
+            </div>
+            )}
+
+
+            {metrics && metrics.length > 0 ? (
+            <div className="grid grid-cols-3 gap-6">
+                <div className="col-span-1 bg-white rounded-xl shadow-sm border border-blue-100 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Hippocampal Volume Comparison (mm³)</h2>
+                  {ResponsiveContainer && BarChart ? (
+                <ResponsiveContainer width="100%" height={400}>
+                      <BarChart data={[
+                    { hemisphere: 'Left', volume: totalHippocampalVolume.left },
+                    { hemisphere: 'Right', volume: totalHippocampalVolume.right }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="hemisphere" stroke="#6b7280" />
+                    <YAxis stroke="#6b7280" />
+                    <Tooltip />
+                        <Bar dataKey="volume" fill="#3b82f6" radius={[8, 8, 0, 0]} barSize={60}>
+                          {RechartsLib.LabelList && (
+                            <RechartsLib.LabelList dataKey="volume" position="top" formatter={(v) => Number(v).toFixed(1)} />
+                          )}
+                        </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                  ) : (
+                    <SimpleChart data={[
+                      { hemisphere: 'Left', volume: totalHippocampalVolume.left },
+                      { hemisphere: 'Right', volume: totalHippocampalVolume.right }
+                    ]} />
+                  )}
+              </div>
+
+                <div className="col-span-2 space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Total Hippocampal Volume</h2>
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">Left Hemisphere</p>
+                        <p className="text-2xl font-bold text-blue-600">{totalHippocampalVolume.left.toFixed(1)} mm³</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <p className="text-sm text-gray-600 mb-1">Right Hemisphere</p>
+                        <p className="text-2xl font-bold text-blue-600">{totalHippocampalVolume.right.toFixed(1)} mm³</p>
+                    </div>
+                      {/* Asymmetry Index */}
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <p className="text-sm text-gray-600 mb-1">Asymmetry Index</p>
+                        <p className="text-2xl font-bold text-blue-600">{totalHippocampalVolume.aiDecimal.toFixed(4)}</p>
+                        <p className="text-xs text-gray-500 mt-1">AI = (Left − Right) / (Left + Right)</p>
+                      </div>
+                      {/* Lateralization */}
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <p className="text-sm text-gray-600 mb-1">Lateralization</p>
+                        {(() => {
+                          const ai = totalHippocampalVolume.aiDecimal;
+                          // Use HS thresholds for lateralization cutoffs
+                          const label = ai > HS_THRESHOLDS.RIGHT_HS
+                            ? 'Left-dominant'
+                            : ai < HS_THRESHOLDS.LEFT_HS
+                            ? 'Right-dominant'
+                            : 'Balanced';
+                          const color = label === 'Balanced' ? 'text-gray-700' : 'text-blue-700';
+                          return <p className={`text-xl font-semibold ${color}`}>{label}</p>;
+                        })()}
+                        <div className="text-xs text-gray-500 mt-2">
+                          <p className="font-semibold mb-1">Thresholds:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            <li>Left HS (Right-dominant) if AI &lt; -0.070839747728063.</li>
+                            <li>Right HS (Left-dominant) if AI &gt; 0.046915816971433.</li>
+                            <li>No HS (Balanced) otherwise.</li>
+                          </ul>
+                    </div>
+                  </div>
+                      {/* Classification block removed per user request */}
+                </div>
+              </div>
+            </div>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-12 text-center">
+                <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No metrics available for this job yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Viewer Page
+    function ViewerPage({ selectedJobId, setSelectedJobId }) {
+      const [activeView, setActiveView] = useState(0);
+      const [orientation, setOrientation] = useState('coronal');  // coronal or axial
+      const [loading, setLoading] = useState(false);
+      const [slices, setSlices] = useState([]);
+      const [availableJobs, setAvailableJobs] = useState([]);
+      const [maxSlice, setMaxSlice] = useState(9); // Start with expected 10 slices (0-9)
+      const [zoomLevel, setZoomLevel] = useState(1.0);  // Zoom level: 1.0 = 100%, 2.0 = 200%, etc.
+      const [overlayOpacity, setOverlayOpacity] = useState(0.6);  // Overlay opacity: 0.0 = only anatomical, 1.0 = full overlay
+      const [imageLoadError, setImageLoadError] = useState(false);  // Track if current slice image failed to load
+      const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
+      // No flip needed; backend overlays saved with correct orientation
+      const FLIP_VERTICAL = false;
+      
+      // Zoom handlers
+      const handleZoomIn = () => {
+        setZoomLevel(prev => Math.min(prev + 0.25, 3.0)); // Max 300%
+      };
+      
+      const handleZoomOut = () => {
+        setZoomLevel(prev => Math.max(prev - 0.25, 0.5)); // Min 50%
+      };
+      
+      const handleZoomReset = () => {
+        setZoomLevel(1.0);
+      };
+      
+      // Load available completed jobs
+      useEffect(() => {
+        loadAvailableJobs();
+      }, []);
+      
+      // Load slices when job or orientation changes
+      const prevSelectedJobId = useRef(selectedJobId);
+      const prevOrientation = useRef(orientation);
+
+      useEffect(() => {
+        const jobChanged = prevSelectedJobId.current !== selectedJobId;
+        const orientationChanged = prevOrientation.current !== orientation;
+
+        console.log('useEffect triggered:', {
+          selectedJobId_changed: jobChanged,
+          orientation_changed: orientationChanged,
+          prev_selectedJobId: prevSelectedJobId.current,
+          new_selectedJobId: selectedJobId,
+          prev_orientation: prevOrientation.current,
+          new_orientation: orientation
+        });
+
+        // Clear slicesLoaded when job or orientation changes to allow fresh slice loading
+        if (jobChanged || orientationChanged) {
+          console.log('Clearing slicesLoaded cache due to job/orientation change');
+          setSlicesLoaded(new Set());
+        }
+
+        prevSelectedJobId.current = selectedJobId;
+        prevOrientation.current = orientation;
+
+        if (selectedJobId) {
+          loadSlices();
+          setImageLoadError(false); // Reset error state when switching slices/orientation
+        }
+      }, [selectedJobId, orientation]); // Removed activeView dependency to prevent infinite loop
+
+      // Debug: Watch all state changes
+      useEffect(() => {
+        console.log(`SELECTEDJOBID CHANGED: "${selectedJobId}"`);
+        console.log(`Stack trace:`, new Error().stack);
+      }, [selectedJobId]);
+
+      useEffect(() => {
+        console.log(`ORIENTATION CHANGED: "${orientation}"`);
+        console.log(`Stack trace:`, new Error().stack);
+      }, [orientation]);
+
+      useEffect(() => {
+        console.log(`ACTIVEVIEW CHANGED: ${activeView}`);
+        console.log(`Stack trace:`, new Error().stack);
+      }, [activeView]);
+
+      const loadAvailableJobs = async () => {
+        try {
+          const data = await ApiService.getJobs();
+          const completedJobs = (data || []).filter(j => 
+            normalizeStatus(j.status) === 'completed'
+          ).map(toUiJob);
+          setAvailableJobs(completedJobs);
+          
+          // Auto-select first completed job if none selected
+          if (!selectedJobId && completedJobs.length > 0) {
+            setSelectedJobId(completedJobs[0].id);
+          }
+        } catch (error) {
+          console.error('Failed to load jobs:', error);
+        }
+      };
+      
+      const loadSlices = async () => {
+        if (!selectedJobId) return;
+        
+        try {
+          setLoading(true);
+          // Backend provides overlay images at: /visualizations/{jobId}/overlay/{sliceId}?orientation={orientation}&layer={layer}
+          // sliceId format: slice_00, slice_01, etc.
+          // For this job, we have exactly 10 slices for each orientation
+          // We'll verify all 10 slices exist for the current orientation
+
+          // Always use 10 slices (slice_00 to slice_09) for hippocampus visualization
+          let detectedMax = 9; // 10 slices (0-9) for current orientation
+          
+          // Verify all 10 slices are available by checking slice_00 through slice_09 for current orientation
+          let availableSlices = 0;
+          for (let i = 0; i <= 9; i++) {
+            try {
+              const testUrl = `${CONFIG.api.baseUrl}/visualizations/${selectedJobId}/overlay/slice_${String(i).padStart(2, '0')}?orientation=${orientation}`;
+              const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout')), 1000)
+              );
+              const fetchPromise = fetch(testUrl, { cache: 'no-cache', method: 'HEAD' });
+              const response = await Promise.race([fetchPromise, timeoutPromise]);
+              if (response.ok) {
+                availableSlices++;
+              }
+            } catch {
+              // Slice not available
+              break;
+            }
+          }
+
+          // If we found fewer than 10 slices, use what we have
+          if (availableSlices > 0 && availableSlices < 10) {
+            detectedMax = availableSlices - 1;
+            console.log(`Found ${availableSlices} ${orientation} slices (expected 10)`);
+          } else if (availableSlices === 10) {
+            console.log(`All 10 ${orientation} slices are available`);
+          }
+          
+          setMaxSlice(detectedMax);
+
+          // Only set initial activeView when slices are first loaded for this job/orientation
+          const sliceKey = `${selectedJobId}-${orientation}`;
+          console.log(`loadSlices: Checking sliceKey "${sliceKey}", slicesLoaded has:`, Array.from(slicesLoaded));
+          if (!slicesLoaded.has(sliceKey)) {
+            const middleSlice = Math.floor(detectedMax / 2);
+            console.log(`loadSlices: FIRST LOAD - setting activeView to middle slice ${middleSlice} (detectedMax=${detectedMax})`);
+            console.log(`Stack trace:`, new Error().stack);
+            setActiveView(middleSlice); // Start at middle slice for first load
+            setSlicesLoaded(prev => new Set([...prev, sliceKey]));
+            console.log(`loadSlices: Added "${sliceKey}" to slicesLoaded, now has:`, Array.from(slicesLoaded));
+          } else {
+            console.log(`loadSlices: Slices already loaded for "${sliceKey}", keeping current activeView=${activeView}`);
+          }
+        } catch (error) {
+          console.error('Failed to load slices:', error);
+          // Set default values on error
+          setMaxSlice(9); // Default to 10 slices (0-9)
+          setActiveView(5);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      const getSliceUrls = (sliceIndex) => {
+        if (!selectedJobId) return { anatomical: '', overlay: '' };
+        
+        // Generate URL based on slice index and orientation
+        // Format: slice_00, slice_01, ..., slice_99, slice_100, etc.
+        const sliceId = sliceIndex < 100 
+          ? `slice_${String(sliceIndex).padStart(2, '0')}`
+          : `slice_${sliceIndex}`;
+        // Add cache-busting query to avoid stale cached PNGs
+        const ts = Date.now();
+        
+        return {
+          anatomical: `${CONFIG.api.baseUrl}/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=anatomical&v=${ts}`,
+          overlay: `${CONFIG.api.baseUrl}/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=overlay&v=${ts}`
+        };
+      };
+
+      // Show all available slices (0..maxSlice) for buttons and overview
+      const previewSlices = maxSlice >= 0
+        ? Array.from({ length: maxSlice + 1 }, (_, i) => i)
+        : [];
+      
+      if (!selectedJobId) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+            <div className="max-w-[1800px] mx-auto px-6 py-8">
+              <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
+                <div className="text-center py-12">
+                  <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h2 className="text-xl font-semibold text-gray-900 mb-2">No Job Selected</h2>
+                  <p className="text-gray-600 mb-6">Please select a completed job to view 2D slice visualizations</p>
+                  {availableJobs.length > 0 ? (
+                    <div className="max-w-md mx-auto">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Job:</label>
+                      <select
+                        value={selectedJobId || ''}
+                        onChange={(e) => setSelectedJobId(e.target.value)}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                      >
+                        <option value="">-- Select a job --</option>
+                        {availableJobs.map(job => (
+                          <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">No completed jobs available yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+          <div className="max-w-[1800px] mx-auto px-6 py-8">
+            <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                  <h2 className="text-xl font-semibold text-gray-900">Whole Hippocampus Visualization</h2>
+                </div>
+                <div className="flex items-center gap-4">
+                  {availableJobs.length > 0 && (
+                    <>
+                      <select
+                        value={selectedJobId}
+                        onChange={(e) => setSelectedJobId(e.target.value)}
+                        className="border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                      >
+                        {availableJobs.map(job => (
+                          <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
+                        ))}
+                      </select>
+                      
+                      <select
+                        value={orientation}
+                        onChange={(e) => setOrientation(e.target.value)}
+                        className="border border-blue-300 rounded-lg px-4 py-2 text-sm font-semibold text-blue-800 bg-blue-50"
+                      >
+                        <option value="coronal">Coronal (Front View)</option>
+                        <option value="axial">Axial (View from Below)</option>
+                      </select>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex gap-2 overflow-x-auto">
+                {previewSlices.map(slice => (
+                  <button
+                    key={slice}
+                    onClick={() => {
+                      console.log(`SLICE BUTTON CLICKED: current activeView=${activeView}, setting to ${slice}`);
+                      console.log(`Stack trace:`, new Error().stack);
+                      setActiveView(slice);
+                    }}
+                    className={`px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
+                      activeView === slice ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                    }`}
+                  >
+                    {orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}
+                  </button>
+                ))}
+                </div>
+                
+                <div className="flex items-center gap-4 ml-4">
+                  <div className="flex items-center gap-1 bg-white border border-blue-200 rounded-lg p-1">
+                    <button 
+                      onClick={handleZoomOut}
+                      disabled={zoomLevel <= 0.5}
+                      className={`p-2 rounded-md transition ${zoomLevel <= 0.5 ? 'opacity-30 cursor-not-allowed text-gray-400' : 'hover:bg-blue-100 text-blue-600'}`}
+                      title="Zoom Out"
+                    >
+                      <ZoomOut className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={handleZoomReset}
+                      className="px-3 py-2 hover:bg-blue-100 rounded-md transition text-sm font-semibold text-blue-700 min-w-[60px]"
+                      title="Click to reset zoom"
+                    >
+                      {Math.round(zoomLevel * 100)}%
+                    </button>
+                    <button 
+                      onClick={handleZoomIn}
+                      disabled={zoomLevel >= 3.0}
+                      className={`p-2 rounded-md transition ${zoomLevel >= 3.0 ? 'opacity-30 cursor-not-allowed text-gray-400' : 'hover:bg-blue-100 text-blue-600'}`}
+                      title="Zoom In"
+                    >
+                      <ZoomIn className="w-5 h-5" />
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 bg-white border border-blue-200 rounded-lg px-4 py-2">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                      Overlay Opacity:
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={overlayOpacity * 100}
+                      onChange={(e) => setOverlayOpacity(parseInt(e.target.value) / 100)}
+                      className="w-32 h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                      title={`Opacity: ${Math.round(overlayOpacity * 100)}%`}
+                    />
+                    <span className="text-sm font-semibold text-blue-700 min-w-[48px] text-right">
+                      {Math.round(overlayOpacity * 100)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative bg-black rounded-xl overflow-auto mb-6" style={{ height: '650px' }}>
+                {loading ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center text-white">
+                      <Clock className="w-12 h-12 mx-auto mb-4 animate-spin opacity-50" />
+                      <p className="text-gray-300">Loading slice image...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center min-h-full">
+                    <div 
+                      className="relative max-w-none"
+                      style={{
+                        transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}`,
+                        transformOrigin: 'center center',
+                        transition: 'transform 0.2s ease-out',
+                        cursor: zoomLevel > 1 ? 'move' : 'default'
+                      }}
+                    >
+                      {/* Base layer: Anatomical T1 (grayscale) */}
+                      <img
+                        src={getSliceUrls(activeView).anatomical}
+                        alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${activeView} - Anatomical`}
+                        className="block"
+                        style={{
+                          display: 'block',
+                          width: 'auto',
+                          height: 'auto'
+                        }}
+                        onError={(e) => {
+                          // Fallback to placeholder if image fails to load
+                          setImageLoadError(true);
+                        }}
+                      />
+                      {/* Overlay layer: Hippocampus segmentation (colored, transparent PNG) */}
+                      <img
+                        src={getSliceUrls(activeView).overlay}
+                        alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${activeView} - Overlay`}
+                        className="block absolute top-0 left-0"
+                        style={{
+                          opacity: overlayOpacity,
+                          transition: 'opacity 0.15s ease-out',
+                          pointerEvents: 'none',
+                          width: '100%',
+                          height: '100%'
+                        }}
+                        onError={(e) => {
+                          // Just hide overlay if it fails, anatomical will still show
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {imageLoadError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black pointer-events-none">
+                    <div className="text-center text-white">
+                      <AlertCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                      <p className="text-gray-300">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice {activeView} not available</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="absolute top-6 right-6 bg-black/80 px-4 py-3 rounded-lg">
+                  <span className="text-white text-sm font-semibold">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice: {activeView} / {maxSlice}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 mb-6">
+                <button onClick={() => {
+                  console.log(`PREV BUTTON: current activeView=${activeView}, setting to ${Math.max(0, activeView - 1)}`);
+                  setActiveView(Math.max(0, activeView - 1));
+                }} className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex-1">
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max={maxSlice} 
+                    value={activeView}
+                    onChange={(e) => {
+                      const newValue = parseInt(e.target.value);
+                      console.log(`Range slider: current activeView=${activeView}, setting to ${newValue}`);
+                      setActiveView(newValue);
+                    }}
+                    className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                </div>
+                <button onClick={() => {
+                  console.log(`NEXT BUTTON: current activeView=${activeView}, setting to ${Math.min(maxSlice, activeView + 1)}`);
+                  setActiveView(Math.min(maxSlice, activeView + 1));
+                }} className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="border-t border-blue-100 pt-4">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Multi-Slice Overview (All 10 {orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slices)</h3>
+                <div className="grid grid-cols-5 gap-3">
+                  {previewSlices.map((slice, idx) => {
+                    const sliceUrls = getSliceUrls(slice);
+                    return (
+                    <div 
+                      key={slice} 
+                      onClick={() => setActiveView(slice)}
+                      className={`relative bg-black rounded-lg overflow-hidden cursor-pointer transition transform hover:scale-105 ${
+                        activeView === slice ? 'ring-4 ring-blue-500 shadow-xl' : 'hover:ring-2 hover:ring-blue-300'
+                      }`}
+                    >
+                        <div className="w-24 h-24 flex items-center justify-center overflow-hidden relative">
+                          {/* Base anatomical layer */}
+                          <img
+                            src={sliceUrls.anatomical}
+                            alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Anatomical`}
+                            className="w-full h-full object-cover"
+                            style={FLIP_VERTICAL ? { transform: 'scaleY(-1)' } : {}}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          {/* Overlay layer with opacity */}
+                          <img
+                            src={sliceUrls.overlay}
+                            alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Overlay`}
+                            className="absolute top-0 left-0 w-full h-full object-cover"
+                            style={{
+                              opacity: overlayOpacity,
+                              pointerEvents: 'none',
+                              transform: FLIP_VERTICAL ? 'scaleY(-1)' : 'none'
+                            }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/50" style={{ display: 'none' }}>
+                            <p className="text-white text-xs">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}</p>
+                          </div>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-2">
+                        <p className="text-white text-xs font-semibold text-center">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}</p>
+                      </div>
+                    </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ============================================================================
+    // MODULE: Error Handling
+    // ============================================================================
+    /**
+     * Error Boundary Component - Catches React errors and displays fallback UI
+     * @class ErrorBoundary
+     * @extends {React.Component}
+     */
+    class ErrorBoundary extends React.Component {
+      /**
+       * @param {Object} props - Component props
+       */
+      constructor(props) {
+        super(props);
+        /** @type {{hasError: boolean, error: Error|null}} */
+        this.state = { hasError: false, error: null };
+      }
+
+      /**
+       * Update state to show fallback UI when an error occurs
+       * @param {Error} error - The error that was thrown
+       * @returns {{hasError: boolean, error: Error}}
+       */
+      static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+      }
+
+      /**
+       * Log error details when component catches an error
+       * @param {Error} error - The error that was thrown
+       * @param {Object} errorInfo - Additional error information
+       */
+      componentDidCatch(error, errorInfo) {
+        console.error('ErrorBoundary caught an error:', error);
+        console.error('Error info:', errorInfo);
+        // Future: Could send to error tracking service here
+      }
+
+      /**
+       * Render fallback UI if error occurred, otherwise render children
+       * @returns {React.ReactNode}
+       */
+      render() {
+        if (this.state.hasError) {
+          return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+              <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+                <div className="mb-4">
+                  <svg className="mx-auto h-12 w-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h1>
+                <p className="text-gray-600 mb-6">
+                  An unexpected error occurred. Please refresh the page to try again.
+                </p>
+                {CONFIG.environment === 'development' && this.state.error && (
+                  <details className="text-left bg-gray-50 p-4 rounded mb-4">
+                    <summary className="cursor-pointer text-sm font-semibold text-gray-700 mb-2">Error Details</summary>
+                    <pre className="text-xs text-red-600 overflow-auto">{this.state.error.toString()}</pre>
+                  </details>
+                )}
+                <button
+                  onClick={() => {
+                    this.setState({ hasError: false, error: null });
+                    window.location.reload();
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition"
+                >
+                  Refresh Page
+                </button>
+              </div>
+            </div>
+          );
+        }
+
+        return this.props.children;
+      }
+    }
+
+    // ============================================================================
+    // MODULE: Logger & Toast Utilities
+    // ============================================================================
+    /**
+     * Logger utility - Centralized logging with levels
+     * @namespace Logger
+     */
+    const Logger = {
+      /**
+       * Log debug message (only in development)
+       * @param {string} message - Message to log
+       * @param {Object} [data] - Optional data to include
+       */
+      debug(message, data = {}) {
+        if (CONFIG.environment === 'development') {
+          console.debug(`[DEBUG] ${message}`, data);
+        }
+      },
+
+      /**
+       * Log info message
+       * @param {string} message - Message to log
+       * @param {Object} [data] - Optional data to include
+       */
+      info(message, data = {}) {
+        console.info(`[INFO] ${message}`, data);
+      },
+
+      /**
+       * Log warning message
+       * @param {string} message - Message to log
+       * @param {Object} [data] - Optional data to include
+       */
+      warn(message, data = {}) {
+        console.warn(`[WARN] ${message}`, data);
+      },
+
+      /**
+       * Log error message
+       * @param {string} message - Message to log
+       * @param {Error|Object} [error] - Error object or additional data
+       */
+      error(message, error = {}) {
+        console.error(`[ERROR] ${message}`, error);
+        // Future: Could send to error tracking service
+      }
+    };
+
+    /**
+     * Toast notification utility - Simple toast system
+     * @namespace Toast
+     */
+    const Toast = {
+      /**
+       * Show a toast notification
+       * @param {string} message - Message to display
+       * @param {'success'|'error'|'warning'|'info'} [type='info'] - Toast type
+       * @param {number} [duration=3000] - Display duration in milliseconds
+       */
+      show(message, type = 'info', duration = 3000) {
+        // Create toast element
+        const toast = document.createElement('div');
+        const colors = {
+          success: 'bg-green-500',
+          error: 'bg-red-500',
+          warning: 'bg-yellow-500',
+          info: 'bg-blue-500'
+        };
+        toast.className = `fixed top-4 right-4 ${colors[type] || colors.info} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300`;
+        toast.textContent = message;
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+
+        document.body.appendChild(toast);
+
+        // Animate in
+        requestAnimationFrame(() => {
+          toast.style.opacity = '1';
+          toast.style.transform = 'translateY(0)';
+        });
+
+        // Remove after duration
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(-20px)';
+          setTimeout(() => {
+            if (toast.parentNode) {
+              toast.parentNode.removeChild(toast);
+            }
+          }, 300);
+        }, duration);
+      },
+
+      /**
+       * Show success toast
+       * @param {string} message - Message to display
+       */
+      success(message) {
+        this.show(message, 'success');
+      },
+
+      /**
+       * Show error toast
+       * @param {string} message - Message to display
+       */
+      error(message) {
+        this.show(message, 'error', 5000);
+      },
+
+      /**
+       * Show warning toast
+       * @param {string} message - Message to display
+       */
+      warning(message) {
+        this.show(message, 'warning');
+      },
+
+      /**
+       * Show info toast
+       * @param {string} message - Message to display
+       */
+      info(message) {
+        this.show(message, 'info');
+      }
+    };
+
+    // ============================================================================
+    // MODULE: Main App
+    // ============================================================================
+    /**
+     * Main App Component - Root component of the application
+     * Manages page routing and global state
+     * @returns {React.ReactElement}
+     */
+    function NeuroInsightApp() {
+      const [activePage, setActivePage] = useState('home');
+      const [selectedJobId, setSelectedJobId] = useState(null);
+
+      return (
+        <div>
+          <Navigation activePage={activePage} setActivePage={setActivePage} />
+          {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
+          {activePage === 'jobs' && <JobsPage setActivePage={setActivePage} setSelectedJobId={setSelectedJobId} />}
+          {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
+          {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
+        </div>
+      );
+    }
+
+    // ============================================================================
+    // MODULE: Application Initialization
+    // ============================================================================
+    /**
+     * Initialize and render the React application
+     * Wraps the app in ErrorBoundary for error handling
+     */
+    async function initializeApp() {
+      // Wait longer for Electron to inject window.BACKEND_URL
+      // Some Macs need more time for executeJavaScript to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // If running in Electron desktop mode, use injected backend URL
+      if (window.BACKEND_URL) {
+        CONFIG.api.baseUrl = window.BACKEND_URL;
+        console.log('[Desktop] Backend URL set to:', window.BACKEND_URL);
+        console.log('[Desktop] CONFIG.api.baseUrl is now:', CONFIG.api.baseUrl);
+      } else if (window.electronAPI && window.electronAPI.getBackendURL) {
+        // Fallback to IPC method if available
+        try {
+          const backendURL = await window.electronAPI.getBackendURL();
+          CONFIG.api.baseUrl = backendURL;
+          console.log('[Desktop] Backend URL set via IPC to:', backendURL);
+        } catch (error) {
+          console.error('[Desktop] Failed to get backend URL:', error);
+        }
+      } else {
+        console.log('[Web] Using default backend URL:', CONFIG.api.baseUrl);
+        console.warn('[Web] window.BACKEND_URL was undefined!');
+      }
+      
+      // Render the app
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(
+        <ErrorBoundary>
+          <NeuroInsightApp />
+        </ErrorBoundary>
+      );
+    }
+    
+    // Start the app
+    initializeApp();
+  </script>
+</body>
+</html>

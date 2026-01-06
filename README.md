@@ -23,22 +23,22 @@ NeuroInsight is a comprehensive web-based platform for automated hippocampal seg
 ## Screenshots
 
 ### Home Page
-*Professional web interface for MRI analysis*
+*Professional landing page with navigation and overview*
 ![NeuroInsight Home Page](screenshots/home_page.png)
 
-### Job Management Dashboard
-*Real-time monitoring of MRI processing jobs*
+### Jobs Page
+*Job management interface showing processing queue with sample jobs*
 ![NeuroInsight Jobs Page](screenshots/jobs_page.png)
 
-### MRI Upload Interface
-*Simple drag-and-drop file upload*
-![NeuroInsight Upload Page](screenshots/upload_page.png)
+### Dashboard Page
+*Real-time processing dashboard with metrics and system status*
+![NeuroInsight Dashboard Page](screenshots/dashboard_page.png)
 
-### Processing Results
-*Comprehensive hippocampal analysis results*
-![NeuroInsight Results Page](screenshots/results_page.png)
+### Viewer Page
+*3D brain visualization viewer showing hippocampal segmentation results*
+![NeuroInsight Viewer Page](screenshots/viewer_page.png)
 
-*Note: Screenshots show the actual NeuroInsight interface in action*
+*Note: Screenshots show NeuroInsight interface with realistic sample data*
 
 ## Quick Start
 

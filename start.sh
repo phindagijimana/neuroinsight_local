@@ -161,7 +161,7 @@ source venv/bin/activate
 
 # Start backend
 log_info "Starting NeuroInsight backend..."
-PORT=$PORT python3 backend/main.py > neuroinsight.log 2>&1 &
+PORT=$PORT PYTHONPATH="$(pwd)" python3 backend/main.py > neuroinsight.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > neuroinsight.pid
 

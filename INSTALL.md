@@ -107,7 +107,7 @@ NeuroInsight requires a FreeSurfer license for MRI processing:
 # Get your free license at: https://surfer.nmr.mgh.harvard.edu/registration.html
 
 # Copy the license to the correct location
-cp license.txt.example license.txt
+# Place your license.txt file in this directory (same folder as NeuroInsight)
 
 # Edit the license file with your actual license content
 nano license.txt

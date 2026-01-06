@@ -16,7 +16,7 @@ Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
 ### 2. Set Up License File
 ```bash
 # Copy the example file
-cp license.txt.example license.txt
+# Place your license.txt file directly in the NeuroInsight directory
 
 # Edit the file with your license content
 nano license.txt
@@ -70,7 +70,7 @@ curl http://localhost:8000/api/setup/license/validate
 **Solution:**
 ```bash
 # Copy the example file
-cp license.txt.example license.txt
+# Place your license.txt file directly in the NeuroInsight directory
 
 # Edit with your license
 nano license.txt

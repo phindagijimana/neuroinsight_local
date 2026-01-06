@@ -100,20 +100,39 @@ fi
 
 log_info "Starting NeuroInsight services..."
 
-# Check FreeSurfer license
-if [ ! -f "license.txt" ]; then
-    log_error "FreeSurfer license not found: license.txt"
-    log_error "Please run './install.sh' or set up your license manually"
-    exit 1
+# Check FreeSurfer license - Auto-detect license.txt
+LICENSE_FOUND=false
+LICENSE_VALID=false
+
+if [ -f "license.txt" ]; then
+    LICENSE_FOUND=true
+    # Check if it contains real license content (not example text)
+    if ! grep -q "REPLACE THIS EXAMPLE CONTENT" license.txt 2>/dev/null && \
+       ! grep -q "FreeSurfer License File - EXAMPLE" license.txt 2>/dev/null && \
+       [ $(wc -l < license.txt) -ge 4 ]; then
+        LICENSE_VALID=true
+        log_success "FreeSurfer license found and valid: license.txt"
+    else
+        log_warning "license.txt found but appears to contain example content"
+        log_info "Please replace license.txt with your real FreeSurfer license"
+        log_info "Get your free license at: https://surfer.nmr.mgh.harvard.edu/registration.html"
+    fi
+else
+    log_warning "FreeSurfer license not found: license.txt"
+    log_info "To enable MRI processing and visualizations:"
+    log_info "1. Register at: https://surfer.nmr.mgh.harvard.edu/registration.html"
+    log_info "2. Download your license.txt file"
+    log_info "3. Place license.txt in this directory (same folder as NeuroInsight)"
+    log_info "4. Restart with: ./start.sh"
 fi
 
-if grep -q "REPLACE THIS EXAMPLE CONTENT" license.txt 2>/dev/null; then
-    log_error "license.txt contains example content"
-    log_error "Please replace with your actual FreeSurfer license"
-    exit 1
+# Allow app to start even without license (graceful degradation)
+if [ "$LICENSE_VALID" = true ]; then
+    log_success "NeuroInsight ready with FreeSurfer support"
+else
+    log_warning "Starting without FreeSurfer support - MRI processing will use mock data"
+    log_info "Add license.txt to enable real FreeSurfer segmentation and visualizations"
 fi
-
-log_success "FreeSurfer license verified"
 
 # Start Redis container
 log_info "Starting Redis..."

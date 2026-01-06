@@ -467,20 +467,29 @@ grep -i websocket neuroinsight.log
 **Solutions**:
 1. **Automatic fix (recommended)**:
    ```bash
-   # The installer now uses Python 3.12-compatible setuptools version
-   ./install.sh  # Will install setuptools==68.2.2 automatically
+   # The installer now uses Python 3.12-compatible versions
+   ./install.sh  # setuptools==68.2.2 + numpy==1.26.4 (pre-built wheel)
    ```
 
 2. **Manual fix**:
    ```bash
    source venv/bin/activate
    pip install setuptools==68.2.2 wheel
+   pip install numpy==1.26.4 --only-binary=all  # Forces wheel installation
    pip install -r requirements.txt
    ```
 
-3. **Verify fix**:
+3. **Alternative numpy versions**:
    ```bash
-   python -c "import pkgutil; print('pkgutil ok')" && python -c "import setuptools; print('setuptools ok')"
+   # If 1.26.4 doesn't work, try:
+   pip install numpy==1.25.2 --only-binary=all
+   # or
+   pip install numpy --only-binary=all  # Latest wheel version
+   ```
+
+4. **Verify fix**:
+   ```bash
+   python -c "import numpy; print(f'numpy {numpy.__version__} ok')"
    ```
 
 ---

@@ -54,35 +54,36 @@ Visit `http://localhost:8000` to access NeuroInsight.
 
 ## Post-Installation Commands
 
-After installation, use these commands to manage NeuroInsight:
+After installation, use these essential commands to manage NeuroInsight:
 
-### Service Management
+### Application Management
 ```bash
 # Start NeuroInsight services
 ./start.sh
 
-# Stop NeuroInsight services
+# Stop all services gracefully
 ./stop.sh
 
-# Check service status and port
+# Check status of all services and ports
 ./status.sh
 ```
 
 ### License & Testing
 ```bash
-# Verify FreeSurfer license setup
+# Verify FreeSurfer license is properly configured
 ./check_license.sh
 
-# Run performance and load tests
+# Run comprehensive performance tests
 ./test_performance.sh
 ```
 
-### Quick Reference
-- **Start**: `./start.sh` - Launches all services
-- **Stop**: `./stop.sh` - Gracefully stops all services
-- **Status**: `./status.sh` - Shows running services and ports
-- **License**: `./check_license.sh` - Verifies FreeSurfer license
-- **Test**: `./test_performance.sh` - Runs comprehensive testing
+### Maintenance
+```bash
+# Create full system backup (database, configs, data)
+./backup_neuroinsight.sh
+```
+
+**Tip**: All scripts provide helpful output and error messages to guide you through any issues.
 
 ## Documentation
 

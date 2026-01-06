@@ -14,6 +14,43 @@ NeuroInsight provides automated hippocampal segmentation and analysis from T1-we
 - Real-time progress monitoring
 - Containerized deployment
 
+## Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐
+│   Web Browser   │────│ NeuroInsight API │
+│  (React Frontend)   │    │  (FastAPI)      │
+└─────────────────┘    └─────────────────┘
+         │                       │
+         │                       │
+┌─────────────────┐    ┌─────────────────┐
+│    Celery       │────│     Redis       │
+│   Workers       │    │ (Message Queue) │
+└─────────────────┘    └─────────────────┘
+         │                       │
+         │                       │
+┌─────────────────┐    ┌─────────────────┐
+│  FreeSurfer     │    │   PostgreSQL    │
+│ (MRI Processing)│    │   (Database)    │
+└─────────────────┘    └─────────────────┘
+         │                       │
+         └───────────────────────┘
+                │
+         ┌─────────────────┐
+         │     MinIO       │
+         │ (File Storage)  │
+         └─────────────────┘
+```
+
+**Key Components:**
+- **Frontend**: React web interface for uploads and visualization
+- **API**: FastAPI backend handling requests and job management
+- **Workers**: Celery processes for background MRI analysis
+- **Database**: PostgreSQL for storing job metadata and results
+- **Queue**: Redis for task coordination and real-time updates
+- **Storage**: MinIO for MRI files and generated outputs
+- **Processing**: FreeSurfer for automated hippocampal segmentation
+
 ## Quick Start
 
 ### Prerequisites

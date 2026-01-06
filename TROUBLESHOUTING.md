@@ -458,6 +458,33 @@ grep -i websocket neuroinsight.log
 
 ### Docker Containers Not Starting
 
+**Error**: `setuptools.build_meta` import error during pip install
+
+**Symptoms**: Installation fails with "Cannot import 'setuptools.build_meta'" during numpy or other package installation
+
+**Cause**: setuptools build backend not available in Python 3.12 virtual environments
+
+**Solutions**:
+1. **Automatic fix (recommended)**:
+   ```bash
+   # The installer now automatically installs setuptools and wheel
+   ./install.sh  # Will install build tools before other packages
+   ```
+
+2. **Manual fix**:
+   ```bash
+   source venv/bin/activate
+   pip install --upgrade setuptools wheel
+   pip install -r requirements.txt
+   ```
+
+3. **Verify fix**:
+   ```bash
+   python -c "import setuptools; print('setuptools available')"
+   ```
+
+---
+
 **Error**: `python3-venv` installation issues
 
 **Symptoms**: Installation fails with "ensurepip is not available" or prompts for manual python3-venv installation

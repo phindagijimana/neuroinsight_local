@@ -1,6 +1,10 @@
 # NeuroInsight Requirements
 # Unified dependencies for hybrid deployment
 
+# Build Tools (required for Python 3.12+ compatibility)
+setuptools>=65.0.0
+wheel>=0.37.0
+
 # Core Web Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0

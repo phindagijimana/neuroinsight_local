@@ -402,6 +402,10 @@ source venv/bin/activate
 # Upgrade pip
 pip install --upgrade pip
 
+# Install build tools for Python 3.12+ compatibility
+log_info "Installing Python build tools..."
+pip install --upgrade setuptools wheel
+
 # Install dependencies
 log_info "Installing Python dependencies..."
 pip install -r requirements.txt

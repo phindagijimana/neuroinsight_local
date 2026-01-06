@@ -494,6 +494,42 @@ grep -i websocket neuroinsight.log
 
 ---
 
+**Error**: `Could not find a version that satisfies the requirement torch==X.X.X`
+
+**Symptoms**: Installation fails with "No matching distribution found for torch==X.X.X" and shows ignored versions with Python version requirements
+
+**Cause**: PyTorch version incompatibility with Python 3.12 (older torch versions don't support Python 3.12)
+
+**Solutions**:
+1. **Automatic fix (recommended)**:
+   ```bash
+   # The requirements.txt now uses Python 3.12-compatible torch versions
+   ./install.sh  # Will install torch==2.4.1 and torchvision==0.19.1
+   ```
+
+2. **Manual fix**:
+   ```bash
+   source venv/bin/activate
+   pip install torch==2.4.1 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cpu
+   pip install -r requirements.txt
+   ```
+
+3. **Alternative versions**:
+   ```bash
+   # For CUDA support (if you have NVIDIA GPU):
+   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+   # For CPU-only (current setup):
+   pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
+   ```
+
+4. **Verify fix**:
+   ```bash
+   python -c "import torch; print(f'PyTorch {torch.__version__} ok')"
+   ```
+
+---
+
 **Error**: `setuptools.build_meta` import error during pip install
 
 **Symptoms**: Installation fails with "Cannot import 'setuptools.build_meta'" during numpy or other package installation

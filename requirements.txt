@@ -42,8 +42,8 @@ scikit-image==0.22.0
 reportlab==4.0.7
 
 # Deep Learning (optional, for future features)
-torch==2.0.1
-torchvision==0.15.2
+torch==2.4.1
+torchvision==0.19.1
 
 # System & Utilities
 platformdirs==4.1.0

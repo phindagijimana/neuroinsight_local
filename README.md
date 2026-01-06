@@ -87,9 +87,17 @@ head -3 license.txt
 ### Installation
 
 ```bash
+# 1. Clone the repository
 git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local
+
+# 2. Run automated installation
 ./install.sh
+
+# 3. Check FreeSurfer license (required before starting)
+./check_license.sh
+
+# 4. Start NeuroInsight services
 ./start.sh
 ```
 
@@ -145,6 +153,9 @@ cd neuroinsight_local
 
 # Run installation (automatically handles Python venv and dependencies)
 ./install.sh
+
+# Check FreeSurfer license (required before starting)
+./check_license.sh
 
 # Start services
 ./start.sh

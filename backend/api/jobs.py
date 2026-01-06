@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
-@router.get("/", response_model=None)
+@router.get("/", response_model=List[JobResponse])
 def list_jobs(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum records to return"),

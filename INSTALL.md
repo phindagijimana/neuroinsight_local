@@ -52,6 +52,30 @@ Before installation, ensure your system meets these requirements:
 - **sudo access**: Required for Docker operations
 - **User in docker group**: For running Docker without sudo
 
+## Windows Installation (WSL2)
+
+**NeuroInsight requires Linux for optimal performance.** Windows users should use **Windows Subsystem for Linux 2 (WSL2)**:
+
+### Quick WSL2 Setup:
+```powershell
+# PowerShell (Administrator)
+wsl --install -d Ubuntu
+wsl --set-default-version 2
+```
+
+### Then follow Linux instructions in WSL2:
+```bash
+# In WSL2 Ubuntu terminal
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local
+./install.sh
+./start.sh
+```
+
+**Access from Windows browser:** `http://localhost:8000`
+
+*For detailed WSL2 instructions, see the main README.md*
+
 ## Quick Installation
 
 ### Option 1: Automated Installation (Recommended)

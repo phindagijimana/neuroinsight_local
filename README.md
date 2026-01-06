@@ -92,6 +92,76 @@ cd neuroinsight_local
 
 Visit `http://localhost:8000` to access NeuroInsight.
 
+## Windows Installation (via WSL2)
+
+NeuroInsight requires Linux for optimal performance. Windows users can run NeuroInsight using **Windows Subsystem for Linux 2 (WSL2)**, which provides a full Ubuntu environment.
+
+### Prerequisites (Windows)
+- Windows 10 version 2004 or higher (Build 19041+) or Windows 11
+- 16GB+ RAM recommended (32GB+ optimal for MRI processing)
+- Administrator privileges for WSL2 installation
+- 50GB+ free disk space
+
+### Step 1: Install WSL2 and Ubuntu
+
+**Option A: Automated Installation (Recommended)**
+```powershell
+# Open PowerShell as Administrator and run:
+wsl --install -d Ubuntu
+wsl --set-default-version 2
+```
+
+**Option B: Manual Installation**
+```powershell
+# Enable WSL feature
+dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+
+# Restart computer, then run:
+wsl --set-default-version 2
+wsl --install -d Ubuntu
+```
+
+### Step 2: Configure Ubuntu Environment
+
+After installation, launch Ubuntu from Start Menu and run:
+```bash
+# Update packages
+sudo apt update && sudo apt upgrade -y
+
+# Install additional dependencies if needed
+sudo apt install -y curl wget
+```
+
+### Step 3: Install NeuroInsight
+
+```bash
+# Clone repository (within WSL2 Ubuntu terminal)
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local
+
+# Run installation
+./install.sh
+
+# Start services
+./start.sh
+```
+
+### Step 4: Access NeuroInsight
+
+- **Web Interface:** Open browser on Windows → `http://localhost:8000`
+- **API Docs:** `http://localhost:8002/docs`
+- All services run within WSL2 but are accessible from Windows
+
+### WSL2 Tips for Windows Users
+
+- **File Access:** WSL2 files are at `\\wsl$\Ubuntu\home\yourusername\`
+- **Performance:** WSL2 provides near-native Linux performance
+- **Updates:** Keep both Windows and WSL2 Ubuntu updated
+- **Backup:** WSL2 distributions can be exported: `wsl --export Ubuntu backup.tar`
+
+**Note:** All Linux installation instructions in this guide work identically within WSL2.
+
 ## Post-Installation Commands
 
 After installation, use these essential commands to manage NeuroInsight:

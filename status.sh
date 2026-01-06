@@ -154,6 +154,37 @@ else
     echo "  Services not accessible"
 fi
 
+# Check for stuck jobs (running longer than 2 hours)
+echo
+echo "Job Health:"
+python3 -c "
+import sys
+sys.path.insert(0, '.')
+from datetime import datetime, timedelta
+from backend.core.database import get_db
+from backend.models.job import Job, JobStatus
+
+db = next(get_db())
+stuck_jobs = []
+now = datetime.utcnow()
+timeout_hours = 2
+
+running_jobs = db.query(Job).filter(Job.status == JobStatus.RUNNING).all()
+for job in running_jobs:
+    if job.started_at and (now - job.started_at) > timedelta(hours=timeout_hours):
+        stuck_jobs.append(job.id)
+
+if stuck_jobs:
+    print(f'⚠️  WARNING: {len(stuck_jobs)} job(s) running longer than {timeout_hours} hours:')
+    for job_id in stuck_jobs:
+        print(f'   - Job {job_id} may be stuck')
+    print(f'   Consider restarting services: ./stop.sh && ./start.sh')
+else:
+    print('✅ No stuck jobs detected')
+
+db.close()
+" 2>/dev/null || echo "  Could not check job health"
+
 echo
 echo "Log Files:"
 echo "  Backend: neuroinsight.log"

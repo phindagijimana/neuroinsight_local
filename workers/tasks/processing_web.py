@@ -214,15 +214,21 @@ def process_mri_task(self, job_id: str):
             print(f"DEBUG: processor.process() failed for job {job_id}: {str(process_error)}")
             logger.error("processor_process_failed", job_id=job_id, error=str(process_error), exc_info=True)
 
-            # Update job status to FAILED in database
+            # Update job status to FAILED using JobService
             try:
-                job.status = JobStatus.FAILED
-                job.error_message = str(process_error)[:500]  # Truncate for DB
-                job.completed_at = datetime.utcnow()
-                db.commit()
+                JobService.fail_job(db, job_id, str(process_error)[:500])
                 logger.info("job_status_updated_to_failed", job_id=job_id, error=str(process_error))
             except Exception as db_error:
-                logger.error("failed_to_update_job_status", job_id=job_id, db_error=str(db_error))
+                logger.error("failed_to_update_job_status_via_service", job_id=job_id, db_error=str(db_error))
+                # Fallback to direct update if service fails
+                try:
+                    job.status = JobStatus.FAILED
+                    job.error_message = str(process_error)[:500]
+                    job.completed_at = datetime.utcnow()
+                    db.commit()
+                    logger.warning("job_status_updated_via_fallback", job_id=job_id)
+                except Exception as fallback_error:
+                    logger.error("complete_job_status_update_failure", job_id=job_id, error=str(fallback_error))
 
             # Re-raise the exception to fail the Celery task
             raise process_error

@@ -96,6 +96,42 @@ else
 fi
 
 log_success "NeuroInsight services stopped"
+
+# Clear stuck jobs if requested
+if [ "$1" = "--clear-stuck" ]; then
+    log_info "Clearing stuck jobs..."
+    python3 -c "
+import sys
+sys.path.insert(0, '.')
+from datetime import datetime, timedelta
+from backend.core.database import get_db
+from backend.models.job import Job, JobStatus
+
+db = next(get_db())
+now = datetime.utcnow()
+timeout_hours = 2
+cleared_count = 0
+
+running_jobs = db.query(Job).filter(Job.status == JobStatus.RUNNING).all()
+for job in running_jobs:
+    if job.started_at and (now - job.started_at) > timedelta(hours=timeout_hours):
+        job.status = JobStatus.FAILED
+        job.error_message = f'Auto-cleared: Job stuck for >{timeout_hours} hours'
+        job.completed_at = now
+        cleared_count += 1
+        print(f'Cleared stuck job: {job.id}')
+
+if cleared_count > 0:
+    db.commit()
+    print(f'✅ Cleared {cleared_count} stuck job(s)')
+else:
+    print('ℹ️  No stuck jobs to clear')
+
+db.close()
+" 2>/dev/null || log_error "Failed to clear stuck jobs"
+fi
+
 echo
 echo "To restart: ./start.sh"
 echo "To check status: ./status.sh"
+echo "To clear stuck jobs: ./stop.sh --clear-stuck"

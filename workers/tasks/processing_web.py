@@ -29,9 +29,10 @@ settings = get_settings()
 # Initialize Celery app
 # Try Redis first, fallback to SQLite
 # Use localhost for native deployment (host can't resolve 'redis' hostname)
-# Password is redis_secure_password (from docker-compose)
-broker_url = os.getenv("REDIS_URL", "redis://:redis_secure_password@localhost:6379/0")
-backend_url = os.getenv("REDIS_URL", "redis://:redis_secure_password@localhost:6379/0")
+# Password from REDIS_PASSWORD env var (fallback to redis_secure_password)
+redis_password = os.getenv("REDIS_PASSWORD", "redis_secure_password")
+broker_url = os.getenv("REDIS_URL", f"redis://:{redis_password}@localhost:6379/0")
+backend_url = os.getenv("REDIS_URL", f"redis://:{redis_password}@localhost:6379/0")
 
 def test_redis_connection(url):
     """Test Redis connection and return True if successful."""

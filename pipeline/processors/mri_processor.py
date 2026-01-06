@@ -3930,7 +3930,7 @@ class MRIProcessor:
                                                            progress=progress,
                                                            line=original_line,
                                                            job_id=str(self.job_id))
-                                                last_detected_phase = phase
+                                            last_detected_phase = phase
                                             matched = True
                                             break
                                     

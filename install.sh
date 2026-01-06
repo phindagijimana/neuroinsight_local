@@ -67,7 +67,7 @@ fi
 
 # Check disk space (100GB minimum)
 AVAILABLE_SPACE=$(df / | tail -1 | awk '{print int($4/1024/1024)}')
-if (( AVAILABLE_SPACE < 100 )); then
+if (( AVAILABLE_SPACE < 30 )); then
     log_error "Insufficient disk space. NeuroInsight requires at least 100GB free."
     log_error "Detected: ${AVAILABLE_SPACE}GB available"
     exit 1

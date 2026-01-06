@@ -140,12 +140,14 @@ sudo apt install -y curl wget
 git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local
 
-# Run installation
+# Run installation (automatically handles Python venv and dependencies)
 ./install.sh
 
 # Start services
 ./start.sh
 ```
+
+**Note:** The installer automatically detects and installs Python venv support (python3.12-venv, python3-venv, etc.) based on your Ubuntu version.
 
 ### Step 4: Access NeuroInsight
 

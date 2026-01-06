@@ -458,6 +458,39 @@ grep -i websocket neuroinsight.log
 
 ### Docker Containers Not Starting
 
+**Error**: `python3-venv` installation issues
+
+**Symptoms**: Installation fails with "ensurepip is not available" or prompts for manual python3-venv installation
+
+**Cause**: Python venv module not available on the system
+
+**Solutions**:
+1. **Let the installer handle it** (recommended):
+   ```bash
+   # The installer now automatically detects and installs python venv
+   ./install.sh  # Will install python3.12-venv or python3-venv automatically
+   ```
+
+2. **Manual installation** (if automatic fails):
+   ```bash
+   # For Ubuntu 24.04 with Python 3.12:
+   sudo apt update
+   sudo apt install python3.12-venv
+
+   # For older Ubuntu versions:
+   sudo apt install python3-venv
+
+   # Then retry installation:
+   ./install.sh
+   ```
+
+3. **Verify installation**:
+   ```bash
+   python3 -c "import venv; print('venv available')"
+   ```
+
+---
+
 **Error**: `docker-compose: command not found` (WSL2/Windows)
 
 **Symptoms**: Installation succeeds but startup fails with Docker Compose errors

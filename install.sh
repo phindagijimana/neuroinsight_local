@@ -133,34 +133,92 @@ log_success "Python version check passed: $PYTHON_VERSION"
 
 # Check and install python3-venv if needed
 log_info "Checking Python venv support..."
+PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+log_info "Detected Python version: $PYTHON_VERSION"
+
 if ! python3 -c "import venv" &> /dev/null; then
-    log_warning "Python venv module not available. Installing python3-venv package..."
+    log_warning "Python venv module not available. Installing python venv package..."
+
     if command -v apt &> /dev/null; then
-        # Ubuntu/Debian
-        sudo apt update && sudo apt install -y python3-venv
+        # Ubuntu/Debian - try version-specific package first, then generic
+        log_info "Detected apt package manager (Ubuntu/Debian)"
+        sudo apt update
+
+        # Try version-specific package (e.g., python3.12-venv for Ubuntu 24.04)
+        if sudo apt install -y "python${PYTHON_VERSION}-venv" 2>/dev/null; then
+            log_success "Installed python${PYTHON_VERSION}-venv"
+        elif sudo apt install -y python3-venv 2>/dev/null; then
+            log_success "Installed python3-venv"
+        else
+            log_error "Failed to install Python venv package automatically"
+            log_error "Please run: sudo apt install python${PYTHON_VERSION}-venv"
+            log_error "Or: sudo apt install python3-venv"
+            exit 1
+        fi
+
     elif command -v dnf &> /dev/null; then
         # Fedora/RHEL
-        sudo dnf install -y python3-venv
+        log_info "Detected dnf package manager (Fedora/RHEL)"
+        if sudo dnf install -y python3-venv; then
+            log_success "Installed python3-venv"
+        else
+            log_error "Failed to install python3-venv"
+            log_error "Please run: sudo dnf install python3-venv"
+            exit 1
+        fi
+
     elif command -v yum &> /dev/null; then
         # Older RHEL/CentOS
-        sudo yum install -y python3-venv
+        log_info "Detected yum package manager (older RHEL/CentOS)"
+        if sudo yum install -y python3-venv; then
+            log_success "Installed python3-venv"
+        else
+            log_error "Failed to install python3-venv"
+            log_error "Please run: sudo yum install python3-venv"
+            exit 1
+        fi
+
     elif command -v pacman &> /dev/null; then
         # Arch Linux
-        sudo pacman -S --noconfirm python-virtualenv
+        log_info "Detected pacman package manager (Arch Linux)"
+        if sudo pacman -S --noconfirm python-virtualenv; then
+            log_success "Installed python-virtualenv"
+        else
+            log_error "Failed to install python-virtualenv"
+            log_error "Please run: sudo pacman -S python-virtualenv"
+            exit 1
+        fi
+
     elif command -v zypper &> /dev/null; then
         # openSUSE
-        sudo zypper install -y python3-virtualenv
+        log_info "Detected zypper package manager (openSUSE)"
+        if sudo zypper install -y python3-virtualenv; then
+            log_success "Installed python3-virtualenv"
+        else
+            log_error "Failed to install python3-virtualenv"
+            log_error "Please run: sudo zypper install python3-virtualenv"
+            exit 1
+        fi
+
     else
-        log_error "Could not install python venv support. Please install it manually:"
-        log_error "Ubuntu/Debian: sudo apt install python3-venv"
+        log_error "Unsupported package manager. Please install Python venv manually:"
+        log_error "Ubuntu/Debian: sudo apt install python${PYTHON_VERSION}-venv"
         log_error "Fedora/RHEL: sudo dnf install python3-venv"
         log_error "Arch Linux: sudo pacman -S python-virtualenv"
         log_error "openSUSE: sudo zypper install python3-virtualenv"
         exit 1
     fi
-    log_success "python3-venv installed successfully"
+
+    # Verify installation worked
+    if python3 -c "import venv" &> /dev/null; then
+        log_success "Python venv support installed and verified"
+    else
+        log_error "Python venv installation failed - venv module still not available"
+        exit 1
+    fi
+
 else
-    log_success "Python venv support available"
+    log_success "Python venv support already available"
 fi
 
 # Check and install system development libraries

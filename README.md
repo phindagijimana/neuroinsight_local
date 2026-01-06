@@ -184,17 +184,11 @@ After installation, use these essential commands to manage NeuroInsight:
 ./status.sh
 ```
 
-### License & Testing
+### License & Maintenance
 ```bash
 # Verify FreeSurfer license is properly configured
 ./check_license.sh
 
-# Run comprehensive performance tests
-./test_performance.sh
-```
-
-### Maintenance
-```bash
 # Create full system backup (database, configs, data)
 ./backup_neuroinsight.sh
 ```

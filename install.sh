@@ -67,7 +67,7 @@ if (( TOTAL_RAM < 7 )); then
 elif (( TOTAL_RAM < 16 )); then
     log_warning "LIMITED MEMORY DETECTED: ${TOTAL_RAM}GB"
     log_warning ""
-    log_warning "  MEMORY LIMITATION WARNING "
+    log_warning "⚠️  MEMORY LIMITATION WARNING ⚠️"
     log_warning "You have ${TOTAL_RAM}GB RAM - sufficient for installation but not MRI processing."
     log_warning ""
     log_warning "MRI processing requires 16GB+ RAM. With ${TOTAL_RAM}GB:"
@@ -327,6 +327,42 @@ else
     log_success "Kernel version ${KERNEL_MAJOR}.${KERNEL_MINOR} compatible with Docker"
 fi
 
+# Check and install Node.js and npm if needed for frontend building
+log_info "Checking Node.js and npm for frontend building..."
+if ! command -v node &> /dev/null; then
+    log_warning "Node.js not found. Installing Node.js and npm..."
+    if command -v apt &> /dev/null; then
+        # Ubuntu/Debian
+        log_info "Installing Node.js 20.x and npm via NodeSource..."
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        sudo apt install -y nodejs
+        log_success "Node.js and npm installed"
+    elif command -v dnf &> /dev/null; then
+        # Fedora/RHEL
+        sudo dnf install -y nodejs npm
+        log_success "Node.js and npm installed"
+    elif command -v yum &> /dev/null; then
+        # Older RHEL/CentOS
+        curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+        sudo yum install -y nodejs
+        log_success "Node.js and npm installed"
+    else
+        log_warning "Could not install Node.js automatically"
+        log_warning "Please install Node.js 16+ and npm manually"
+        log_warning "Then run: cd frontend && npm install && npm run build"
+    fi
+else
+    log_success "Node.js found: $(node --version)"
+fi
+
+if ! command -v npm &> /dev/null; then
+    log_error "npm not found even though Node.js is installed"
+    log_error "Please install npm manually"
+    exit 1
+else
+    log_success "npm found: $(npm --version)"
+fi
+
 # Install Docker if not present
 log_info "Checking Docker installation..."
 if ! command -v docker &> /dev/null; then
@@ -409,6 +445,19 @@ pip install setuptools==68.2.2 wheel
 # Install dependencies
 log_info "Installing Python dependencies..."
 pip install -r requirements.txt
+
+# Build frontend
+log_info "Building frontend..."
+if command -v npm &> /dev/null; then
+    cd frontend
+    npm install
+    npm run build
+    cd ..
+    log_success "Frontend built successfully"
+else
+    log_warning "npm not found, skipping frontend build"
+    log_warning "Install Node.js and npm, then run: cd frontend && npm install && npm run build"
+fi
 
 # Create necessary directories
 log_info "Creating data directories..."

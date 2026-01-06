@@ -458,6 +458,35 @@ grep -i websocket neuroinsight.log
 
 ### Docker Containers Not Starting
 
+**Error**: `docker-compose: command not found` (WSL2/Windows)
+
+**Symptoms**: Installation succeeds but startup fails with Docker Compose errors
+
+**Cause**: WSL2 integration with Docker Desktop not properly configured
+
+**Solutions**:
+1. **Enable WSL2 Integration**:
+   - Open Docker Desktop on Windows
+   - Go to Settings → Resources → WSL Integration
+   - Enable integration for your Ubuntu distribution
+   - Restart Docker Desktop
+
+2. **Restart WSL2**:
+   ```bash
+   # From Windows Command Prompt/PowerShell:
+   wsl --shutdown
+   wsl --distribution Ubuntu
+   ```
+
+3. **Verify Integration**:
+   ```bash
+   # In WSL2 terminal, test Docker:
+   docker run hello-world
+   docker compose version  # Should work
+   ```
+
+---
+
 **Error**: `docker-compose up` fails
 
 **Solutions**:

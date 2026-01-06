@@ -159,6 +159,7 @@ cd neuroinsight_local
 - **Performance:** WSL2 provides near-native Linux performance
 - **Updates:** Keep both Windows and WSL2 Ubuntu updated
 - **Backup:** WSL2 distributions can be exported: `wsl --export Ubuntu backup.tar`
+- **Docker:** Enable WSL2 integration in Docker Desktop settings for seamless container access
 
 **Note:** All Linux installation instructions in this guide work identically within WSL2.
 

@@ -85,7 +85,25 @@ fi
 
 # Stop Docker containers
 log_info "Stopping Docker containers..."
-docker-compose -f docker-compose.hybrid.yml down 2>/dev/null || true
+# Detect available Docker Compose command
+detect_docker_compose() {
+    if command -v docker &> /dev/null; then
+        # Try new syntax first (Docker Compose V2)
+        if docker compose version &> /dev/null 2>&1; then
+            echo "docker compose"
+        # Fall back to old syntax
+        elif docker-compose --version &> /dev/null 2>&1; then
+            echo "docker-compose"
+        else
+            echo ""
+        fi
+    else
+        echo ""
+    fi
+}
+
+DOCKER_COMPOSE_CMD=$(detect_docker_compose)
+$DOCKER_COMPOSE_CMD -f docker-compose.hybrid.yml down 2>/dev/null || true
 
 # Check for any remaining containers
 if docker ps | grep -q neuroinsight; then

@@ -11,6 +11,34 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Detect available Docker Compose command
+detect_docker_compose() {
+    if command -v docker &> /dev/null; then
+        # Try new syntax first (Docker Compose V2)
+        if docker compose version &> /dev/null 2>&1; then
+            echo "docker compose"
+        # Fall back to old syntax
+        elif docker-compose --version &> /dev/null 2>&1; then
+            echo "docker-compose"
+        else
+            echo ""
+        fi
+    else
+        echo ""
+    fi
+}
+
+DOCKER_COMPOSE_CMD=$(detect_docker_compose)
+
+# Check if Docker Compose is available
+if [ -z "$DOCKER_COMPOSE_CMD" ]; then
+    log_error "Docker Compose not found. Please ensure Docker Desktop is running and WSL2 integration is enabled."
+    log_error "For WSL2 setup: https://docs.docker.com/desktop/wsl/"
+    exit 1
+fi
+
+log_success "Using Docker Compose: $DOCKER_COMPOSE_CMD"
+
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -162,7 +190,7 @@ log_info "Starting Redis..."
 if docker ps | grep -q neuroinsight-redis; then
     log_info "Redis already running"
 else
-    docker-compose -f docker-compose.hybrid.yml up -d redis
+    $DOCKER_COMPOSE_CMD -f docker-compose.hybrid.yml up -d redis
     sleep 3
     
     if docker ps | grep -q neuroinsight-redis; then

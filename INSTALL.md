@@ -18,22 +18,22 @@ Before installation, ensure your system meets these requirements:
 ### Memory Usage Guidelines
 
 **8GB Systems (Installation Only):**
-- ✅ Can install and run the web interface
-- ✅ Can view results and manage jobs
-- ❌ MRI processing likely to fail due to insufficient RAM
-- ⚠️  Suitable only for evaluation/demo purposes
+- Can install and run the web interface
+- Can view results and manage jobs
+- MRI processing likely to fail due to insufficient RAM
+- Suitable only for evaluation/demo purposes
 
 **16GB+ Systems (Full Functionality):**
-- ✅ Reliable MRI processing and segmentation
-- ✅ FreeSurfer pipeline execution
-- ✅ Visualization generation
-- ✅ Recommended for actual research use
+- Reliable MRI processing and segmentation
+- FreeSurfer pipeline execution
+- Visualization generation
+- Recommended for actual research use
 
 **32GB+ Systems (Optimal Performance):**
-- ✅ Multiple concurrent processing jobs
-- ✅ Large dataset handling
-- ✅ Batch processing workflows
-- ✅ Production research environments
+- Multiple concurrent processing jobs
+- Large dataset handling
+- Batch processing workflows
+- Production research environments
 
 ### Operating System
 - **Ubuntu 20.04 LTS** or later (recommended)

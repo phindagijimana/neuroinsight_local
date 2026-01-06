@@ -260,7 +260,7 @@ Yes! Contributions are welcome:
 - **Documentation**: Improve guides and tutorials
 - **Testing**: Help test on different systems
 
-## 📈 Performance
+##  Performance
 
 ### Why is processing slow?
 

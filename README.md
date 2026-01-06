@@ -60,7 +60,7 @@ NeuroInsight provides automated hippocampal segmentation and analysis from T1-we
 - Docker and Docker Compose
 - FreeSurfer license (free for research)
 
-**⚠️ Memory Note:** While NeuroInsight installs on 8GB systems, MRI processing requires 16GB+ RAM. Systems with less than 16GB may experience processing failures.
+**Memory Warning:** While NeuroInsight installs on 8GB systems, MRI processing requires 16GB+ RAM. Systems with less than 16GB may experience processing failures.
 
 ### FreeSurfer License Setup
 

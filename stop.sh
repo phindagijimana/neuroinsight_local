@@ -141,9 +141,9 @@ for job in running_jobs:
 
 if cleared_count > 0:
     db.commit()
-    print(f'✅ Cleared {cleared_count} stuck job(s)')
+    print(f' Cleared {cleared_count} stuck job(s)')
 else:
-    print('ℹ️  No stuck jobs to clear')
+    print('ℹ  No stuck jobs to clear')
 
 db.close()
 " 2>/dev/null || log_error "Failed to clear stuck jobs"

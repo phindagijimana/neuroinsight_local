@@ -11,6 +11,23 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Logging functions
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
 # Detect available Docker Compose command
 detect_docker_compose() {
     if command -v docker &> /dev/null; then
@@ -38,14 +55,6 @@ if [ -z "$DOCKER_COMPOSE_CMD" ]; then
 fi
 
 log_success "Using Docker Compose: $DOCKER_COMPOSE_CMD"
-
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
 
 log_warning() {
     echo -e "${YELLOW}[WARNING]${NC} $1"

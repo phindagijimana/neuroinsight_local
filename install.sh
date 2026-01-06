@@ -57,11 +57,11 @@ log_success "System check passed: $OS $VERSION"
 # Check system requirements
 log_info "Checking system requirements..."
 
-# Check RAM (8GB minimum for installation, 16GB recommended for processing)
+# Check RAM (7GB minimum for installation, 16GB recommended for processing)
 TOTAL_RAM=$(free -g | awk 'NR==2{printf "%.0f", $2}')
-if (( TOTAL_RAM < 8 )); then
+if (( TOTAL_RAM < 7 )); then
     log_error "Insufficient RAM for NeuroInsight installation."
-    log_error "Minimum required: 8GB (for basic functionality)"
+    log_error "Minimum required: 7GB (for basic functionality)"
     log_error "Detected: ${TOTAL_RAM}GB"
     exit 1
 elif (( TOTAL_RAM < 16 )); then

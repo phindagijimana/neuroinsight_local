@@ -298,7 +298,7 @@ class MRIProcessor:
             )
 
             # Memory recommendations for different use cases
-            INSTALL_MIN_GB = 8.0    # Allows installation
+            INSTALL_MIN_GB = 7.0    # Allows installation
             PROCESS_MIN_GB = 16.0   # Reliable processing
             RECOMMENDED_GB = 32.0   # Optimal performance
 

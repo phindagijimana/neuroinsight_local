@@ -9,7 +9,7 @@ Before installation, ensure your system meets these requirements:
 ### Hardware Requirements
 - **CPU**: 4+ cores (Intel/AMD x64 architecture)
 - **RAM**:
-  - **Installation Minimum**: 8 GB (allows basic UI functionality)
+  - **Installation Minimum**: 7 GB (allows basic UI functionality)
   - **Processing Minimum**: 16 GB (required for MRI processing)
   - **Recommended**: 32 GB (optimal for research workflows)
 - **Storage**: 50 GB free disk space

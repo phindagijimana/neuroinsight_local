@@ -131,10 +131,10 @@ log_info "Checking system memory..."
 TOTAL_MEM_GB=$(free -g | awk 'NR==2{printf "%.1f", $2}')
 AVAILABLE_MEM_GB=$(free -g | awk 'NR==2{printf "%.1f", $7}')
 
-if (( $(echo "$TOTAL_MEM_GB < 8" | bc -l) )); then
+if (( $(echo "$TOTAL_MEM_GB < 7" | bc -l) )); then
     log_error "CRITICAL: Insufficient memory for NeuroInsight"
-    log_error "Total RAM: ${TOTAL_MEM_GB}GB (minimum 8GB required)"
-    log_error "NeuroInsight cannot run on systems with less than 8GB RAM"
+    log_error "Total RAM: ${TOTAL_MEM_GB}GB (minimum 7GB required)"
+    log_error "NeuroInsight cannot run on systems with less than 7GB RAM"
     exit 1
 elif (( $(echo "$TOTAL_MEM_GB < 16" | bc -l) )); then
     log_warning "LIMITED MEMORY: ${TOTAL_MEM_GB}GB detected"

@@ -55,7 +55,7 @@ NeuroInsight provides automated hippocampal segmentation and analysis from T1-we
 
 ### Prerequisites
 - Ubuntu 20.04+ or compatible Linux
-- **RAM:** 8GB minimum (16GB+ recommended for MRI processing)
+- **RAM:** 7GB minimum (16GB+ recommended for MRI processing)
 - 4+ CPU cores, 50GB+ storage
 - Docker and Docker Compose
 - FreeSurfer license (free for research)

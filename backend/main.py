@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 
 from pathlib import Path
 
-from fastapi import FastAPI, APIRouter, Request, HTTPException, Query, Depends
+from fastapi import FastAPI, APIRouter, Request, HTTPException, Query, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -240,6 +240,18 @@ app.include_router(metrics_router, prefix="/api")
 app.include_router(reports_router, prefix="/api")
 app.include_router(visualizations_router, prefix="/api")
 app.include_router(cleanup_router, prefix="/api")  # Admin cleanup endpoints
+
+# WebSocket endpoint for real-time job updates
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            # Send periodic job status updates
+            data = await websocket.receive_text()
+            await websocket.send_text(f"Message received: {data}")
+    except WebSocketDisconnect:
+        pass
 
 # Static file mounting will be done in lifespan after settings are initialized
 

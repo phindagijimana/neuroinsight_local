@@ -57,12 +57,35 @@ log_success "System check passed: $OS $VERSION"
 # Check system requirements
 log_info "Checking system requirements..."
 
-# Check RAM (16GB minimum)
+# Check RAM (8GB minimum for installation, 16GB recommended for processing)
 TOTAL_RAM=$(free -g | awk 'NR==2{printf "%.0f", $2}')
-if (( TOTAL_RAM < 16 )); then
-    log_error "Insufficient RAM. NeuroInsight requires at least 16GB."
+if (( TOTAL_RAM < 8 )); then
+    log_error "Insufficient RAM for NeuroInsight installation."
+    log_error "Minimum required: 8GB (for basic functionality)"
     log_error "Detected: ${TOTAL_RAM}GB"
     exit 1
+elif (( TOTAL_RAM < 16 )); then
+    log_warning "LIMITED MEMORY DETECTED: ${TOTAL_RAM}GB"
+    log_warning ""
+    log_warning "⚠️  MEMORY LIMITATION WARNING ⚠️"
+    log_warning "You have ${TOTAL_RAM}GB RAM - sufficient for installation but not MRI processing."
+    log_warning ""
+    log_warning "MRI processing requires 16GB+ RAM. With ${TOTAL_RAM}GB:"
+    log_warning "• FreeSurfer segmentation may fail"
+    log_warning "• Processing will be slow or crash"
+    log_warning "• Visualizations may not generate"
+    log_warning ""
+    log_warning "For actual MRI processing, upgrade to 16GB+ RAM."
+    log_warning "You can still install and evaluate the web interface."
+    log_warning ""
+    read -p "Continue with installation despite memory limitations? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Installation cancelled by user."
+        exit 0
+    fi
+else
+    log_success "RAM check passed: ${TOTAL_RAM}GB"
 fi
 
 # Check disk space (100GB minimum)

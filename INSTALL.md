@@ -8,9 +8,32 @@ Before installation, ensure your system meets these requirements:
 
 ### Hardware Requirements
 - **CPU**: 4+ cores (Intel/AMD x64 architecture)
-- **RAM**: 16 GB minimum, 32 GB recommended
+- **RAM**:
+  - **Installation Minimum**: 8 GB (allows basic UI functionality)
+  - **Processing Minimum**: 16 GB (required for MRI processing)
+  - **Recommended**: 32 GB (optimal for research workflows)
 - **Storage**: 50 GB free disk space
 - **Network**: Stable internet connection
+
+### Memory Usage Guidelines
+
+**8GB Systems (Installation Only):**
+- ✅ Can install and run the web interface
+- ✅ Can view results and manage jobs
+- ❌ MRI processing likely to fail due to insufficient RAM
+- ⚠️  Suitable only for evaluation/demo purposes
+
+**16GB+ Systems (Full Functionality):**
+- ✅ Reliable MRI processing and segmentation
+- ✅ FreeSurfer pipeline execution
+- ✅ Visualization generation
+- ✅ Recommended for actual research use
+
+**32GB+ Systems (Optimal Performance):**
+- ✅ Multiple concurrent processing jobs
+- ✅ Large dataset handling
+- ✅ Batch processing workflows
+- ✅ Production research environments
 
 ### Operating System
 - **Ubuntu 20.04 LTS** or later (recommended)

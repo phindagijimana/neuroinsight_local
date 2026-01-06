@@ -189,7 +189,25 @@ docker-compose logs db
 ```bash
    # Check available memory
 free -h
-   # Should have >8GB available
+
+   # For MRI processing, you need:
+   # - 16GB+ total system RAM (recommended)
+   # - 8GB+ available RAM during processing
+   ```
+
+**Memory-Related Processing Failures:**
+- **8GB Systems**: MRI processing will likely fail due to insufficient RAM
+- **16GB Systems**: Should work for single brain processing
+- **32GB+ Systems**: Optimal for research workflows
+
+**Solutions:**
+1. **Upgrade RAM** to 16GB+ for reliable processing
+2. **Close other applications** to free up memory
+3. **Process one job at a time** on limited RAM systems
+4. **Monitor memory usage** during processing:
+   ```bash
+   # Watch memory usage in real-time
+   watch -n 2 'free -h && echo && ps aux --sort=-%mem | head -10'
    ```
 
 4. **File Format Issues**:

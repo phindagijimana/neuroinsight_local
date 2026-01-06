@@ -297,26 +297,53 @@ class MRIProcessor:
                 total_gb=round(total_gb, 2)
             )
 
-            # Require at least 8GB RAM for processing
-            MIN_REQUIRED_GB = 8.0
+            # Memory recommendations for different use cases
+            INSTALL_MIN_GB = 8.0    # Allows installation
+            PROCESS_MIN_GB = 16.0   # Reliable processing
+            RECOMMENDED_GB = 32.0   # Optimal performance
 
-            if total_gb < MIN_REQUIRED_GB:
-                error_msg = (
-                    f"Insufficient system memory for MRI processing.\n"
-                    f"Total RAM: {total_gb:.1f} GB\n"
-                    f"Required: {MIN_REQUIRED_GB:.1f} GB minimum\n\n"
-                    f"NeuroInsight requires sufficient RAM to:\n"
-                    f"• Load and process large MRI files\n"
-                    f"• Run FreeSurfer segmentation pipeline\n"
-                    f"• Generate visualizations and reports\n\n"
-                    f"Consider upgrading your system's RAM."
+            # Warnings for different memory levels
+            if total_gb < PROCESS_MIN_GB:
+                warning_msg = (
+                    f"⚠️  LIMITED MEMORY WARNING\n\n"
+                    f"System RAM: {total_gb:.1f} GB\n"
+                    f"Recommended for processing: {PROCESS_MIN_GB:.1f} GB+\n\n"
+                    f"With {total_gb:.1f} GB RAM, MRI processing may:\n"
+                    f"• Fail due to insufficient memory\n"
+                    f"• Take significantly longer\n"
+                    f"• Cause system slowdowns\n\n"
+                    f"For reliable MRI processing, consider upgrading to 16GB+ RAM.\n"
+                    f"FreeSurfer segmentation typically requires 4-8GB per brain.\n\n"
+                    f"Continuing with processing, but failures are likely..."
                 )
-                logger.error(
-                    "insufficient_memory",
+                logger.warning(
+                    "low_memory_warning",
                     total_gb=total_gb,
-                    required_gb=MIN_REQUIRED_GB
+                    recommended_gb=PROCESS_MIN_GB,
+                    message="Processing may fail due to insufficient RAM"
                 )
-                raise MemoryError(error_msg)
+                print(f"\n{warning_msg}\n")
+                # Don't raise error - allow processing attempt but warn heavily
+
+            elif total_gb < RECOMMENDED_GB:
+                info_msg = (
+                    f"ℹ️  MEMORY INFO\n"
+                    f"System has {total_gb:.1f} GB RAM - sufficient for basic processing.\n"
+                    f"For optimal performance with multiple jobs, consider 32GB+ RAM."
+                )
+                logger.info(
+                    "adequate_memory",
+                    total_gb=total_gb,
+                    recommended_gb=RECOMMENDED_GB
+                )
+                print(f"\n{info_msg}\n")
+
+            else:
+                logger.info(
+                    "optimal_memory",
+                    total_gb=total_gb,
+                    message="System has optimal RAM for NeuroInsight processing"
+                )
 
             # Warn if memory is getting low
             if available_gb < 4.0:

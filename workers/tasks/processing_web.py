@@ -35,8 +35,8 @@ backend_url = os.getenv("REDIS_URL", "redis://:redis_secure_password@localhost:6
 
 def test_redis_connection(url):
     """Test Redis connection and return True if successful."""
-try:
-    import redis
+    try:
+        import redis
         from urllib.parse import urlparse
 
         parsed = urlparse(url)

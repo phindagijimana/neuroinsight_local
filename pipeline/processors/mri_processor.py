@@ -3927,7 +3927,7 @@ class MRIProcessor:
                                                 self._update_progress(progress, f"FreeSurfer: {phase.title()} completed")
                                             logger.info("freesurfer_phase_completed",
                                                            phase=phase, 
-                                                           progress=progress, 
+                                                           progress=progress,
                                                            line=original_line,
                                                            job_id=str(self.job_id))
                                                 last_detected_phase = phase

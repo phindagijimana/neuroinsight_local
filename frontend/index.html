@@ -2430,10 +2430,10 @@
         <div className="min-h-screen flex flex-col">
           <Navigation activePage={activePage} setActivePage={setActivePage} />
           <div className="flex-grow">
-            {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
-            {activePage === 'jobs' && <JobsPage setActivePage={setActivePage} setSelectedJobId={setSelectedJobId} />}
-            {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
-            {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
+          {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
+          {activePage === 'jobs' && <JobsPage setActivePage={setActivePage} setSelectedJobId={setSelectedJobId} />}
+          {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
+          {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
           </div>
           <Footer />
         </div>

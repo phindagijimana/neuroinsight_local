@@ -80,10 +80,10 @@ def get_db() -> Generator[Session, None, None]:
 
     for attempt in range(max_retries):
         try:
-            db = SessionLocal()
+    db = SessionLocal()
             # Test connection with a simple query
             db.execute("SELECT 1")
-            yield db
+        yield db
             return
         except Exception as e:
             logger.warning(f"Database connection attempt {attempt + 1}/{max_retries} failed: {e}")
@@ -93,9 +93,9 @@ def get_db() -> Generator[Session, None, None]:
             else:
                 logger.error(f"Database connection failed after {max_retries} attempts")
                 raise
-        finally:
+    finally:
             try:
-                db.close()
+        db.close()
             except:
                 pass
 

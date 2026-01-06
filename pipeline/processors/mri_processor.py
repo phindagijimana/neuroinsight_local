@@ -190,7 +190,7 @@ class MRIProcessor:
         # Notify callback if available (for Celery task state)
         if self.progress_callback:
             self.progress_callback(progress, step)
-    
+
     def _store_container_id(self, container_id: str):
         """
         Store Docker container ID in database for cancellation support.
@@ -3925,7 +3925,7 @@ class MRIProcessor:
                                         if phase in line_lower:
                                             if last_detected_phase != phase:  # Only update if it's a new phase
                                                 self._update_progress(progress, f"FreeSurfer: {phase.title()} completed")
-                                                logger.info("freesurfer_phase_completed",
+                                            logger.info("freesurfer_phase_completed",
                                                            phase=phase, 
                                                            progress=progress, 
                                                            line=original_line,

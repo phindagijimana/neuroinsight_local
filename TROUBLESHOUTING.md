@@ -44,7 +44,7 @@ docker-compose logs db
 **Solutions**:
 
 1. **Check Python Path**:
-   ```bash
+```bash
    # Verify you're in the correct directory
    pwd
    # Should show: /path/to/neuroinsight
@@ -62,7 +62,7 @@ docker-compose logs db
    ```
 
 3. **Reinstall Dependencies**:
-   ```bash
+```bash
    # Remove and recreate virtual environment
    rm -rf venv
    python3 -m venv venv
@@ -96,7 +96,7 @@ docker-compose logs db
    ```
 
 4. **Reset Database** (if corrupted):
-   ```bash
+```bash
    docker-compose down
    rm -rf data/postgres
    docker-compose up -d db
@@ -122,10 +122,10 @@ docker-compose logs db
    ```
 
 3. **Test Redis Connection**:
-   ```bash
+```bash
    docker-compose exec redis redis-cli -a $REDIS_PASSWORD ping
    # Should return: PONG
-   ```
+```
 
 ## Processing Issues
 
@@ -136,14 +136,14 @@ docker-compose logs db
 **Causes & Solutions**:
 
 1. **Worker Not Running**:
-   ```bash
-   ./status.sh
+```bash
+./status.sh
    # Check if worker shows RUNNING
    ```
 
 2. **Redis Connection Issue**:
    ```bash
-   # Check worker logs
+# Check worker logs
    docker-compose logs worker | tail -20
    ```
 
@@ -155,7 +155,7 @@ docker-compose logs db
 4. **Restart Worker**:
    ```bash
    ./restart.sh
-   ```
+```
 
 ### FreeSurfer Processing Fails
 
@@ -166,7 +166,7 @@ docker-compose logs db
 **Common Causes**:
 
 1. **License Issues**:
-   ```bash
+```bash
    # Check license file exists
    ls -la license.txt
 
@@ -180,15 +180,15 @@ docker-compose logs db
    # Check Docker is running
    docker ps
 
-   # Check disk space
+# Check disk space
    df -h /
    # Should have >20GB free
    ```
 
 3. **Memory Issues**:
-   ```bash
+```bash
    # Check available memory
-   free -h
+free -h
    # Should have >8GB available
    ```
 
@@ -230,7 +230,7 @@ docker-compose logs db
 **Solutions**:
 
 1. **Check File Format**:
-   ```bash
+```bash
    # Verify file type
    file your_file.nii.gz
    # Should show: NIfTI-1 format
@@ -247,7 +247,7 @@ docker-compose logs db
 
    # Use mriconvert for other formats
    mriconvert input_file output_file.nii.gz
-   ```
+```
 
 ### Large File Upload Timeout
 
@@ -256,7 +256,7 @@ docker-compose logs db
 **Solutions**:
 
 1. **Compress File**:
-   ```bash
+```bash
    # If not already compressed
    gzip your_file.nii
    ```
@@ -271,7 +271,7 @@ docker-compose logs db
    ```bash
    # Edit nginx config if using reverse proxy
    # Or increase FastAPI timeout settings
-   ```
+```
 
 ## User Interface Issues
 
@@ -282,7 +282,7 @@ docker-compose logs db
 **Solutions**:
 
 1. **Check Application Status**:
-   ```bash
+```bash
    ./status.sh
    # Backend should show RUNNING with correct port
    ```
@@ -302,7 +302,7 @@ docker-compose logs db
 4. **Restart Application**:
    ```bash
    ./restart.sh
-   ```
+```
 
 ### Port Conflicts (Rare with Auto-Selection)
 
@@ -320,7 +320,7 @@ docker-compose logs db
    ```
 
 2. **Stop Conflicting Services**:
-   ```bash
+```bash
    # Stop other web servers
    sudo systemctl stop apache2 nginx
 
@@ -338,7 +338,7 @@ docker-compose logs db
    ```bash
    sudo fuser -k 8000/tcp  # Free port 8000 (use with caution!)
    ./start.sh
-   ```
+```
 
 **Prevention**: NeuroInsight's auto-selection prevents most port conflicts automatically.
 
@@ -353,7 +353,7 @@ docker-compose logs db
    - Verify jobs show COMPLETED status
 
 2. **Check Metrics Data**:
-   ```bash
+```bash
    # Check if metrics files exist
    ls -la data/outputs/*/metrics/
    ```
@@ -377,7 +377,7 @@ docker-compose logs db
 **Solutions**:
 
 1. **Check System Resources**:
-   ```bash
+```bash
    # Monitor CPU usage
    top -n 1
 
@@ -399,7 +399,7 @@ docker-compose logs db
    ```bash
    # View Docker stats
    docker stats --no-stream
-   ```
+```
 
 ### High Memory Usage
 
@@ -412,7 +412,7 @@ docker-compose logs db
    - Wait for completion before starting new jobs
 
 2. **Monitor Memory Usage**:
-   ```bash
+```bash
    # Check memory consumption
    free -h
    ps aux --sort=-%mem | head -10
@@ -421,7 +421,7 @@ docker-compose logs db
 3. **Restart Services**:
    ```bash
    ./restart.sh
-   ```
+```
 
 ## Docker Issues
 
@@ -432,19 +432,19 @@ docker-compose logs db
 **Solutions**:
 
 1. **Check Docker Service**:
-   ```bash
+```bash
    sudo systemctl status docker
-   sudo systemctl start docker
+sudo systemctl start docker
    ```
 
 2. **Check Disk Space**:
-   ```bash
+```bash
    df -h /
    # Need >10GB free for Docker
-   ```
+```
 
 3. **Clean Docker System**:
-   ```bash
+```bash
    docker system prune -a
    docker volume prune
    ```
@@ -456,17 +456,17 @@ docker-compose logs db
 **Solutions**:
 
 1. **Check Container Logs**:
-   ```bash
+```bash
    docker-compose logs unhealthy_service
    ```
 
 2. **Restart Specific Service**:
-   ```bash
+```bash
    docker-compose restart unhealthy_service
    ```
 
 3. **Rebuild Containers**:
-   ```bash
+```bash
    docker-compose build unhealthy_service
    ```
 

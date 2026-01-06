@@ -8,7 +8,7 @@ echo
 # Check if license file exists
 if [ -f "license.txt" ]; then
     echo "License file found: license.txt"
-
+    
     # Check if it's not the example file
     if grep -q "REPLACE THIS EXAMPLE CONTENT" license.txt; then
         echo "License file contains example content - please replace with your actual license"
@@ -20,7 +20,7 @@ if [ -f "license.txt" ]; then
         exit 1
     else
         echo "License file appears to contain actual license content"
-
+        
         # Basic format check
         line_count=$(wc -l < license.txt)
         if [ "$line_count" -ge 3 ]; then

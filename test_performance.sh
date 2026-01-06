@@ -127,7 +127,7 @@ test_docker_performance() {
 # Test NeuroInsight API performance
 test_api_performance() {
     log_info "Testing NeuroInsight API Performance..."
-
+    
     # Detect the running NeuroInsight port
     NEUROINSIGHT_PORT=""
     if [ -f "neuroinsight.pid" ] && kill -0 $(cat neuroinsight.pid) 2>/dev/null; then

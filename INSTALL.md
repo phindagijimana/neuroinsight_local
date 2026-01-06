@@ -33,7 +33,7 @@ Before installation, ensure your system meets these requirements:
 
 ### Option 1: Automated Installation (Recommended)
 
-```bash
+   ```bash
 # Clone the repository
 git clone https://github.com/yourusername/neuroinsight.git
 cd neuroinsight
@@ -43,7 +43,7 @@ chmod +x install.sh
 
 # Run automated installation
 ./install.sh
-```
+   ```
 
 The automated installer will:
 - Check system compatibility
@@ -77,27 +77,27 @@ sudo usermod -aG docker $USER
 
 ### Step 2: Clone Repository
 
-```bash
+   ```bash
 # Clone the NeuroInsight repository
 git clone https://github.com/yourusername/neuroinsight.git
-cd neuroinsight
+   cd neuroinsight
 
 # Make scripts executable
 chmod +x *.sh
-```
+   ```
 
 ### Step 3: Python Environment Setup
 
-```bash
+   ```bash
 # Create virtual environment
-python3 -m venv venv
+   python3 -m venv venv
 
 # Activate virtual environment
-source venv/bin/activate
+   source venv/bin/activate
 
 # Install Python dependencies
-pip install -r requirements.txt
-```
+   pip install -r requirements.txt
+   ```
 
 ### Step 4: FreeSurfer License Setup
 

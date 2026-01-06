@@ -1,46 +1,51 @@
-# Core framework
+# NeuroInsight Requirements
+# Unified dependencies for hybrid deployment
+
+# Core Web Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
 
-# Database
+# Database & ORM
 sqlalchemy==2.0.23
 alembic==1.12.1
-psycopg2-binary==2.9.9  # PostgreSQL driver
+psycopg2-binary==2.9.9
 
 # Message Queue & Cache
+celery==5.3.4
 redis==5.0.1
 
 # Object Storage
 boto3==1.34.0
 
-# Settings
+# Data Validation & Settings
 pydantic==2.5.0
 pydantic-settings==2.1.0
 
-# User directories (cross-platform)
-platformdirs==4.1.0
-
-# Medical imaging
+# Medical Imaging & Processing
 nibabel==5.1.0
 numpy==1.24.3
 scipy==1.11.3
 matplotlib==3.7.2
+pandas==2.1.3
 
-# Deep learning
+# Image Processing
+Pillow==10.1.0
+scikit-image==0.22.0
+
+# PDF Generation
+reportlab==4.0.7
+
+# Deep Learning (optional, for future features)
 torch==2.0.1
 torchvision==0.15.2
 
-# Utilities
+# System & Utilities
+platformdirs==4.1.0
 python-dateutil==2.8.2
 structlog==23.2.0
 psutil==5.9.6
-
-# File handling
 aiofiles==23.2.1
 
-# Image processing
-Pillow==10.1.0
-
-# Data processing
-pandas==2.1.3
+# HTTP Client (for API calls)
+httpx==0.25.2

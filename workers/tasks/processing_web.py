@@ -108,6 +108,46 @@ def update_job_progress(db: Session, job_id, progress: int, current_step: str):
         db.rollback()
 
 
+def start_next_pending_job(db: Session):
+    """
+    Check for pending jobs and start the next one if no jobs are currently running.
+    
+    This ensures automatic job progression after a job completes or fails.
+    
+    Args:
+        db: Database session
+    """
+    try:
+        # Check if there are any running jobs
+        running_count = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
+        
+        if running_count > 0:
+            logger.info("job_already_running_skipping_auto_start", running_count=running_count)
+            return
+        
+        # Get the oldest pending job (FIFO queue)
+        pending_job = db.query(Job).filter(
+            Job.status == JobStatus.PENDING
+        ).order_by(Job.created_at.asc()).first()
+        
+        if not pending_job:
+            logger.info("no_pending_jobs_found")
+            return
+        
+        # Start the pending job
+        logger.info("auto_starting_next_pending_job", job_id=str(pending_job.id), filename=pending_job.filename)
+        
+        # Submit to Celery queue
+        task = process_mri_task.delay(str(pending_job.id))
+        logger.info("auto_started_pending_job", 
+                   job_id=str(pending_job.id), 
+                   celery_task_id=task.id,
+                   filename=pending_job.filename)
+        
+    except Exception as e:
+        logger.error("failed_to_auto_start_pending_job", error=str(e), exc_info=True)
+
+
 @celery_app.task(bind=True, name="process_mri_task")
 def process_mri_task(self, job_id: str):
     """
@@ -204,6 +244,9 @@ def process_mri_task(self, job_id: str):
         update_job_progress(db, job_id, 100, "Processing completed successfully")
 
         logger.info("celery_task_completed", job_id=job_id, results=results)
+        
+        # Start next pending job if any
+        start_next_pending_job(db)
 
         return {
             "status": "completed",
@@ -218,6 +261,8 @@ def process_mri_task(self, job_id: str):
         # Update job status to failed
         try:
             JobService.fail_job(db, job_id, str(e))
+            # Start next pending job if any
+            start_next_pending_job(db)
         except Exception as db_error:
             logger.error("job_status_update_failed", job_id=job_id, error=str(db_error))
 

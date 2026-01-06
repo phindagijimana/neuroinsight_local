@@ -275,6 +275,35 @@ class JobService:
         if is_active:
             logger.info("cancelling_active_job", job_id=str(job_id), status=job_status.value)
             
+            # Kill Docker container if running
+            if job.docker_container_id:
+                try:
+                    import subprocess
+                    logger.info("killing_docker_container", 
+                               job_id=str(job_id), 
+                               container_id=job.docker_container_id)
+                    
+                    # Stop the container (will kill the subprocess too)
+                    result = subprocess.run(
+                        ["docker", "stop", job.docker_container_id],
+                        capture_output=True,
+                        timeout=10
+                    )
+                    
+                    if result.returncode == 0:
+                        logger.info("docker_container_killed", 
+                                   job_id=str(job_id), 
+                                   container_id=job.docker_container_id)
+                    else:
+                        logger.warning("docker_container_kill_failed",
+                                      job_id=str(job_id),
+                                      container_id=job.docker_container_id,
+                                      stderr=result.stderr.decode() if result.stderr else "")
+                except Exception as e:
+                    logger.warning("docker_container_kill_error", 
+                                  job_id=str(job_id), 
+                                  error=str(e))
+            
             # Cancel Celery task and terminate FastSurfer
             try:
                 from backend.services import TaskManagementService
@@ -287,6 +316,7 @@ class JobService:
             job.status = JobStatus.CANCELLED
             job.completed_at = datetime.utcnow()
             job.error_message = "Job cancelled by user"
+            job.docker_container_id = None  # Clear container ID
             db.commit()
             
             # Wait a moment for processes to terminate gracefully
@@ -317,6 +347,13 @@ class JobService:
             previous_status=job_status.value,
             was_active=is_active
         )
+        
+        # If we deleted a running or pending job, try to start the next pending job
+        if is_active:
+            try:
+                JobService._start_next_pending_job(db)
+            except Exception as e:
+                logger.warning("failed_to_auto_start_next_job_after_deletion", error=str(e))
         
         return True
     
@@ -467,3 +504,46 @@ class JobService:
                                    error=str(e))
         except Exception as e:
             logger.error("job_queue_processing_failed", error=str(e))
+    
+    @staticmethod
+    def _start_next_pending_job(db: Session):
+        """
+        Check for pending jobs and start the next one if no jobs are currently running.
+        
+        This is called automatically after a job completes, fails, or is deleted.
+        
+        Args:
+            db: Database session
+        """
+        try:
+            # Check if there are any running jobs
+            running_count = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
+            
+            if running_count > 0:
+                logger.info("job_already_running_skipping_auto_start", running_count=running_count)
+                return
+            
+            # Get the oldest pending job (FIFO queue)
+            pending_job = db.query(Job).filter(
+                Job.status == JobStatus.PENDING
+            ).order_by(Job.created_at.asc()).first()
+            
+            if not pending_job:
+                logger.info("no_pending_jobs_to_auto_start")
+                return
+            
+            # Start the pending job
+            logger.info("auto_starting_next_pending_job_after_completion", 
+                       job_id=str(pending_job.id), 
+                       filename=pending_job.filename)
+            
+            # Submit to Celery queue
+            from workers.tasks.processing_web import process_mri_task
+            task = process_mri_task.delay(str(pending_job.id))
+            logger.info("auto_started_pending_job_from_service", 
+                       job_id=str(pending_job.id), 
+                       celery_task_id=task.id,
+                       filename=pending_job.filename)
+            
+        except Exception as e:
+            logger.error("failed_to_auto_start_pending_job_from_service", error=str(e), exc_info=True)

@@ -7,7 +7,7 @@ metric-related API requests and responses.
 
 from datetime import datetime
 from typing import Optional
-from uuid import UUID
+# from uuid import UUID  # Not needed for string job IDs
 
 from pydantic import BaseModel, Field, validator
 
@@ -19,9 +19,9 @@ class MetricCreate(BaseModel):
     Used when storing hippocampal volumetric measurements.
     """
     
-    job_id: UUID = Field(
+    job_id: str = Field(
         ...,
-        description="Associated job identifier"
+        description="Associated job identifier (8 characters)"
     )
     
     region: str = Field(
@@ -76,14 +76,14 @@ class MetricResponse(BaseModel):
     Includes all metric details and computed properties.
     """
     
-    id: UUID = Field(
+    id: str = Field(
         ...,
         description="Unique metric identifier"
     )
     
-    job_id: UUID = Field(
+    job_id: str = Field(
         ...,
-        description="Associated job identifier"
+        description="Associated job identifier (8 characters)"
     )
     
     region: str = Field(

@@ -166,6 +166,13 @@ class Job(Base):
         doc="Current processing step description"
     )
     
+    # Docker container tracking (for proper cleanup on cancellation)
+    docker_container_id = Column(
+        String(64),
+        nullable=True,
+        doc="Docker container ID if job is running in container"
+    )
+    
     # Relationships
     metrics = relationship(
         "Metric",

@@ -57,10 +57,26 @@ frontend/dist/
 # Temporary files
 *.tmp
 *.bak
+*.orig
 nohup.out
-backend_restart.log
-celery_worker*.log
 
-# Secrets and configs (if any)
-.env.local
+# Development logs (should be cleaned before commit)
+*.log
+logs/
+
+# Process IDs
+*.pid
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment and secrets
+.env*
 secrets/
+config.local.*
+
+# FreeSurfer License (keep example, ignore real license)
+license.txt
+!license.txt.example

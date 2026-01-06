@@ -239,10 +239,14 @@ async def validate_existing_license():
     Looks for license files in standard locations and validates them.
     """
     try:
+        # Match the MRI processor license search paths
         license_paths = [
-            Path("./license.txt"),
+            Path("./license.txt"),  # Primary location for users
+            Path("./freesurfer_license.txt"),  # Legacy support
+            Path("./resources/licenses/license.txt"),
             Path("./resources/licenses/freesurfer_license.txt"),
-            Path.home() / ".freesurfer" / "license.txt"
+            Path.home() / "neuroinsight" / "license.txt",
+            Path("/usr/local/freesurfer/license.txt"),
         ]
 
         for license_path in license_paths:

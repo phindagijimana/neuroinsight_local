@@ -1,0 +1,147 @@
+#!/bin/bash
+# NeuroInsight Status Script
+# Shows current status of all services
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+print_status() {
+    local service=$1
+    local status=$2
+    local details=$3
+    
+    case $status in
+        "running")
+            echo -e "${service}: ${GREEN}RUNNING${NC} ${details}"
+            ;;
+        "stopped")
+            echo -e "${service}: ${RED}STOPPED${NC} ${details}"
+            ;;
+        "warning")
+            echo -e "${service}: ${YELLOW}WARNING${NC} ${details}"
+            ;;
+        *)
+            echo -e "${service}: ${BLUE}UNKNOWN${NC} ${details}"
+            ;;
+    esac
+}
+
+echo "NeuroInsight Service Status"
+echo "================================"
+
+# Check backend
+if [ -f "neuroinsight.pid" ]; then
+    BACKEND_PID=$(cat neuroinsight.pid)
+    if kill -0 $BACKEND_PID 2>/dev/null; then
+        # Check if API is responding
+        if curl -s --max-time 5 http://localhost:8000/health > /dev/null 2>&1; then
+            print_status "Backend" "running" "(PID: $BACKEND_PID, API: responding)"
+        else
+            print_status "backend" "warning" "(PID: $BACKEND_PID, API: not responding)"
+        fi
+    else
+        print_status "Backend" "stopped" "(stale PID file)"
+        rm -f neuroinsight.pid
+    fi
+else
+    print_status "Backend" "stopped" "(no PID file)"
+fi
+
+# Check Celery worker
+if [ -f "celery.pid" ]; then
+    WORKER_PID=$(cat celery.pid)
+    if kill -0 $WORKER_PID 2>/dev/null; then
+        print_status "Celery Worker" "running" "(PID: $WORKER_PID)"
+    else
+        print_status "Celery Worker" "stopped" "(stale PID file)"
+        rm -f celery.pid
+    fi
+else
+    print_status "Celery Worker" "stopped" "(no PID file)"
+fi
+
+# Check Docker containers
+echo
+echo "Docker Services:"
+CONTAINERS=("neuroinsight-redis" "neuroinsight-postgres" "neuroinsight-minio" "neuroinsight-api-bridge")
+
+for container in "${CONTAINERS[@]}"; do
+    if docker ps | grep -q $container; then
+        # Get container status
+        STATUS=$(docker ps --format "table {{.Names}}\t{{.Status}}" | grep $container | awk '{print $2}')
+        print_status "  $container" "running" "($STATUS)"
+    else
+        print_status "  $container" "stopped" ""
+    fi
+done
+
+# Check license
+echo
+echo "FreeSurfer License:"
+if [ -f "license.txt" ]; then
+    if grep -q "REPLACE THIS EXAMPLE CONTENT" license.txt 2>/dev/null; then
+        print_status "  License file" "warning" "(contains example content)"
+    else
+        LINE_COUNT=$(wc -l < license.txt)
+        print_status "  License file" "running" "($LINE_COUNT lines)"
+    fi
+else
+    print_status "  License file" "stopped" "(license.txt not found)"
+fi
+
+# System resources
+echo
+echo "System Resources:"
+CPU_USAGE=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1"%"}')
+MEM_TOTAL=$(free -h | grep "^Mem:" | awk '{print $2}')
+MEM_USED=$(free -h | grep "^Mem:" | awk '{print $3}')
+DISK_USAGE=$(df / | tail -1 | awk '{print $5}')
+
+echo "  CPU Usage: $CPU_USAGE"
+echo "  Memory: $MEM_USED / $MEM_TOTAL"
+echo "  Disk Usage: $DISK_USAGE"
+
+# Job statistics (if API is available)
+echo
+echo "Recent Jobs:"
+if curl -s --max-time 5 http://localhost:8000/api/jobs/stats > /dev/null 2>&1; then
+    STATS=$(curl -s http://localhost:8000/api/jobs/stats)
+    TOTAL=$(echo $STATS | grep -o '"total_jobs":[0-9]*' | cut -d: -f2)
+    COMPLETED=$(echo $STATS | grep -o '"completed_jobs":[0-9]*' | cut -d: -f2)
+    RUNNING=$(echo $STATS | grep -o '"running_jobs":[0-9]*' | cut -d: -f2)
+    PENDING=$(echo $STATS | grep -o '"pending_jobs":[0-9]*' | cut -d: -f2)
+    SUCCESS_RATE=$(echo $STATS | grep -o '"success_rate":[0-9]*' | cut -d: -f2)
+    
+    echo "  Total: $TOTAL jobs"
+    echo "  Completed: $COMPLETED"
+    echo "  Running: $RUNNING"
+    echo "  Pending: $PENDING"
+    echo "  Success Rate: $SUCCESS_RATE%"
+else
+    echo "  API not available"
+fi
+
+echo
+echo "URLs:"
+if curl -s --max-time 5 http://localhost:8000/health > /dev/null 2>&1; then
+    echo "  Web Interface: http://localhost:8000"
+    echo "  API Docs: http://localhost:8000/docs"
+else
+    echo "  Services not accessible"
+fi
+
+echo
+echo "Log Files:"
+echo "  Backend: neuroinsight.log"
+echo "  Worker: celery_worker.log"
+echo "  Docker: docker logs <container_name>"
+
+echo
+echo "Commands:"
+echo "  Start: ./start.sh"
+echo "  Stop: ./stop.sh"
+echo "  License check: ./check_license.sh"

@@ -430,27 +430,42 @@ async def upload_mri(
         )
 
         # Check queue limits before creating job
-        # Maximum 5 total jobs (queued + running + failed)
-        total_active_jobs = JobService.count_jobs_by_status(db, [
-            JobStatus.PENDING, JobStatus.RUNNING, JobStatus.FAILED
-        ])
+        # Maximum 1 running + 5 pending = 6 total active jobs
+        # Failed jobs don't count (they can be reviewed/deleted anytime)
+        running_jobs = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
+        pending_jobs = JobService.count_jobs_by_status(db, [JobStatus.PENDING])
 
-        if total_active_jobs >= 5:
+        # Check running limit (should always be 0 or 1, but double-check)
+        if running_jobs >= 1 and pending_jobs >= 5:
+            # Already at max capacity: 1 running + 5 pending
             # Clean up uploaded file
             if os.path.exists(storage_path):
                 os.remove(storage_path)
             raise HTTPException(
                 status_code=429,  # Too Many Requests
-                detail="Job queue is full. Maximum 5 jobs allowed. Please wait for some jobs to complete."
+                detail="Job queue is full. Maximum 1 running job and 5 pending jobs allowed. Please wait for jobs to complete."
+            )
+        
+        # If no running job, we can have up to 5 total jobs (will start immediately)
+        # If 1 running job, we can have up to 5 pending jobs (will wait)
+        total_active = running_jobs + pending_jobs
+        if total_active >= 6:
+            # Clean up uploaded file
+            if os.path.exists(storage_path):
+                os.remove(storage_path)
+            raise HTTPException(
+                status_code=429,  # Too Many Requests
+                detail="Job queue is full. Maximum 1 running job and 5 pending jobs allowed. Please wait for jobs to complete."
             )
 
         job = JobService.create_job(db, job_data)
 
         # Trigger processing asynchronously
         # Check if there's already a running job (max 1 concurrent running job)
-        running_jobs = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
+        # (We already checked running_jobs above, but re-check after job creation to be safe)
+        running_jobs_now = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
 
-        if running_jobs == 0:
+        if running_jobs_now == 0:
             # No running jobs, start processing immediately
             try:
                 # Submit Celery task for processing

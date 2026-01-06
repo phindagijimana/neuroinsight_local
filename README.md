@@ -1,209 +1,140 @@
-# NeuroInsight 🧠
+# NeuroInsight
 
-**Automated MRI Brain Segmentation & Analysis Platform**
+*Advanced Hippocampal Analysis Platform for Neuroscience Research*
 
-A modern web application for automated MRI brain segmentation and hippocampal analysis using FreeSurfer. Built for neuroimaging researchers and clinicians.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Docker](https://img.shields.io/badge/docker-required-blue.svg)](https://docker.com)
+[![Ubuntu 20.04+](https://img.shields.io/badge/ubuntu-20.04+-orange.svg)](https://ubuntu.com)
 
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://www.docker.com/)
-[![Python](https://img.shields.io/badge/Python-3.9+-blue)](https://www.python.org/)
-[![React](https://img.shields.io/badge/React-18+-blue)](https://reactjs.org/)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+NeuroInsight is a comprehensive web-based platform for automated hippocampal segmentation and analysis from T1-weighted MRI scans. Built for neuroscience researchers, it provides a user-friendly interface for processing, visualizing, and analyzing brain imaging data using FreeSurfer and advanced segmentation algorithms.
 
-## ✨ Features
+## Features
 
-- 🔬 **Automated MRI Processing** - Upload NIfTI/DICOM files for brain segmentation
-- 🧠 **FreeSurfer Integration** - Advanced cortical reconstruction & subcortical segmentation  
-- 📊 **Hippocampal Analysis** - Automated volumetric measurements & asymmetry calculations
-- 🌐 **Modern Web Interface** - React frontend with real-time progress tracking
-- 🔌 **REST API** - Full programmatic access to processing capabilities
-- ⚡ **Asynchronous Processing** - Celery job queue with Redis backend
+- **Web-Based Interface**: Clean, intuitive web application accessible from any browser
+- **Automated Processing**: End-to-end MRI processing pipeline with FreeSurfer integration
+- **Real-Time Monitoring**: Live progress tracking and detailed processing logs
+- **Advanced Analytics**: Comprehensive hippocampal metrics and statistical analysis
+- **Interactive Visualization**: 3D brain visualizations and segmentation overlays
+- **Automated Reports**: Professional PDF reports with findings and metrics
+- **Queue Management**: Intelligent job queuing with concurrency control
+- **Containerized**: Docker-based deployment for easy installation and scaling
 
-## 🗄️ Database Architecture
-
-### SQLite for Sequential Processing
-
-**NeuroInsight uses SQLite as the primary database** for job management and metadata storage, which is optimal for the current sequential processing workflow:
-
-#### ✅ Why SQLite Works Perfectly
-
-- **Sequential FreeSurfer Processing**: Only one MRI scan is processed at a time, eliminating SQLite's concurrency limitations
-- **Redis Queue Management**: Redis handles job queuing and background task distribution, while SQLite stores job metadata
-- **Controlled User Load**: Designed for research environments with limited concurrent users
-- **Simple Deployment**: Zero-configuration database that works immediately
-
-#### 📊 Current Architecture Benefits
-
-```
-User Upload → Redis Queue → Sequential Processing → SQLite Results
-     ↓             ↓               ↓               ↓
-  Fast API     Job Distribution  One-at-a-time   Metadata Store
-  Response     (No Conflicts)    (SQLite Safe)   (ACID Compliant)
-```
-
-- **Database Size**: Small (< 100KB) with metadata only
-- **Performance**: Fast reads/writes for job status and results
-- **Reliability**: ACID compliance for single-writer scenarios
-- **Backup**: Simple file copy operations
-
-### 🚀 PostgreSQL for Future Scaling
-
-Consider PostgreSQL when your needs exceed SQLite's limitations:
-
-#### When to Upgrade
-
-- **>10 concurrent users** actively using the platform
-- **High-frequency uploads** requiring concurrent database writes
-- **Database size >500MB** with extensive metadata/results
-- **Multi-user permissions** and access control needed
-- **High availability** and automated backup requirements
-- **Advanced analytics** on processing results
-
-#### PostgreSQL Advantages
-
-- **Concurrent Writes**: Multiple users can upload/process simultaneously
-- **Advanced Features**: User authentication, row-level security, stored procedures
-- **Enterprise Ready**: Hot backups, replication, monitoring
-- **Scalability**: Handles hundreds of concurrent users
-- **Data Integrity**: Enhanced ACID compliance and crash recovery
-
-#### Migration Path
-
-```bash
-# When ready to scale:
-1. Install PostgreSQL (see NATIVE_DEPLOYMENT_README.md)
-2. Run migration script: python migrate_sqlite_to_postgresql.py
-3. Update environment: export POSTGRES_HOST=localhost
-4. Restart services
-```
-
-**Current Setup**: SQLite provides reliable, simple database operations for sequential MRI processing
-**Future Scaling**: PostgreSQL ready for multi-user, high-concurrency environments
-
-## 💾 Storage Architecture
-
-### Local Storage for Current Scale
-
-**NeuroInsight currently uses local filesystem storage** for MRI files and processing results, which is optimal for research environments:
-
-#### ✅ Why Local Storage Works Perfectly
-
-- **Research-Scale Data**: Handles <2TB neuroimaging datasets efficiently
-- **Sequential Processing**: Perfect for one-at-a-time MRI analysis workflows
-- **Maximum Performance**: Local I/O eliminates network overhead
-- **Simple Backup**: Standard tools (rsync, tar) for data preservation
-- **Cost Effective**: Zero additional infrastructure costs
-- **Security**: Full control over data location and access
-
-#### 📊 Current Storage Benefits
-
-```
-MRI Upload → Local Storage → FreeSurfer Processing → Local Results
-     ↓            ↓                    ↓               ↓
-Fast Validation  Immediate Access    High Performance  Quick Retrieval
-Zero Network     No API Calls        Maximum Speed     Direct File Access
-```
-
-- **Current Usage**: ~429MB across 8 processed scans
-- **Performance**: Sub-millisecond file access
-- **Backup**: Simple `rsync` to external storage
-- **Reliability**: No network dependencies or API failures
-
-### 🚀 MinIO Object Storage for Scaling
-
-**MinIO will be integrated for larger-scale deployments** when local storage limitations are reached:
-
-#### When to Enable MinIO
-
-- **>500GB total data** requiring advanced storage management
-- **Multiple concurrent users** accessing shared datasets
-- **Cloud backup/sharing** needs (AWS S3, Google Cloud Storage)
-- **Geographic distribution** of data across multiple sites
-- **Enterprise compliance** requirements (HIPAA, GDPR)
-- **High availability** and automated backup needs
-
-#### MinIO Advantages
-
-- **S3-Compatible API**: Drop-in replacement for cloud storage
-- **Multi-Site Replication**: Automatic data synchronization
-- **Web Management Interface**: File browser and access controls
-- **Enterprise Security**: Advanced authentication and encryption
-- **Cost Effective**: Self-hosted alternative to cloud storage
-- **Docker Native**: Perfect fit for containerized deployments
-
-#### Implementation Status
-
-```bash
-# MinIO infrastructure is pre-configured
-✅ MinIO server ready in docker-compose.yml
-✅ Python client integrated in storage service
-⚠️  Credential alignment needed (currently uses local fallback)
-🔄 Will activate when scaling requirements met
-```
-
-#### Migration Strategy
-
-```bash
-# When ready to scale:
-1. Align MinIO credentials in environment
-2. Test file operations with MinIO backend
-3. Migrate existing data (optional)
-4. Enable advanced features (sharing, versioning)
-```
-
-**Current Setup**: Local storage provides optimal performance for research workflows
-**Future Scaling**: MinIO ready for enterprise-grade storage when data scale demands it
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
-- 🐧 Linux (Ubuntu 20.04+, RHEL/CentOS 8+, Fedora)
-- 🐳 Docker & Docker Compose  
-- 💾 16GB+ RAM (32GB recommended)
-- 📄 FreeSurfer license ([get here](https://surfer.nmr.mgh.harvard.edu/registration.html))
+- Ubuntu 20.04+ or compatible Linux distribution
+- 16GB+ RAM, 4+ CPU cores, 50GB+ free disk space
+- Docker and Docker Compose installed
+- FreeSurfer license (free for research)
 
-### Install & Run
+### One-Command Installation
+
 ```bash
-git clone https://github.com/your-org/neuroinsight.git
-cd neuroinsight/desktop_alone_web
+# Clone the repository
+git clone https://github.com/yourusername/neuroinsight.git
+cd neuroinsight
 
-# Auto-setup with secure passwords
-./setup_env_simple.sh hybrid
+# Run the automated installer
+./install.sh
 
-# Deploy complete platform  
-./start_production_hybrid.sh
-
-# Open application
-open http://localhost:8000
+# Start the application
+./start.sh
 ```
 
-**Upload `test_data/test_brain.nii.gz` to test MRI processing!**
+Visit `http://localhost:8000` and start processing your MRI data!
 
-## 📚 Documentation
+## System Requirements
 
-- 📖 **[Complete Setup Guide](NATIVE_DEPLOYMENT_README.md)** - Detailed installation & configuration
-- 🔧 **[API Docs](http://localhost:8000/docs)** - Interactive API documentation  
-- 🧪 **[Testing Guide](tests/README.md)** - Comprehensive testing workflow
-- 🚨 **[Troubleshooting](NATIVE_DEPLOYMENT_README.md#troubleshooting)** - Common issues & solutions
+### Minimum Hardware
+- **CPU**: 4 cores (Intel/AMD x64)
+- **RAM**: 16 GB
+- **Storage**: 50 GB free space
+- **Network**: Stable internet connection
 
-## 🤝 Contributing
+### Recommended Hardware
+- **CPU**: 8+ cores (Intel/AMD x64)
+- **RAM**: 32 GB
+- **Storage**: 100+ GB SSD
+- **GPU**: NVIDIA GPU (optional, for accelerated processing)
 
-We welcome contributions! See [Contributing Guide](CONTRIBUTING.md) for details.
+### Software Requirements
+- **Operating System**: Ubuntu 20.04 LTS or later
+- **Container Runtime**: Docker 20.10+
+- **Python**: 3.10 or later
+- **Web Browser**: Chrome 90+, Firefox 88+, Safari 14+
 
-### Quick Development Setup
-```bash
-pip install -r requirements.txt
-npm install && npm run build
-docker compose -f docker-compose.yml up -d
+## Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Web Frontend  │    │  FastAPI Backend │    │   Celery Worker │
+│   (React)       │◄──►│   (Python)       │◄──►│   (Python)       │
+│                 │    │                 │    │                 │
+│ • File Upload   │    │ • Job Management │    │ • MRI Processing │
+│ • Progress UI   │    │ • API Endpoints  │    │ • FreeSurfer     │
+│ • Results View  │    │ • Database Ops   │    │ • Docker Mgmt    │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   Services      │
+                    │ • PostgreSQL    │
+                    │ • Redis         │
+                    │ • MinIO         │
+                    │ • Docker Engine │
+                    └─────────────────┘
 ```
 
-## 📄 License
+## Documentation
 
-Licensed under MIT License - see [LICENSE](LICENSE) file for details.
+- **[Installation Guide](INSTALL.md)**: Detailed setup instructions
+- **[User Guide](USER_GUIDE.md)**: Complete usage tutorial
+- **[Troubleshooting](TROUBLESHOUTING.md)**: Common issues and solutions
+- **[FAQ](FAQ.md)**: Frequently asked questions
 
-## 🙏 Acknowledgments
+## Key Technologies
 
-Built with FreeSurfer, FastAPI, React, SQLite, Redis & MinIO.
+- **Frontend**: React 18, Tailwind CSS, Recharts
+- **Backend**: FastAPI, SQLAlchemy, Pydantic
+- **Processing**: FreeSurfer 7.4.1, Docker containers
+- **Database**: PostgreSQL with SQLAlchemy ORM
+- **Queue**: Celery with Redis broker
+- **Storage**: MinIO S3-compatible object storage
+- **Deployment**: Docker Compose, automated scripts
+
+## Use Cases
+
+- **Research Institutions**: Automated hippocampal analysis for neuroscience studies
+- **Clinical Trials**: Standardized processing for multi-site neuroimaging studies
+- **Medical Research**: High-throughput processing of large MRI datasets
+- **Education**: Teaching platform for neuroimaging analysis techniques
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**FreeSurfer License**: FreeSurfer requires a license for research use. Get your free license at: https://surfer.nmr.mgh.harvard.edu/registration.html
+
+## Contributing
+
+We welcome contributions! Please see our contributing guidelines and code of conduct.
+
+## Support
+
+- **Documentation**: Check the [troubleshooting guide](TROUBLESHOUTING.md)
+- **Issues**: Report bugs via GitHub Issues
+- **Discussions**: Join community discussions
+- **Email**: support@neuroinsight.org
+
+## Acknowledgments
+
+- **FreeSurfer Team**: For the comprehensive neuroimaging analysis suite
+- **FastAPI Community**: For the excellent web framework
+- **Docker Community**: For containerization technology
+- **Neuroscience Research Community**: For advancing brain science
 
 ---
 
-**NeuroInsight** - Transforming neuroimaging research through automated analysis.
+**NeuroInsight** - *Accelerating Neuroscience Discovery Through Automation*

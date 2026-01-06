@@ -190,6 +190,29 @@ class MRIProcessor:
         # Notify callback if available (for Celery task state)
         if self.progress_callback:
             self.progress_callback(progress, step)
+    
+    def _store_container_id(self, container_id: str):
+        """
+        Store Docker container ID in database for cancellation support.
+        
+        Args:
+            container_id: Docker container ID or name
+        """
+        if hasattr(self, 'db_session') and self.db_session:
+            try:
+                from sqlalchemy import update
+                from backend.models.job import Job
+                
+                self.db_session.execute(
+                    update(Job)
+                    .where(Job.id == str(self.job_id))
+                    .values(docker_container_id=container_id)
+                )
+                self.db_session.commit()
+                logger.info("stored_container_id", job_id=str(self.job_id), container_id=container_id)
+            except Exception as e:
+                logger.warning("failed_to_store_container_id", error=str(e), container_id=container_id)
+                self.db_session.rollback()
 
 
 
@@ -466,18 +489,15 @@ class MRIProcessor:
         self.validate_network_connectivity()
 
         # Step 1: Convert to NIfTI if needed
-        if self.progress_callback:
-            self.progress_callback(17, "Preparing input file...")
+        self._update_progress(17, "Preparing input file...")
         nifti_path = self._prepare_input(input_path)
         
         # Step 2: Run FreeSurfer segmentation (whole brain) - LONGEST STEP
-        if self.progress_callback:
-            self.progress_callback(20, "Running complete FreeSurfer segmentation (autorecon1 + autorecon2-volonly + mri_segstats)...")
+        self._update_progress(20, "Running complete FreeSurfer segmentation (autorecon1 + autorecon2-volonly + mri_segstats)...")
         freesurfer_output = self._run_freesurfer_primary(nifti_path)
         
         # Step 3: Extract hippocampal volumes (from FreeSurfer outputs)
-        if self.progress_callback:
-            self.progress_callback(65, "Extracting hippocampal volumes...")
+        self._update_progress(65, "Extracting hippocampal volumes...")
         logger.info("extracting_hippocampal_data_from_freesurfer_output", freesurfer_output=str(freesurfer_output))
         hippocampal_stats = self._extract_hippocampal_data(freesurfer_output)
         logger.info("hippocampal_stats_extracted", stats=hippocampal_stats)
@@ -507,20 +527,17 @@ class MRIProcessor:
                 raise RuntimeError(f"Hippocampal segmentation failed: {error_msg}")
 
         # Step 4: Calculate asymmetry indices
-        if self.progress_callback:
-            self.progress_callback(70, "Calculating asymmetry indices...")
+        self._update_progress(70, "Calculating asymmetry indices...")
         logger.info("calculating_asymmetry_from_stats", hippocampal_stats=hippocampal_stats)
         metrics = self._calculate_asymmetry(hippocampal_stats)
         logger.info("asymmetry_metrics_calculated", metrics=metrics, metrics_count=len(metrics))
         
         # Step 5: Generate segmentation visualizations
-        if self.progress_callback:
-            self.progress_callback(75, "Generating visualizations...")
+        self._update_progress(75, "Generating visualizations...")
         visualization_paths = self._generate_visualizations(nifti_path, freesurfer_output)
         
         # Step 6: Save results
-        if self.progress_callback:
-            self.progress_callback(82, "Saving results...")
+        self._update_progress(82, "Saving results...")
         self._save_results(metrics)
         
         logger.info(
@@ -884,6 +901,30 @@ class MRIProcessor:
                           message="Failed to check FreeSurfer availability due to unexpected error.")
             return False
 
+    def _check_docker_available(self) -> bool:
+        """Check if Docker is available and functioning."""
+        try:
+            import subprocess
+            result = subprocess.run(
+                ["docker", "info"],
+                capture_output=True,
+                timeout=10
+            )
+            if result.returncode == 0:
+                logger.debug("docker_available")
+                return True
+            else:
+                logger.warning("docker_unavailable",
+                             stderr=result.stderr.decode()[:200] if result.stderr else "Unknown error")
+                return False
+        except FileNotFoundError:
+            logger.warning("docker_not_installed",
+                          message="Docker is not installed. Install Docker to enable FreeSurfer processing.")
+            return False
+        except Exception as e:
+            logger.warning("docker_check_failed", error=str(e))
+            return False
+
     def _get_freesurfer_license_path(self) -> Path:
         """Get FreeSurfer license path from multiple possible locations.
 
@@ -892,11 +933,11 @@ class MRIProcessor:
         # Use the same search logic as the license API
         base_dir = Path(__file__).parent.parent.parent  # desktop_alone_web directory
         search_paths = [
-            base_dir / "freesurfer_license.txt",
-            base_dir / "license.txt",
-            base_dir / "resources" / "licenses" / "freesurfer_license.txt",
+            base_dir / "license.txt",  # Primary location for users
+            base_dir / "freesurfer_license.txt",  # Legacy support
             base_dir / "resources" / "licenses" / "license.txt",
-            Path.home() / "neuroinsight" / "resources" / "licenses" / "freesurfer_license.txt",
+            base_dir / "resources" / "licenses" / "freesurfer_license.txt",
+            Path.home() / "neuroinsight" / "resources" / "licenses" / "license.txt",
             Path.home() / "neuroinsight" / "license.txt",
             Path("/usr/local/freesurfer/license.txt"),  # System FreeSurfer location
         ]
@@ -1566,6 +1607,14 @@ class MRIProcessor:
 
     def _run_freesurfer_docker(self, nifti_path: Path, output_dir: Path, license_path: Path) -> Path:
         """Execute complete FreeSurfer segmentation using Docker (autorecon1 + autorecon2-volonly + mri_segstats)."""
+
+        # Check Docker availability before proceeding
+        if not self._check_docker_available():
+            raise RuntimeError(
+                "Docker is not available. FreeSurfer processing requires Docker. "
+                "Please ensure Docker is installed and running: 'sudo systemctl start docker'"
+            )
+
         subject_id = f"freesurfer_docker_{self.job_id}"
         freesurfer_dir = output_dir / "freesurfer_docker"
         freesurfer_dir.mkdir(exist_ok=True)
@@ -1601,8 +1650,12 @@ class MRIProcessor:
             abs_input_dir = nifti_path.parent.resolve()
             abs_license_path = license_path.resolve()
             
+            # Use a unique container name so we can track and kill it if needed
+            container_name = f"freesurfer-job-{self.job_id}"
+            
             docker_cmd = [
                 "docker", "run", "--rm", "--user", "root",
+                "--name", container_name,  # Named container for tracking
                 "-v", f"{abs_freesurfer_dir}:/subjects",
                 "-v", f"{abs_input_dir}:/input:ro",
                 "-v", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
@@ -1615,6 +1668,9 @@ class MRIProcessor:
                 "-autorecon1",
                 "-autorecon2-volonly"  # Combined in single command as requested
             ]
+            
+            # Store container name in database for cancellation support
+            self._store_container_id(container_name)
 
             logger.info("executing_freesurfer_docker_combined_autorecon",
                        command=" ".join(docker_cmd),
@@ -1623,7 +1679,9 @@ class MRIProcessor:
 
             # Start progress monitoring
             status_log_path = subject_output_dir / "scripts" / "recon-all-status.log"
-            progress_monitor = self._start_freesurfer_progress_monitor(status_log_path, base_progress=self._get_current_progress())
+            # Convert to absolute path so monitor thread can find it reliably
+            abs_status_log_path = status_log_path.resolve()
+            progress_monitor = self._start_freesurfer_progress_monitor(abs_status_log_path, base_progress=self._get_current_progress())
 
             # Run combined autorecon1 + autorecon2-volonly
             logger.info("freesurfer_docker_starting_combined_autorecon",
@@ -1637,11 +1695,33 @@ class MRIProcessor:
             )
 
             if result.returncode != 0:
-                error_msg = result.stderr.decode()[:500] if result.stderr else "Unknown error"
+                stderr_output = result.stderr.decode() if result.stderr else ""
+                stdout_output = result.stdout.decode() if result.stdout else ""
+
+                # Extract more detailed error information
+                error_details = []
+                if "license" in stderr_output.lower():
+                    error_details.append("FreeSurfer license issue - check license.txt file")
+                if "no such file" in stderr_output.lower():
+                    error_details.append("Input file not found in container")
+                if "permission denied" in stderr_output.lower():
+                    error_details.append("Docker permission issue - check user permissions")
+                if "no space left" in stderr_output.lower():
+                    error_details.append("Insufficient disk space for processing")
+
+                detailed_error = "; ".join(error_details) if error_details else "Check Docker logs for details"
+
+                error_msg = f"FreeSurfer Docker failed (exit code: {result.returncode}). {detailed_error}"
+                if stderr_output:
+                    error_msg += f" STDERR: {stderr_output[:300]}..."
+
                 logger.error("freesurfer_docker_combined_autorecon_failed",
                            returncode=result.returncode,
-                           error=error_msg)
-                raise RuntimeError(f"FreeSurfer Docker combined autorecon failed: {error_msg}")
+                           stderr=stderr_output[:500],
+                           stdout=stdout_output[:500],
+                           error_details=error_details)
+
+                raise RuntimeError(error_msg)
 
             logger.info("freesurfer_docker_combined_autorecon_completed")
 
@@ -3781,6 +3861,7 @@ class MRIProcessor:
         def monitor_progress():
             """Monitor the status log file and update progress."""
             last_line_count = 0
+            last_detected_phase = None
             phase_progress_map = {
                 # Map actual FreeSurfer phases to progress percentages
                 # Based on actual recon-all-status.log entries
@@ -3792,12 +3873,30 @@ class MRIProcessor:
                 "em registration": base_progress + 35,
                 "ca normalize": base_progress + 45,
                 "ca reg": base_progress + 55,
-                "SubCort Seg": base_progress + 65,
-                "WM Segmentation": base_progress + 75,
-                "Fill": base_progress + 85,
-                "CC Seg": base_progress + 90,
+                "subcort seg": base_progress + 65,
+                "wm segmentation": base_progress + 75,
+                "fill": base_progress + 85,
+                "cc seg": base_progress + 90,
                 "finished": 100
             }
+            
+            logger.info("freesurfer_progress_monitor_thread_started", 
+                       log_path=str(status_log_path), 
+                       base_progress=base_progress,
+                       job_id=str(self.job_id))
+
+            # Wait for status log to be created (max 5 minutes)
+            wait_count = 0
+            while not status_log_path.exists() and wait_count < 10:
+                logger.debug("waiting_for_status_log", path=str(status_log_path), wait_count=wait_count)
+                time.sleep(30)
+                wait_count += 1
+            
+            if not status_log_path.exists():
+                logger.warning("status_log_never_created", path=str(status_log_path))
+                return
+
+            logger.info("status_log_found", path=str(status_log_path))
 
             while True:
                 try:
@@ -3806,35 +3905,56 @@ class MRIProcessor:
                             lines = f.readlines()
 
                         if len(lines) > last_line_count:
+                            # New lines detected
+                            new_lines = lines[last_line_count:]
                             last_line_count = len(lines)
-                            # Check the last few lines for phase completion
-                            recent_lines = lines[-10:] if len(lines) > 10 else lines
+                            
+                            logger.debug("freesurfer_log_new_lines", count=len(new_lines), total_lines=len(lines))
 
-                            for line in recent_lines:
-                                line = line.strip().lower()
+                            for line in new_lines:
+                                original_line = line.strip()
+                                line_lower = original_line.lower()
+                                
                                 # Check for FreeSurfer status markers: #@# PhaseName
-                                if line.startswith("#@#"):
-                                    logger.info("freesurfer_log_line_found", line=line)
+                                if line_lower.startswith("#@#"):
+                                    logger.info("freesurfer_log_line_found", line=original_line, job_id=str(self.job_id))
+                                    
+                                    # Try to match with known phases
+                                    matched = False
                                     for phase, progress in phase_progress_map.items():
-                                        if phase.lower() in line.lower():
-                                            self._update_progress(progress, f"FreeSurfer: {phase} completed")
-                                            logger.info("freesurfer_phase_completed",
-                                                       phase=phase, progress=progress, line=line)
+                                        if phase in line_lower:
+                                            if last_detected_phase != phase:  # Only update if it's a new phase
+                                                self._update_progress(progress, f"FreeSurfer: {phase.title()} completed")
+                                                logger.info("freesurfer_phase_completed",
+                                                           phase=phase, 
+                                                           progress=progress, 
+                                                           line=original_line,
+                                                           job_id=str(self.job_id))
+                                                last_detected_phase = phase
+                                            matched = True
                                             break
-                                    else:
-                                        logger.debug("freesurfer_phase_not_matched", line=line)
-
-                    # Check if processing is complete or if we should stop
-                    if not status_log_path.exists():
+                                    
+                                    if not matched:
+                                        logger.debug("freesurfer_phase_not_matched", line=original_line)
+                    else:
+                        # Status log no longer exists, processing might be complete
+                        logger.info("status_log_disappeared", path=str(status_log_path))
                         break
 
                     # Wait before checking again
-                    time.sleep(30)  # Check every 30 seconds
+                    time.sleep(10)  # Check every 10 seconds (more frequent than before)
 
                 except Exception as e:
-                    logger.warning("freesurfer_progress_monitor_error", error=str(e))
+                    logger.error("freesurfer_progress_monitor_error", 
+                                error=str(e), 
+                                error_type=type(e).__name__,
+                                job_id=str(self.job_id))
+                    import traceback
+                    logger.error("freesurfer_monitor_traceback", traceback=traceback.format_exc())
                     time.sleep(60)  # Wait longer on error
                     continue
+            
+            logger.info("freesurfer_progress_monitor_thread_ended", job_id=str(self.job_id))
 
         # Start monitoring in a background thread
         monitor_thread = threading.Thread(target=monitor_progress, daemon=True, name="FreeSurferProgressMonitor")

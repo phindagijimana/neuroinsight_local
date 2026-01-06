@@ -6,7 +6,6 @@ and asymmetry indices.
 """
 
 from typing import List
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -23,7 +22,7 @@ router = APIRouter(prefix="/metrics", tags=["metrics"])
 
 @router.get("/", response_model=List[MetricResponse])
 def list_metrics(
-    job_id: UUID = Query(..., description="Job identifier"),
+    job_id: str = Query(..., description="Job identifier"),
     db: Session = Depends(get_db),
 ):
     """
@@ -42,7 +41,7 @@ def list_metrics(
 
 @router.get("/{metric_id}", response_model=MetricResponse)
 def get_metric(
-    metric_id: UUID,
+    metric_id: str,
     db: Session = Depends(get_db),
 ):
     """

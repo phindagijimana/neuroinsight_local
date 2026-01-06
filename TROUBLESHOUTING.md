@@ -458,6 +458,33 @@ grep -i websocket neuroinsight.log
 
 ### Docker Containers Not Starting
 
+**Error**: `pkgutil.ImpImporter` attribute error during pip install
+
+**Symptoms**: Installation fails with "AttributeError: module 'pkgutil' has no attribute 'ImpImporter'" during numpy installation
+
+**Cause**: setuptools version incompatibility with Python 3.12 (ImpImporter was removed in Python 3.12)
+
+**Solutions**:
+1. **Automatic fix (recommended)**:
+   ```bash
+   # The installer now uses Python 3.12-compatible setuptools version
+   ./install.sh  # Will install setuptools==68.2.2 automatically
+   ```
+
+2. **Manual fix**:
+   ```bash
+   source venv/bin/activate
+   pip install setuptools==68.2.2 wheel
+   pip install -r requirements.txt
+   ```
+
+3. **Verify fix**:
+   ```bash
+   python -c "import pkgutil; print('pkgutil ok')" && python -c "import setuptools; print('setuptools ok')"
+   ```
+
+---
+
 **Error**: `setuptools.build_meta` import error during pip install
 
 **Symptoms**: Installation fails with "Cannot import 'setuptools.build_meta'" during numpy or other package installation
@@ -474,7 +501,7 @@ grep -i websocket neuroinsight.log
 2. **Manual fix**:
    ```bash
    source venv/bin/activate
-   pip install --upgrade setuptools wheel
+   pip install setuptools==68.2.2 wheel
    pip install -r requirements.txt
    ```
 

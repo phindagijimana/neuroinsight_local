@@ -2,7 +2,7 @@
 # Unified dependencies for hybrid deployment
 
 # Build Tools (required for Python 3.12+ compatibility)
-setuptools>=65.0.0
+setuptools==68.2.2
 wheel>=0.37.0
 
 # Core Web Framework

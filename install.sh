@@ -404,7 +404,7 @@ pip install --upgrade pip
 
 # Install build tools for Python 3.12+ compatibility
 log_info "Installing Python build tools..."
-pip install --upgrade setuptools wheel
+pip install setuptools==68.2.2 wheel
 
 # Install dependencies
 log_info "Installing Python dependencies..."

@@ -369,6 +369,19 @@ free -h
    - Re-upload and process file
 
 ## Performance Issues
+## WebSocket Connection Issues
+
+**Problem:** Real-time updates not working
+
+**Solution:**
+```bash
+# Test WebSocket connectivity
+python3 tests/websocket_test.py ws://localhost:8000/ws
+
+# Check backend logs for WebSocket errors
+grep -i websocket neuroinsight.log
+```
+
 
 ### Slow Processing
 

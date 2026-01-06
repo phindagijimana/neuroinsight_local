@@ -12,7 +12,7 @@ import subprocess as subprocess_module
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Header
 from typing import List, Optional
 from sqlalchemy.orm import Session
 
@@ -24,6 +24,12 @@ from backend.schemas import JobCreate, JobResponse, JobStatus
 from backend.services import JobService, StorageService
 
 logger = get_logger(__name__)
+def verify_api_key(x_api_key: str = Header(None)):
+    expected_key = os.getenv("API_KEY", "neuroinsight-dev-key")
+    if not x_api_key or x_api_key != expected_key:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    return x_api_key
+
 settings = get_settings()
 
 router = APIRouter(prefix="/upload", tags=["upload"])
@@ -33,6 +39,7 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 async def upload_mri(
     file: UploadFile = File(..., description="MRI file (DICOM or NIfTI)"),
     patient_data: str = Form("{}", description="Patient information as JSON string"),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     db: Session = Depends(get_db),
 ):
     """Upload an MRI scan for processing (T1-only).
@@ -40,7 +47,15 @@ async def upload_mri(
     - Accepts DICOM series or NIfTI files (.nii, .nii.gz)
     - Strict pre-validation: size, readability, voxel/header sanity, and T1 markers
     - Creates a new job and enqueues background processing task
+
+    For API access, include: X-API-Key: your-api-key header
     """
+    # Verify API key if provided (for programmatic access)
+    if x_api_key:
+        expected_key = os.getenv("API_KEY", "neuroinsight-dev-key")
+        if x_api_key != expected_key:
+            raise HTTPException(status_code=401, detail="Invalid API key")
+
     # Validate file
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")

@@ -127,7 +127,7 @@ test_docker_performance() {
 # Test NeuroInsight API performance
 test_api_performance() {
     log_info "Testing NeuroInsight API Performance..."
-    
+
     # Detect the running NeuroInsight port
     NEUROINSIGHT_PORT=""
     if [ -f "neuroinsight.pid" ] && kill -0 $(cat neuroinsight.pid) 2>/dev/null; then
@@ -143,6 +143,7 @@ test_api_performance() {
     fi
 
     BASE_URL="http://localhost:$NEUROINSIGHT_PORT"
+    WS_URL="ws://localhost:$NEUROINSIGHT_PORT/ws"
     log_info "Testing on port: $NEUROINSIGHT_PORT"
     
     # Test health endpoint
@@ -191,6 +192,32 @@ test_concurrent_load() {
         log_warning "High system load: $LOAD (consider resource optimization)"
     else
         log_success "System load acceptable: $LOAD"
+    fi
+
+    # Test WebSocket connectivity
+    log_info "Testing WebSocket connectivity..."
+    if command -v python3 &> /dev/null && python3 -c "import websockets" 2>/dev/null; then
+        python3 tests/websocket_test.py $WS_URL
+        if [ $? -eq 0 ]; then
+            log_success "WebSocket connectivity test passed"
+        else
+            log_warning "WebSocket connectivity test failed"
+        fi
+    else
+        log_warning "WebSocket testing skipped (websockets library not available)"
+    fi
+
+    # Test FreeSurfer license integration
+    log_info "Testing FreeSurfer license integration..."
+    if [ -f "license.txt" ] && ! grep -q "REPLACE THIS EXAMPLE CONTENT" license.txt 2>/dev/null; then
+        # Test FreeSurfer Docker integration
+        if docker run --rm -v $(pwd)/license.txt:/usr/local/freesurfer/license.txt freesurfer/freesurfer:7.4.1 ls /usr/local/freesurfer/license.txt >/dev/null 2>&1; then
+            log_success "FreeSurfer license integration working"
+        else
+            log_warning "FreeSurfer license integration failed"
+        fi
+    else
+        log_warning "FreeSurfer license not properly configured"
     fi
 }
 

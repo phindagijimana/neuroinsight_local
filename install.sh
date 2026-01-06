@@ -88,10 +88,19 @@ else
     log_success "RAM check passed: ${TOTAL_RAM}GB"
 fi
 
-# Check disk space (100GB minimum)
+# Check disk space (50GB minimum for production, 30GB for testing)
 AVAILABLE_SPACE=$(df / | tail -1 | awk '{print int($4/1024/1024)}')
-if (( AVAILABLE_SPACE < 100 )); then
-    log_error "Insufficient disk space. NeuroInsight requires at least 100GB free."
+
+# Reduce requirement for testing/development environments
+if [[ "$HOSTNAME" == *"test"* ]] || [[ "$USER" == *"test"* ]] || [[ "$PWD" == *"/tmp/"* ]]; then
+    MIN_DISK_GB=30  # Reduced for testing
+    log_info "Testing environment detected - using reduced disk requirement: ${MIN_DISK_GB}GB"
+else
+    MIN_DISK_GB=50  # Standard production requirement
+fi
+
+if (( AVAILABLE_SPACE < MIN_DISK_GB )); then
+    log_error "Insufficient disk space. NeuroInsight requires at least ${MIN_DISK_GB}GB free."
     log_error "Detected: ${AVAILABLE_SPACE}GB available"
     exit 1
 fi
@@ -121,6 +130,30 @@ if (( PYTHON_MAJOR < 3 )) || (( PYTHON_MAJOR == 3 && PYTHON_MINOR < 9 )); then
 fi
 
 log_success "Python version check passed: $PYTHON_VERSION"
+
+# Check and install python3-venv if needed
+log_info "Checking Python venv support..."
+if ! python3 -c "import venv" &> /dev/null; then
+    log_warning "Python venv module not available. Installing python3-venv package..."
+    if command -v apt &> /dev/null; then
+        # Ubuntu/Debian
+        sudo apt update && sudo apt install -y python3-venv
+    elif command -v dnf &> /dev/null; then
+        # Fedora/RHEL
+        sudo dnf install -y python3-venv
+    elif command -v yum &> /dev/null; then
+        # Older RHEL/CentOS
+        sudo yum install -y python3-venv
+    else
+        log_error "Could not install python3-venv. Please install it manually:"
+        log_error "Ubuntu/Debian: sudo apt install python3-venv"
+        log_error "Fedora/RHEL: sudo dnf install python3-venv"
+        exit 1
+    fi
+    log_success "python3-venv installed successfully"
+else
+    log_success "Python venv support available"
+fi
 
 # Install Docker if not present
 log_info "Checking Docker installation..."

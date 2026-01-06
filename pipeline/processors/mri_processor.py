@@ -872,6 +872,63 @@ class MRIProcessor:
         logger.warning("no_freesurfer_runtime_available_will_use_mock_data")
         return "none"
 
+    # ===== CONCURRENCY CONTROL METHODS =====
+
+    def _check_container_concurrency_limit(self) -> None:
+        """
+        Check if launching another FreeSurfer container would exceed concurrency limits.
+
+        Raises RuntimeError if the limit would be exceeded, preventing resource exhaustion.
+        This enforces the max_concurrent_jobs setting at the container orchestration level.
+        """
+        try:
+            # Get current running FreeSurfer containers
+            result = subprocess_module.run(
+                ["docker", "ps", "--filter", "name=freesurfer-job-", "--format", "{{.Names}}"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if result.returncode == 0:
+                running_containers = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
+                current_count = len(running_containers)
+
+                logger.info("container_concurrency_check",
+                          current_running=current_count,
+                          max_allowed=settings.max_concurrent_jobs,
+                          job_id=str(self.job_id))
+
+                if current_count >= settings.max_concurrent_jobs:
+                    running_names = ", ".join(running_containers) if running_containers else "none"
+                    raise RuntimeError(
+                        f"Container concurrency limit exceeded. "
+                        f"Currently running: {current_count} FreeSurfer containers ({running_names}). "
+                        f"Maximum allowed: {settings.max_concurrent_jobs}. "
+                        f"Please wait for existing jobs to complete before starting new ones."
+                    )
+
+                logger.info("container_concurrency_check_passed",
+                          current_running=current_count,
+                          max_allowed=settings.max_concurrent_jobs,
+                          job_id=str(self.job_id))
+            else:
+                # If docker ps fails, log warning but allow processing to continue
+                logger.warning("container_concurrency_check_failed",
+                             error=result.stderr.strip(),
+                             message="Could not check running containers, proceeding with caution")
+
+        except RuntimeError:
+            # Re-raise RuntimeError (concurrency limit exceeded) to block processing
+            raise
+        except subprocess_module.TimeoutExpired:
+            logger.warning("container_concurrency_check_timeout",
+                         message="Docker ps command timed out, proceeding with caution")
+        except Exception as e:
+            logger.warning("container_concurrency_check_error",
+                         error=str(e),
+                         message="Error checking container concurrency, proceeding with caution")
+
     # ===== FREESURFER FALLBACK METHODS =====
 
     def _is_freesurfer_available(self) -> bool:
@@ -1652,7 +1709,10 @@ class MRIProcessor:
             
             # Use a unique container name so we can track and kill it if needed
             container_name = f"freesurfer-job-{self.job_id}"
-            
+
+            # ENFORCE CONTAINER CONCURRENCY LIMIT
+            self._check_container_concurrency_limit()
+
             docker_cmd = [
                 "docker", "run", "--rm", "--user", "root",
                 "--name", container_name,  # Named container for tracking
@@ -3926,7 +3986,7 @@ class MRIProcessor:
                                             if last_detected_phase != phase:  # Only update if it's a new phase
                                                 self._update_progress(progress, f"FreeSurfer: {phase.title()} completed")
                                             logger.info("freesurfer_phase_completed",
-                                                           phase=phase, 
+                                                           phase=phase,
                                                            progress=progress,
                                                            line=original_line,
                                                            job_id=str(self.job_id))

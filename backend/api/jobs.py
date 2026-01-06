@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from backend.core.database import get_db
 from backend.core.logging import get_logger
 from backend.schemas import JobResponse, JobStatus
+from backend.models import Job
 from backend.schemas.metric import MetricResponse
 from backend.services import JobService
 from backend.core.config import get_settings
@@ -25,7 +26,7 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
-@router.get("/", response_model=List[JobResponse])
+@router.get("/")
 def list_jobs(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum records to return"),
@@ -48,16 +49,16 @@ def list_jobs(
     """
     jobs = JobService.get_jobs(db, skip=skip, limit=limit, status=status)
 
-    # Convert to dictionaries to avoid Pydantic validation issues
+    # Convert Job objects to dictionaries for simple response
     result = []
     for job in jobs:
         job_dict = {
             "id": str(job.id),
             "filename": job.filename,
             "file_path": job.file_path,
-            "status": job.status.value,
+            "status": job.status.value if hasattr(job.status, 'value') else str(job.status),
             "error_message": job.error_message,
-            "created_at": job.created_at.isoformat(),
+            "created_at": job.created_at.isoformat() if job.created_at else None,
             "started_at": job.started_at.isoformat() if job.started_at else None,
             "completed_at": job.completed_at.isoformat() if job.completed_at else None,
             "result_path": job.result_path,
@@ -70,11 +71,10 @@ def list_jobs(
             "scanner_info": job.scanner_info,
             "sequence_info": job.sequence_info,
             "notes": job.notes,
-            "metrics": []  # Empty for now, can be populated if needed
         }
         result.append(job_dict)
 
-    return result
+    return {"jobs": result, "total": len(result), "skip": skip, "limit": limit}
 
 
 @router.get("/stats", response_model=dict)

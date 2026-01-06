@@ -5,6 +5,7 @@ WebSocket Testing for NeuroInsight Real-time Updates
 
 import asyncio
 import json
+import os
 import websockets
 import logging
 from typing import Dict, Any

@@ -147,7 +147,6 @@ async def upload_mri(
             try:
                     # nibabel needs a file path to determine format, create temp file
                     import tempfile
-                    import os
                     with tempfile.NamedTemporaryFile(suffix='.nii', delete=False) as temp_file:
                         temp_file.write(file_data)
                         temp_file_path = temp_file.name
@@ -642,7 +641,6 @@ def _detect_file_corruption(file_data: bytes, filename: str) -> List[str]:
                         # Additional checks can go here
                     finally:
                         # Clean up temp file
-                        import os
                         try:
                             os.unlink(temp_file_path)
                         except OSError:

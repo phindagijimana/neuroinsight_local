@@ -22,11 +22,30 @@ NeuroInsight provides automated hippocampal segmentation and analysis from T1-we
 - Docker and Docker Compose
 - FreeSurfer license (free for research)
 
+### FreeSurfer License Setup
+
+**Before installation, you must obtain and set up a FreeSurfer license:**
+
+1. **Get Free License**: Visit https://surfer.nmr.mgh.harvard.edu/registration.html
+2. **Register**: Create account with your research institution email
+3. **Download License**: Save the license file as `license.txt`
+4. **Place License**: Put `license.txt` in the same directory as NeuroInsight
+
+```bash
+# Example: Place license.txt in the project directory
+# The license.txt file should contain your email and license codes
+head -3 license.txt
+# Should show something like:
+# your.email@institution.edu
+# license_number
+# license_code
+```
+
 ### Installation
 
 ```bash
-git clone https://github.com/phindagijimana/neuroinsight_app.git
-cd neuroinsight_app
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local
 ./install.sh
 ./start.sh
 ```

@@ -20,6 +20,26 @@ NeuroInsight is a comprehensive web-based platform for automated hippocampal seg
 - **Queue Management**: Intelligent job queuing with concurrency control
 - **Containerized**: Docker-based deployment for easy installation and scaling
 
+## Screenshots
+
+### Home Page
+*Professional web interface for MRI analysis*
+![NeuroInsight Home Page](screenshots/home_page.png)
+
+### Job Management Dashboard
+*Real-time monitoring of MRI processing jobs*
+![NeuroInsight Jobs Page](screenshots/jobs_page.png)
+
+### MRI Upload Interface
+*Simple drag-and-drop file upload*
+![NeuroInsight Upload Page](screenshots/upload_page.png)
+
+### Processing Results
+*Comprehensive hippocampal analysis results*
+![NeuroInsight Results Page](screenshots/results_page.png)
+
+*Note: Screenshots show the actual NeuroInsight interface in action*
+
 ## Quick Start
 
 ### Prerequisites

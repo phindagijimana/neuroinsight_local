@@ -144,10 +144,18 @@ if ! python3 -c "import venv" &> /dev/null; then
     elif command -v yum &> /dev/null; then
         # Older RHEL/CentOS
         sudo yum install -y python3-venv
+    elif command -v pacman &> /dev/null; then
+        # Arch Linux
+        sudo pacman -S --noconfirm python-virtualenv
+    elif command -v zypper &> /dev/null; then
+        # openSUSE
+        sudo zypper install -y python3-virtualenv
     else
-        log_error "Could not install python3-venv. Please install it manually:"
+        log_error "Could not install python venv support. Please install it manually:"
         log_error "Ubuntu/Debian: sudo apt install python3-venv"
         log_error "Fedora/RHEL: sudo dnf install python3-venv"
+        log_error "Arch Linux: sudo pacman -S python-virtualenv"
+        log_error "openSUSE: sudo zypper install python3-virtualenv"
         exit 1
     fi
     log_success "python3-venv installed successfully"
@@ -155,31 +163,167 @@ else
     log_success "Python venv support available"
 fi
 
+# Check and install system development libraries
+log_info "Checking system development libraries..."
+MISSING_LIBS=false
+
+if command -v apt &> /dev/null; then
+    # Ubuntu/Debian
+    if ! dpkg -l | grep -q "build-essential"; then
+        log_warning "Installing build-essential (GCC, make)..."
+        sudo apt update && sudo apt install -y build-essential
+        MISSING_LIBS=true
+    fi
+    if ! dpkg -l | grep -q "libssl-dev"; then
+        log_warning "Installing libssl-dev (SSL/TLS support)..."
+        sudo apt install -y libssl-dev
+        MISSING_LIBS=true
+    fi
+    if ! dpkg -l | grep -q "libffi-dev"; then
+        log_warning "Installing libffi-dev (Python extensions)..."
+        sudo apt install -y libffi-dev
+        MISSING_LIBS=true
+    fi
+elif command -v dnf &> /dev/null; then
+    # Fedora/RHEL
+    if ! rpm -q gcc make &> /dev/null; then
+        log_warning "Installing development tools (GCC, make)..."
+        sudo dnf groupinstall -y "Development Tools"
+        MISSING_LIBS=true
+    fi
+    if ! rpm -q openssl-devel &> /dev/null; then
+        log_warning "Installing openssl-devel (SSL/TLS support)..."
+        sudo dnf install -y openssl-devel
+        MISSING_LIBS=true
+    fi
+    if ! rpm -q libffi-devel &> /dev/null; then
+        log_warning "Installing libffi-devel (Python extensions)..."
+        sudo dnf install -y libffi-devel
+        MISSING_LIBS=true
+    fi
+elif command -v yum &> /dev/null; then
+    # Older RHEL/CentOS
+    if ! rpm -q gcc make &> /dev/null; then
+        log_warning "Installing development tools (GCC, make)..."
+        sudo yum groupinstall -y "Development Tools"
+        MISSING_LIBS=true
+    fi
+    if ! rpm -q openssl-devel &> /dev/null; then
+        log_warning "Installing openssl-devel (SSL/TLS support)..."
+        sudo yum install -y openssl-devel
+        MISSING_LIBS=true
+    fi
+elif command -v pacman &> /dev/null; then
+    # Arch Linux
+    if ! pacman -Q base-devel &> /dev/null; then
+        log_warning "Installing base-devel (development tools)..."
+        sudo pacman -S --noconfirm base-devel
+        MISSING_LIBS=true
+    fi
+    if ! pacman -Q openssl &> /dev/null; then
+        log_warning "Installing openssl..."
+        sudo pacman -S --noconfirm openssl
+        MISSING_LIBS=true
+    fi
+    if ! pacman -Q libffi &> /dev/null; then
+        log_warning "Installing libffi..."
+        sudo pacman -S --noconfirm libffi
+        MISSING_LIBS=true
+    fi
+elif command -v zypper &> /dev/null; then
+    # openSUSE
+    if ! rpm -q gcc make &> /dev/null; then
+        log_warning "Installing development tools..."
+        sudo zypper install -y gcc make
+        MISSING_LIBS=true
+    fi
+    if ! rpm -q libopenssl-devel &> /dev/null; then
+        log_warning "Installing libopenssl-devel..."
+        sudo zypper install -y libopenssl-devel
+        MISSING_LIBS=true
+    fi
+    if ! rpm -q libffi-devel &> /dev/null; then
+        log_warning "Installing libffi-devel..."
+        sudo zypper install -y libffi-devel
+        MISSING_LIBS=true
+    fi
+fi
+
+if [ "$MISSING_LIBS" = true ]; then
+    log_success "System development libraries installed"
+else
+    log_success "System development libraries available"
+fi
+
+# Check kernel version for Docker compatibility
+log_info "Checking kernel version for Docker compatibility..."
+KERNEL_VERSION=$(uname -r | cut -d'.' -f1-2 | tr '.' ' ')
+KERNEL_MAJOR=$(echo $KERNEL_VERSION | awk '{print $1}')
+KERNEL_MINOR=$(echo $KERNEL_VERSION | awk '{print $2}')
+
+if (( KERNEL_MAJOR < 3 )) || (( KERNEL_MAJOR == 3 && KERNEL_MINOR < 10 )); then
+    log_warning "Kernel version ${KERNEL_MAJOR}.${KERNEL_MINOR} detected"
+    log_warning "Docker requires kernel 3.10 or higher"
+    log_warning "Some features may not work correctly"
+else
+    log_success "Kernel version ${KERNEL_MAJOR}.${KERNEL_MINOR} compatible with Docker"
+fi
+
 # Install Docker if not present
 log_info "Checking Docker installation..."
 if ! command -v docker &> /dev/null; then
     log_warning "Docker not found. Installing Docker..."
-    
-    # Update package index
-    sudo apt-get update
-    
-    # Install prerequisites
-    sudo apt-get install -y ca-certificates curl gnupg lsb-release
-    
-    # Add Docker's official GPG key
-    sudo mkdir -p /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    
-    # Set up repository
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    
-    # Install Docker
-    sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-    
-    # Add user to docker group
+
+    if command -v apt &> /dev/null; then
+        # Ubuntu/Debian
+        log_info "Installing Docker for Ubuntu/Debian..."
+        sudo apt-get update
+        sudo apt-get install -y ca-certificates curl gnupg lsb-release
+        sudo mkdir -p /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+        sudo apt-get update
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+    elif command -v dnf &> /dev/null; then
+        # Fedora/RHEL 8+
+        log_info "Installing Docker for Fedora/RHEL..."
+        sudo dnf -y install dnf-plugins-core
+        sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+        sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+        sudo systemctl start docker
+
+    elif command -v yum &> /dev/null; then
+        # CentOS/RHEL 7
+        log_info "Installing Docker for CentOS/RHEL 7..."
+        sudo yum install -y yum-utils
+        sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+        sudo yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+        sudo systemctl start docker
+
+    elif command -v pacman &> /dev/null; then
+        # Arch Linux
+        log_info "Installing Docker for Arch Linux..."
+        sudo pacman -S --noconfirm docker docker-compose
+        sudo systemctl start docker
+        sudo systemctl enable docker
+
+    elif command -v zypper &> /dev/null; then
+        # openSUSE
+        log_info "Installing Docker for openSUSE..."
+        sudo zypper addrepo https://download.docker.com/linux/opensuse/docker-ce.repo
+        sudo zypper install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+        sudo systemctl start docker
+
+    else
+        log_error "Unsupported package manager. Please install Docker manually:"
+        log_error "Visit: https://docs.docker.com/engine/install/"
+        exit 1
+    fi
+
+    # Add user to docker group (works across all distros)
     sudo usermod -aG docker $USER
-    
+
     log_success "Docker installed successfully"
     log_warning "Please log out and log back in for Docker group changes to take effect"
 else

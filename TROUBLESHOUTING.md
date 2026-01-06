@@ -501,17 +501,18 @@ grep -i websocket neuroinsight.log
 **Cause**: PyTorch version incompatibility with Python 3.12 (older torch versions don't support Python 3.12)
 
 **Solutions**:
-1. **Automatic fix (recommended)**:
+1. **Current fix (torch removed)**:
    ```bash
-   # The requirements.txt now uses Python 3.12-compatible torch versions
-   ./install.sh  # Will install torch==2.4.1 and torchvision==0.19.1
+   # PyTorch is currently not required for NeuroInsight
+   # If you need deep learning features, uncomment torch in requirements.txt
+   ./install.sh  # Will skip torch installation (faster)
    ```
 
-2. **Manual fix**:
+2. **If you need PyTorch** (for future features):
    ```bash
    source venv/bin/activate
+   # Uncomment torch lines in requirements.txt first, then:
    pip install torch==2.4.1 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cpu
-   pip install -r requirements.txt
    ```
 
 3. **Alternative versions**:
@@ -519,13 +520,13 @@ grep -i websocket neuroinsight.log
    # For CUDA support (if you have NVIDIA GPU):
    pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
-   # For CPU-only (current setup):
+   # For CPU-only:
    pip install torch==2.3.1 torchvision==0.18.1 --index-url https://download.pytorch.org/whl/cpu
    ```
 
-4. **Verify fix**:
+4. **Verify installation**:
    ```bash
-   python -c "import torch; print(f'PyTorch {torch.__version__} ok')"
+   python -c "import torch; print(f'PyTorch {torch.__version__} ok')" 2>/dev/null || echo "PyTorch not installed (not required)"
    ```
 
 ---

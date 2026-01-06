@@ -69,10 +69,13 @@ NeuroInsight provides automated hippocampal segmentation and analysis from T1-we
 1. **Get Free License**: Visit https://surfer.nmr.mgh.harvard.edu/registration.html
 2. **Register**: Create account with your research institution email
 3. **Download License**: Save the license file as `license.txt`
-4. **Place License**: Put `license.txt` in the same directory as NeuroInsight
+4. **Place License**: Put `license.txt` in the same directory as the NeuroInsight application
 
 ```bash
-# Example: Place license.txt in the project directory
+# Place license.txt in the project root directory
+# For example, if NeuroInsight is in: ~/neuroinsight_local/
+# Then license.txt should be at: ~/neuroinsight_local/license.txt
+
 # The license.txt file should contain your email and license codes
 head -3 license.txt
 # Should show something like:

@@ -42,7 +42,13 @@ cd neuroinsight
 ./start.sh
 ```
 
-Visit `http://localhost:8000` and start processing your MRI data!
+Visit `http://localhost:8000` (or the auto-selected port) and start processing your MRI data!
+
+**Port Selection:**
+- **Default**: NeuroInsight automatically uses port 8000 if available
+- **Auto-selection**: If 8000 is occupied, automatically finds available port (8000-8050)
+- **Custom**: Override with `export PORT=8001 && ./start.sh`
+- **Check**: Use `./status.sh` to see which port is being used
 
 ## System Requirements
 

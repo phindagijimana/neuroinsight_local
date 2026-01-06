@@ -203,7 +203,7 @@ echo "      # Edit license.txt with your actual license"
 echo "   2. Start NeuroInsight:"
 echo "      ./start.sh"
 echo "   3. Open your browser:"
-echo "      http://localhost:8000"
+echo "      http://localhost:8000 (or auto-selected port - check ./status.sh)"
 echo
 echo "For help, see: README.md"
 echo "For troubleshooting: ./check_license.sh"

@@ -9,6 +9,22 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Detect the port NeuroInsight is running on
+detect_neuroinsight_port() {
+    # Check if neuroinsight.pid exists and process is running
+    if [ -f "neuroinsight.pid" ] && kill -0 $(cat neuroinsight.pid) 2>/dev/null; then
+        # Try to find the port the process is listening on
+        PORT_INFO=$(lsof -Pan -p $(cat neuroinsight.pid) -i | grep LISTEN | head -1 | awk '{print $9}' | sed 's/.*://')
+        if [ ! -z "$PORT_INFO" ]; then
+            echo "$PORT_INFO"
+            return 0
+        fi
+    fi
+
+    # Fallback to PORT environment variable or default
+    echo "${PORT:-8000}"
+}
+
 print_status() {
     local service=$1
     local status=$2
@@ -37,11 +53,13 @@ echo "================================"
 if [ -f "neuroinsight.pid" ]; then
     BACKEND_PID=$(cat neuroinsight.pid)
     if kill -0 $BACKEND_PID 2>/dev/null; then
+        # Detect the port NeuroInsight is running on
+        NEUROINSIGHT_PORT=$(detect_neuroinsight_port)
         # Check if API is responding
-        if curl -s --max-time 5 http://localhost:8000/health > /dev/null 2>&1; then
-            print_status "Backend" "running" "(PID: $BACKEND_PID, API: responding)"
+        if curl -s --max-time 5 http://localhost:$NEUROINSIGHT_PORT/health > /dev/null 2>&1; then
+            print_status "Backend" "running" "(PID: $BACKEND_PID, Port: $NEUROINSIGHT_PORT, API: responding)"
         else
-            print_status "backend" "warning" "(PID: $BACKEND_PID, API: not responding)"
+            print_status "backend" "warning" "(PID: $BACKEND_PID, Port: $NEUROINSIGHT_PORT, API: not responding)"
         fi
     else
         print_status "Backend" "stopped" "(stale PID file)"
@@ -108,8 +126,9 @@ echo "  Disk Usage: $DISK_USAGE"
 # Job statistics (if API is available)
 echo
 echo "Recent Jobs:"
-if curl -s --max-time 5 http://localhost:8000/api/jobs/stats > /dev/null 2>&1; then
-    STATS=$(curl -s http://localhost:8000/api/jobs/stats)
+NEUROINSIGHT_PORT=$(detect_neuroinsight_port)
+if curl -s --max-time 5 http://localhost:$NEUROINSIGHT_PORT/api/jobs/stats > /dev/null 2>&1; then
+    STATS=$(curl -s http://localhost:$NEUROINSIGHT_PORT/api/jobs/stats)
     TOTAL=$(echo $STATS | grep -o '"total_jobs":[0-9]*' | cut -d: -f2)
     COMPLETED=$(echo $STATS | grep -o '"completed_jobs":[0-9]*' | cut -d: -f2)
     RUNNING=$(echo $STATS | grep -o '"running_jobs":[0-9]*' | cut -d: -f2)
@@ -127,9 +146,10 @@ fi
 
 echo
 echo "URLs:"
-if curl -s --max-time 5 http://localhost:8000/health > /dev/null 2>&1; then
-    echo "  Web Interface: http://localhost:8000"
-    echo "  API Docs: http://localhost:8000/docs"
+NEUROINSIGHT_PORT=$(detect_neuroinsight_port)
+if curl -s --max-time 5 http://localhost:$NEUROINSIGHT_PORT/health > /dev/null 2>&1; then
+    echo "  Web Interface: http://localhost:$NEUROINSIGHT_PORT"
+    echo "  API Docs: http://localhost:$NEUROINSIGHT_PORT/docs"
 else
     echo "  Services not accessible"
 fi

@@ -39,6 +39,65 @@ if [ -f "neuroinsight.pid" ]; then
     fi
 fi
 
+# Port configuration - auto-select available port or use custom
+if [ -z "$PORT" ]; then
+    # No custom port specified, find available port in range 8000-8050
+    log_info "Finding available port (8000-8050)..."
+
+    for port in {8000..8050}; do
+        if ! lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+            PORT=$port
+            log_success "Auto-selected available port: $PORT"
+            break
+        fi
+    done
+
+    if [ -z "$PORT" ]; then
+        log_error "No available ports found in range 8000-8050!"
+        log_error "Please free up some ports or specify a custom port:"
+        echo "   export PORT=8051"
+        echo "   ./start.sh"
+        exit 1
+    fi
+else
+    # Custom port specified by user
+    log_info "Using custom port: $PORT"
+fi
+
+# Check if port is available
+check_port_available() {
+    local port=$1
+    if lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+        return 1  # Port is in use
+    else
+        return 0  # Port is available
+    fi
+}
+
+# Final verification of selected port
+if ! check_port_available $PORT; then
+    log_error "Port $PORT is not available!"
+    echo
+    log_info "PORT CONFLICT RESOLUTION OPTIONS:"
+    echo
+    echo "1. Let NeuroInsight auto-select a port:"
+    echo "   unset PORT  # or remove PORT from environment"
+    echo "   ./start.sh"
+    echo
+    echo "2. Specify a different custom port:"
+    echo "   export PORT=8051"
+    echo "   ./start.sh"
+    echo
+    echo "3. Find what's using port $PORT:"
+    echo "   sudo lsof -i :$PORT"
+    echo "   sudo netstat -tulpn | grep :$PORT"
+    echo
+    echo "4. Free up the port (use with caution):"
+    echo "   sudo fuser -k $PORT/tcp"
+    echo
+    exit 1
+fi
+
 log_info "Starting NeuroInsight services..."
 
 # Check FreeSurfer license
@@ -83,7 +142,7 @@ source venv/bin/activate
 
 # Start backend
 log_info "Starting NeuroInsight backend..."
-python3 backend/main.py > neuroinsight.log 2>&1 &
+PORT=$PORT python3 backend/main.py > neuroinsight.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > neuroinsight.pid
 
@@ -95,7 +154,7 @@ MAX_WAIT=30
 WAIT_COUNT=0
 
 while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
-    if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+    if curl -s http://localhost:$PORT/health > /dev/null 2>&1; then
         break
     fi
     sleep 1
@@ -121,11 +180,11 @@ log_success "Celery worker started (PID: $WORKER_PID)"
 # Final verification
 sleep 3
 
-if curl -s http://localhost:8000/health > /dev/null 2>&1; then
+if curl -s http://localhost:$PORT/health > /dev/null 2>&1; then
     log_success "NeuroInsight is running!"
     echo
-    echo "Web Interface: http://localhost:8000"
-    echo "API Documentation: http://localhost:8000/docs"
+    echo "Web Interface: http://localhost:$PORT"
+    echo "API Documentation: http://localhost:$PORT/docs"
     echo "Service Status: ./status.sh"
     echo "Stop Services: ./stop.sh"
     echo

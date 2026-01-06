@@ -8,7 +8,8 @@ Complete guide for using NeuroInsight to process and analyze hippocampal MRI dat
 
 1. **Access the Application**
    - Open your web browser
-   - Navigate to `http://localhost:8000`
+   - Navigate to `http://localhost:8000` (or auto-selected port)
+   - Check `./status.sh` to see which port is being used
    - You should see the NeuroInsight homepage
 
 2. **Verify System Status**
@@ -300,6 +301,40 @@ Export your results for further analysis:
 2. **Performance Monitoring**: Track processing times and success rates
 3. **System Maintenance**: Regular cleanup and updates
 4. **Backup Procedures**: Ensure data preservation and recovery
+
+## Port Configuration
+
+### Automatic Port Selection
+
+NeuroInsight automatically handles port conflicts:
+
+- **Default Behavior**: Tries port 8000 first
+- **Auto-Selection**: If 8000 is occupied, automatically finds available port (8000-8050)
+- **Smart Detection**: No manual intervention required for most users
+
+### Manual Port Configuration
+
+For specific port requirements:
+
+```bash
+# Force a specific port
+export PORT=8080
+./start.sh
+
+# Let NeuroInsight auto-select
+unset PORT  # or don't set PORT variable
+./start.sh
+```
+
+### Checking Current Port
+
+```bash
+# Always check which port is being used
+./status.sh
+# Shows: Backend: running (PID: 12345, Port: 8001, API: responding)
+```
+
+**Note**: The automatic port selection makes NeuroInsight much easier to use in shared environments!
 
 ## Updates and Maintenance
 

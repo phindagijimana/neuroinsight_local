@@ -127,8 +127,23 @@ test_docker_performance() {
 # Test NeuroInsight API performance
 test_api_performance() {
     log_info "Testing NeuroInsight API Performance..."
-    
-    BASE_URL="http://localhost:8000"
+
+    # Detect the running NeuroInsight port
+    NEUROINSIGHT_PORT=""
+    if [ -f "neuroinsight.pid" ] && kill -0 $(cat neuroinsight.pid) 2>/dev/null; then
+        # Find the port the process is listening on
+        PORT_INFO=$(lsof -Pan -p $(cat neuroinsight.pid) -i | grep LISTEN | head -1 | awk '{print $9}' | sed 's/.*://')
+        if [ ! -z "$PORT_INFO" ]; then
+            NEUROINSIGHT_PORT=$PORT_INFO
+        fi
+    fi
+
+    if [ -z "$NEUROINSIGHT_PORT" ]; then
+        NEUROINSIGHT_PORT="${PORT:-8000}"
+    fi
+
+    BASE_URL="http://localhost:$NEUROINSIGHT_PORT"
+    log_info "Testing on port: $NEUROINSIGHT_PORT"
     
     # Test health endpoint
     START_TIME=$(date +%s%3N)

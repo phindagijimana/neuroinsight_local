@@ -284,25 +284,63 @@ docker-compose logs db
 1. **Check Application Status**:
    ```bash
    ./status.sh
-   # Backend should show RUNNING
+   # Backend should show RUNNING with correct port
    ```
 
-2. **Verify Port Availability**:
+2. **Verify Port Configuration**:
    ```bash
-   netstat -tlnp | grep :8000
-   # Should show Python process listening
+   # Check what port NeuroInsight is using
+   ./status.sh | grep "Port:"
    ```
 
 3. **Check Firewall**:
    ```bash
    sudo ufw status
-   # Allow port 8000 if blocked
+   # Allow the configured port if blocked
    ```
 
 4. **Restart Application**:
    ```bash
    ./restart.sh
    ```
+
+### Port Conflicts (Rare with Auto-Selection)
+
+**Note**: NeuroInsight now automatically finds available ports (8000-8050), so port conflicts are rare!
+
+**Symptoms**: Startup shows "No available ports found in range 8000-8050!"
+
+**Solutions**:
+
+1. **Free Up Ports in Range**:
+   ```bash
+   # Find what's using ports
+   sudo netstat -tulpn | grep :80[0-4][0-9]
+   sudo lsof -i :8000-8050
+   ```
+
+2. **Stop Conflicting Services**:
+   ```bash
+   # Stop other web servers
+   sudo systemctl stop apache2 nginx
+
+   # Stop other NeuroInsight instances
+   ./stop.sh
+   ```
+
+3. **Use Custom Port Range**:
+   ```bash
+   export PORT=9000  # Use port outside 8000-8050 range
+   ./start.sh
+   ```
+
+4. **Force Specific Port** (advanced):
+   ```bash
+   sudo fuser -k 8000/tcp  # Free port 8000 (use with caution!)
+   ./start.sh
+   ```
+
+**Prevention**: NeuroInsight's auto-selection prevents most port conflicts automatically.
 
 ### Dashboard Shows No Results
 

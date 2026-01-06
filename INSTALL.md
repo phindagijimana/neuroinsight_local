@@ -182,7 +182,9 @@ curl -I http://localhost:8000
 # Expected: HTTP/1.1 200 OK
 ```
 
-Visit `http://localhost:8000` in your web browser to access NeuroInsight.
+Visit `http://localhost:8000` (or your configured port) in your web browser to access NeuroInsight.
+
+**Note:** If port 8000 is already in use, NeuroInsight will detect this and provide instructions for using an alternative port.
 
 ### Test 4: Basic Functionality
 

@@ -62,7 +62,6 @@ async def upload_mri(
     
     # Check file size (soft limit)
     # Use underlying file object for portable seek/tell
-    import os
     try:
         file.file.seek(0, os.SEEK_END)
         file_size = file.file.tell()

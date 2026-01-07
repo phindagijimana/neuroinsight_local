@@ -74,11 +74,10 @@ async def lifespan(app: FastAPI):
             return FileResponse(str(working_file), media_type="text/html")
         return JSONResponse({"error": "Working file not found"}, status_code=404)
 
-    # Mount static files (JS libraries, etc.)
+    # Static files are now handled by custom route with caching headers
     static_dir = Path(__file__).parent.parent / "static"
     if static_dir.exists():
-        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-        logger.info("static_files_enabled", path=str(static_dir))
+        logger.info("static_files_enabled_with_caching", path=str(static_dir))
 
     # Mount static files for web frontend from dist directory
     frontend_dir = Path(__file__).parent.parent / "frontend" / "dist"
@@ -112,7 +111,7 @@ app = FastAPI(
 def test_endpoint():
     return {"message": "Test endpoint works"}
 
-@app.post("/api/test-delete", status_code=204)
+@app.delete("/api/jobs/delete/", status_code=204)
 def delete_job(
     job_id: str = Query(..., description="Job ID"),
     db: Session = Depends(get_db),
@@ -163,15 +162,33 @@ else:
         allow_headers=["*"],
     )
 
-# Add caching headers for static assets
+# Custom static file handler with caching headers
+from starlette.responses import FileResponse
+
+@app.api_route("/static/{path:path}", methods=["GET", "HEAD"])
+async def serve_static_with_cache(path: str):
+    """Serve static files with appropriate caching headers."""
+    logger.info("serving_static_file_with_cache", path=path)
+    static_dir = Path(__file__).parent.parent / "static"
+    file_path = static_dir / path
+
+    if not file_path.exists() or not file_path.is_file():
+        logger.error("static_file_not_found", path=str(file_path))
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Static assets: cache for 1 year
+    response = FileResponse(str(file_path))
+    response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    response.headers["Expires"] = "Thu, 31 Dec 2037 23:59:59 GMT"
+    logger.info("static_file_served_with_cache", path=path, cache_control=response.headers.get("Cache-Control"))
+    return response
+
+# Add caching headers for HTML responses
 @app.middleware("http")
-async def add_cache_headers(request, call_next):
+async def add_html_cache_headers(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith("/static/"):
-        # Static assets: cache for 1 year (31536000 seconds)
-        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
-        response.headers["Expires"] = "Thu, 31 Dec 2037 23:59:59 GMT"
-    elif request.url.path == "/":
+    if request.url.path == "/" and hasattr(response, 'headers'):
         # HTML: cache for 1 hour to allow updates
         response.headers["Cache-Control"] = "public, max-age=3600"
     return response

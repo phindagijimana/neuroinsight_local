@@ -561,6 +561,11 @@
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
       </svg>
     );
+    const RefreshCw = ({ className }) => (
+      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+    );
     const ChevronLeft = ({ className }) => (
       <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -862,6 +867,70 @@
         sequence: '',
         notes: ''
       });
+
+      // Form validation state
+      const [formErrors, setFormErrors] = useState({});
+      const [isFormValid, setIsFormValid] = useState(false);
+
+      // Validation function
+      const validateForm = () => {
+        const errors = {};
+
+        // Patient name is required
+        if (!patientInfo.patient_name.trim()) {
+          errors.patient_name = 'Patient name is required';
+        }
+
+        // Age validation (if provided)
+        if (patientInfo.age && patientInfo.age.trim()) {
+          const ageNum = parseInt(patientInfo.age);
+          if (isNaN(ageNum) || ageNum < 0 || ageNum > 150) {
+            errors.age = 'Age must be a number between 0 and 150';
+          }
+        }
+
+        // Sex validation (if provided)
+        if (patientInfo.sex && patientInfo.sex.trim() && !['M', 'F', 'Other'].includes(patientInfo.sex)) {
+          errors.sex = 'Please select a valid sex option';
+        }
+
+        // Scanner validation (if provided)
+        if (patientInfo.scanner && patientInfo.scanner.trim() && patientInfo.scanner.length < 2) {
+          errors.scanner = 'Scanner name must be at least 2 characters';
+        }
+
+        // Sequence validation (if provided)
+        if (patientInfo.sequence && patientInfo.sequence.trim() && patientInfo.sequence.length < 2) {
+          errors.sequence = 'Sequence name must be at least 2 characters';
+        }
+
+        // File validation
+        if (!selectedFile) {
+          errors.file = 'Please select a file to upload';
+        } else {
+          // Check file extension
+          const allowedExtensions = ['.nii', '.nii.gz', '.dcm', '.dicom', '.zip'];
+          const fileExt = selectedFile.name.toLowerCase().substring(selectedFile.name.lastIndexOf('.'));
+          if (!allowedExtensions.includes(fileExt)) {
+            errors.file = `Invalid file type. Supported: ${allowedExtensions.join(', ')}`;
+          }
+
+          // Check file size (500MB limit)
+          if (selectedFile.size > 500 * 1024 * 1024) {
+            errors.file = 'File size must be less than 500MB';
+          }
+        }
+
+        setFormErrors(errors);
+        const valid = Object.keys(errors).length === 0;
+        setIsFormValid(valid);
+        return valid;
+      };
+
+      // Validate form whenever patientInfo or selectedFile changes
+      useEffect(() => {
+        validateForm();
+      }, [patientInfo, selectedFile]);
       
       // Load jobs on mount and auto-refresh
       useEffect(() => {
@@ -1035,37 +1104,86 @@
         } catch (error) {
           console.error('Upload failed:', error);
           setUploadProgress(null);
-          alert('Upload failed. Please try again.');
+
+          // Provide user-friendly error messages
+          let errorMessage = 'Upload failed. Please try again.';
+          if (error.message) {
+            if (error.message.includes('400')) {
+              errorMessage = 'Invalid file or missing information. Please check your file format and required fields.';
+            } else if (error.message.includes('413')) {
+              errorMessage = 'File is too large. Maximum size is 500MB.';
+            } else if (error.message.includes('429')) {
+              errorMessage = 'Too many jobs in queue. Please wait for existing jobs to complete.';
+            } else if (error.message.includes('500')) {
+              errorMessage = 'Server error. Please try again later.';
+            } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+              errorMessage = 'Network error. Please check your connection and try again.';
+            }
+          }
+
+          // Show error in UI instead of alert
+          setFormErrors(prev => ({ ...prev, submit: errorMessage }));
         }
       };
 
       const pollJobUntilDone = async (jobId) => {
         console.log('Start polling job', jobId);
         let attempts = 0;
-        const maxAttempts = 200; // ~10 minutes at 3s interval
-        const intervalMs = 3000;
+        const maxAttempts = 300; // ~15 minutes total
+        let intervalMs = 2000; // Start with 2s intervals for responsiveness
+        let lastUpdate = Date.now();
+
         const timer = setInterval(async () => {
           attempts += 1;
+
+          // Gradually increase polling interval for efficiency
+          if (attempts > 30) intervalMs = 5000;   // 5s after 1 minute
+          if (attempts > 120) intervalMs = 10000; // 10s after 4 minutes
+          if (attempts > 240) intervalMs = 15000; // 15s after 8 minutes
+
           try {
             const job = await ApiService.getJob(jobId);
             if (job) {
               const uiJob = toUiJob(job);
-              setJobs((prev) => {
-                const others = prev.filter(j => j.id !== jobId);
-                return [uiJob, ...others];
-              });
+              const now = Date.now();
+
+              // Only update UI if status changed or enough time has passed (prevents excessive re-renders)
+              const currentJob = jobs.find(j => j.id === jobId);
+              const statusChanged = !currentJob || uiJob.status !== currentJob.status;
+              const timeSinceLastUpdate = now - lastUpdate;
+              const needsUpdate = statusChanged || timeSinceLastUpdate > 10000; // Update every 10s minimum
+
+              if (needsUpdate) {
+                setJobs((prev) => {
+                  const others = prev.filter(j => j.id !== jobId);
+                  return [uiJob, ...others];
+                });
+                lastUpdate = now;
+
+                // Update stats when job completes
+                if (uiJob.status === 'completed' || uiJob.status === 'failed') {
+                  setTimeout(() => loadJobs(), 1000); // Refresh job list to update stats
+                }
+              }
+
               if (uiJob.status === 'completed' || uiJob.status === 'failed') {
                 clearInterval(timer);
                 setPollingJobId(null);
+                console.log('Job polling completed:', jobId, uiJob.status);
+
+                // Auto-navigate to results for completed jobs
                 if (uiJob.status === 'completed') {
-                  setSelectedJobId(jobId);
-                  setActivePage('dashboard');
+                  setTimeout(() => {
+                    setSelectedJobId(jobId);
+                    setActivePage('dashboard');
+                  }, 1500); // Brief delay to show completion
                 }
               }
             }
           } catch (e) {
             console.warn('Polling failed for job', jobId, e);
           }
+
           if (attempts >= maxAttempts) {
             console.warn('Polling timed out for job', jobId);
             clearInterval(timer);
@@ -1144,6 +1262,28 @@
                   <Brain className="w-5 h-5 text-blue-600" />
                   Patient Information
                 </h3>
+                {formErrors.submit && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800 font-medium">Upload Error:</p>
+                    <p className="text-sm text-red-700">{formErrors.submit}</p>
+                  </div>
+                )}
+                {!isFormValid && Object.keys(formErrors).length > 0 && !formErrors.submit && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800 font-medium">Please fix the following errors:</p>
+                    <ul className="mt-1 text-sm text-red-700 list-disc list-inside">
+                      {Object.entries(formErrors).filter(([key]) => key !== 'submit').map(([field, error]) => (
+                        <li key={field}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {isFormValid && selectedFile && (
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-800 font-medium">✓ Ready to process!</p>
+                    <p className="text-sm text-green-700">All required fields completed and file selected.</p>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1154,8 +1294,13 @@
                       value={patientInfo.patient_name}
                       onChange={(e) => handlePatientInfoChange('patient_name', e.target.value)}
                       placeholder="Enter patient name"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
+                        formErrors.patient_name ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                      }`}
                     />
+                    {formErrors.patient_name && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.patient_name}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1167,9 +1312,14 @@
                       onChange={(e) => handlePatientInfoChange('age', e.target.value)}
                       placeholder="Enter age"
                       min="0"
-                      max="120"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                      max="150"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
+                        formErrors.age ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                      }`}
                     />
+                    {formErrors.age && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.age}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1178,13 +1328,18 @@
                     <select
                       value={patientInfo.sex}
                       onChange={(e) => handlePatientInfoChange('sex', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
+                        formErrors.sex ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                      }`}
                     >
                       <option value="">Select...</option>
                       <option value="M">Male</option>
                       <option value="F">Female</option>
                       <option value="Other">Other</option>
                     </select>
+                    {formErrors.sex && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.sex}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1195,8 +1350,13 @@
                       value={patientInfo.scanner}
                       onChange={(e) => handlePatientInfoChange('scanner', e.target.value)}
                       placeholder="e.g., Siemens, GE, Philips"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
+                        formErrors.scanner ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                      }`}
                     />
+                    {formErrors.scanner && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.scanner}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1207,8 +1367,13 @@
                       value={patientInfo.sequence}
                       onChange={(e) => handlePatientInfoChange('sequence', e.target.value)}
                       placeholder="e.g., T1w, T2w, FLAIR"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
+                        formErrors.sequence ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                      }`}
                     />
+                    {formErrors.sequence && (
+                      <p className="mt-1 text-sm text-red-600">{formErrors.sequence}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1258,25 +1423,42 @@
                   <p className="text-xs text-gray-400 mt-4">
                     Accepted formats: .dcm, .nii, .nii.gz • Max size: 500MB
                   </p>
+                  {formErrors.file && (
+                    <p className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                      {formErrors.file}
+                    </p>
+                  )}
                 </div>
               </div>
               {uploadProgress !== null && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Uploading...</span>
-                    <span className="text-sm font-medium text-gray-700">{uploadProgress}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }}></div>
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-800">
+                        {uploadProgress < 100 ? 'Uploading file...' : 'Processing upload...'}
+                      </p>
+                      <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
+                        <div
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-blue-600 mt-1">{uploadProgress}% complete</p>
+                    </div>
                   </div>
                 </div>
               )}
               <button
-                onClick={handleUpload}
-                disabled={!selectedFile || uploadProgress !== null}
+                onClick={() => {
+                  if (validateForm()) {
+                    handleUpload();
+                  }
+                }}
+                disabled={!selectedFile || uploadProgress !== null || !isFormValid}
                 className="mt-4 w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
-                Start Processing
+                {!isFormValid && selectedFile ? 'Please Complete Required Fields' : 'Start Processing'}
               </button>
             </div>
 
@@ -1303,12 +1485,53 @@
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-blue-100 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Recent Jobs</h2>
-                <div className="text-sm text-gray-500">
-                  Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
-                  {(stats?.completed > 0) && ` (${stats.completed} completed)`}
-                  {pollingJobId ? ` • monitoring ${pollingJobId}` : ''}
+              <div className="px-6 py-4 border-b border-blue-100">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900">Recent Jobs</h2>
+                  <button
+                    onClick={() => loadJobs()}
+                    className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition"
+                    title="Refresh job list"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1" />
+                    Refresh
+                  </button>
+                </div>
+
+                {/* Job filtering and status info */}
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-500">
+                    Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+                    {(stats?.completed > 0) && ` (${stats.completed} completed)`}
+                    {pollingJobId ? ` • monitoring ${pollingJobId}` : ''}
+                  </div>
+
+                  {/* Status filter buttons */}
+                  <div className="flex space-x-2">
+                    {[
+                      { key: 'all', label: 'All', count: stats?.total || 0 },
+                      { key: 'completed', label: 'Completed', count: stats?.completed || 0 },
+                      { key: 'processing', label: 'Processing', count: stats?.processing || 0 },
+                      { key: 'pending', label: 'Pending', count: stats?.pending || 0 },
+                      { key: 'failed', label: 'Failed', count: stats?.failed || 0 }
+                    ].map(({ key, label, count }) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          // Simple filter implementation - could be enhanced
+                          console.log(`Filter by ${key}`);
+                        }}
+                        className={`px-3 py-1 text-xs rounded-full transition ${
+                          count > 0
+                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        }`}
+                        disabled={count === 0}
+                      >
+                        {label} ({count})
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

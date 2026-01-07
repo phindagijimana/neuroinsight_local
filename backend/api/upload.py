@@ -86,13 +86,25 @@ async def upload_mri(
             detail=f"Invalid file type. Supported: {', '.join(valid_extensions)}"
         )
 
-    # Validate T1 requirement in filename
+    # Validate T1 requirement in filename (flexible matching)
     filename_lower = file.filename.lower()
-    if 't1' not in filename_lower:
-        raise HTTPException(
-            status_code=400,
-            detail="Filename must contain 'T1' to indicate it's a T1-weighted MRI scan. Please rename your file to include 'T1' (e.g., 'patient_T1.nii' or 'scan_T1w.nii')."
-        )
+    t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr']
+    has_t1_indicator = any(indicator in filename_lower for indicator in t1_indicators)
+
+    if not has_t1_indicator:
+        # Instead of failing, add a warning but allow upload
+        logger.warning("t1_indicator_missing",
+                      filename=file.filename,
+                      message="Filename does not contain T1 indicators. Ensure this is a T1-weighted MRI scan.")
+        # Add note to patient data
+        if not patient_data:
+            patient_data = "{}"
+        try:
+            patient_dict = json.loads(patient_data)
+        except:
+            patient_dict = {}
+        patient_dict['t1_warning'] = 'Filename does not contain T1 indicators - please verify this is a T1-weighted scan'
+        patient_data = json.dumps(patient_dict)
 
     logger.info(
         "upload_received",

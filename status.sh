@@ -175,12 +175,12 @@ for job in running_jobs:
         stuck_jobs.append(job.id)
 
 if stuck_jobs:
-    print(f'  WARNING: {len(stuck_jobs)} job(s) running longer than {timeout_hours} hours:')
+    print(f'⚠️  WARNING: {len(stuck_jobs)} job(s) running longer than {timeout_hours} hours:')
     for job_id in stuck_jobs:
         print(f'   - Job {job_id} may be stuck')
     print(f'   Consider restarting services: ./stop.sh && ./start.sh')
 else:
-    print(' No stuck jobs detected')
+    print('✅ No stuck jobs detected')
 
 db.close()
 " 2>/dev/null || echo "  Could not check job health"

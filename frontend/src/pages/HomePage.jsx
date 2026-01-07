@@ -101,12 +101,12 @@ function HomePage({ setActivePage }) {
             {
               icon: Shield,
               title: 'HIPAA Compliant',
-              description: 'Enterprise-grade security and privacy protection for patient data'
+              description: 'Ensured security and privacy protection for patient data, as it is locally hosted'
             },
             {
               icon: Zap,
               title: 'Fast Processing',
-              description: 'Automated pipeline delivers results in minutes, not hours'
+              description: 'Automated pipeline delivers results faster without manual intervention'
             },
             {
               icon: Activity,

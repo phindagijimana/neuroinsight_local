@@ -81,6 +81,12 @@
           --tw-ring-color: rgb(0 61 122 / var(--tw-ring-opacity)) !important;
           --tw-border-color: rgb(0 61 122 / var(--tw-border-opacity)) !important;
         }
+
+        /* Force orientation dropdown colors */
+        select[value*="coronal"], select[value*="axial"] {
+          color: #003d7a !important;
+          border-color: #003d7a !important;
+        }
         input[type="range"]::-webkit-slider-thumb {
           accent-color: #003d7a !important;
         }
@@ -2047,8 +2053,12 @@
                       <select
                         value={orientation}
                         onChange={(e) => setOrientation(e.target.value)}
-                        className="border border-blue-300 rounded-lg px-4 py-2 text-sm font-semibold text-blue-600 bg-blue-50 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                        style={{ color: '#003d7a', borderColor: '#003d7a' }}
+                        className="rounded-lg px-4 py-2 text-sm font-semibold bg-blue-50 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                        style={{
+                          color: '#003d7a !important',
+                          borderColor: '#003d7a !important',
+                          border: '1px solid #003d7a !important'
+                        }}
                       >
                         <option value="coronal">Coronal (Front View)</option>
                         <option value="axial">Axial (View from Below)</option>

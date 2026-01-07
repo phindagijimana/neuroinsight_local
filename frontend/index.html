@@ -195,8 +195,8 @@
        */
       async getJobs() {
         try {
-          console.log('Fetching jobs from:', `${CONFIG.api.baseUrl}/jobs/`);
-          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/`);
+          console.log('Fetching jobs from:', `${CONFIG.api.baseUrl}/api/jobs/`);
+          const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/`);
           console.log('Response status:', response.status, response.statusText);
           if (!response.ok) {
             const errorText = await response.text();
@@ -274,8 +274,8 @@
             reject(new Error('Upload was cancelled'));
           });
           
-          console.log('Uploading to:', `${CONFIG.api.baseUrl}/upload/`);
-          xhr.open('POST', `${CONFIG.api.baseUrl}/upload/`);
+          console.log('Uploading to:', `${CONFIG.api.baseUrl}/api/upload/`);
+          xhr.open('POST', `${CONFIG.api.baseUrl}/api/upload/`);
           xhr.send(formData);
         });
       },
@@ -287,7 +287,7 @@
        */
       async getJob(jobId) {
         try {
-          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/${jobId}`);
+          const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/${jobId}`);
           if (!response.ok) throw new Error('Failed to fetch job');
           return await response.json();
         } catch (error) {
@@ -304,7 +304,7 @@
       async getMetrics(jobId) {
         try {
           // Use correct API endpoint: /metrics/?job_id={jobId}
-          const response = await fetch(`${CONFIG.api.baseUrl}/metrics/?job_id=${jobId}`);
+          const response = await fetch(`${CONFIG.api.baseUrl}/api/metrics/?job_id=${jobId}`);
           if (!response.ok) {
             // If metrics endpoint fails, get metrics from job data as fallback
             console.warn('Metrics API failed, falling back to job data');
@@ -331,7 +331,7 @@
        */
       async deleteJob(jobId) {
         try {
-          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/?job_id=${jobId}`, { method: 'DELETE' });
+          const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/delete/?job_id=${jobId}`, { method: 'DELETE' });
           if (!response.ok) throw new Error('Failed to delete job');
           return true;
         } catch (error) {
@@ -825,8 +825,8 @@
             console.log('Trying direct fetch fallback...');
             // Fallback: Try direct fetch with credentials
             try {
-              console.log('Making direct fetch request to:', `${CONFIG.api.baseUrl}/jobs/delete/`);
-              const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/`, {
+              console.log('Making direct fetch request to:', `${CONFIG.api.baseUrl}/api/jobs/delete/`);
+              const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/delete/`, {
                 method: 'GET',
                 headers: {
                   'Accept': 'application/json',
@@ -1893,7 +1893,7 @@
           let availableSlices = 0;
           for (let i = 0; i <= 9; i++) {
             try {
-              const testUrl = `${CONFIG.api.baseUrl}/visualizations/${selectedJobId}/overlay/slice_${String(i).padStart(2, '0')}?orientation=${orientation}`;
+              const testUrl = `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/slice_${String(i).padStart(2, '0')}?orientation=${orientation}`;
               const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Timeout')), 1000)
               );
@@ -1953,8 +1953,8 @@
         const ts = Date.now();
 
         const urls = {
-          anatomical: `${CONFIG.api.baseUrl}/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=anatomical&v=${ts}`,
-          overlay: `${CONFIG.api.baseUrl}/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=overlay&v=${ts}`
+        anatomical: `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=anatomical&v=${ts}`,
+        overlay: `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=overlay&v=${ts}`
         };
 
         console.log(`GENERATED URLS for slice ${sliceIndex}:`, urls);

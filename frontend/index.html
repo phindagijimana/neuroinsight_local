@@ -14,17 +14,17 @@
   <script src="/static/js/react-dom.development.js"></script>
   <script src="/static/js/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Apply custom #000066 theme overrides after Tailwind loads -->
+  <!-- Apply custom #000080 theme overrides after Tailwind loads -->
   <script>
     // Wait for Tailwind to load, then apply our custom overrides
     setTimeout(function() {
       const style = document.createElement('style');
       style.textContent = `
-        /* Override Tailwind blue colors with custom #000066 theme */
+        /* Override Tailwind blue colors with custom #000080 theme */
         .bg-blue-50 { background-color: #f8fafc !important; }
         .bg-blue-100 { background-color: #f1f5f9 !important; }
-        .bg-blue-200 { background-color: #000066 !important; }
-        .bg-blue-300 { background-color: #000066 !important; }
+        .bg-blue-200 { background-color: #000080 !important; }
+        .bg-blue-300 { background-color: #000080 !important; }
         .bg-blue-400 { background-color: #4a5a7a !important; }
         .bg-blue-500 { background-color: #2a3a5a !important; }
         .bg-blue-600 { background-color: #1a2a4a !important; }
@@ -34,8 +34,8 @@
 
         .text-blue-50 { color: #f8fafc !important; }
         .text-blue-100 { color: #f1f5f9 !important; }
-        .text-blue-200 { color: #000066 !important; }
-        .text-blue-300 { color: #000066 !important; }
+        .text-blue-200 { color: #000080 !important; }
+        .text-blue-300 { color: #000080 !important; }
         .text-blue-400 { color: #4a5a7a !important; }
         .text-blue-500 { color: #2a3a5a !important; }
         .text-blue-600 { color: #1a2a4a !important; }
@@ -45,8 +45,8 @@
 
         .border-blue-50 { border-color: #f8fafc !important; }
         .border-blue-100 { border-color: #f1f5f9 !important; }
-        .border-blue-200 { border-color: #000066 !important; }
-        .border-blue-300 { border-color: #000066 !important; }
+        .border-blue-200 { border-color: #000080 !important; }
+        .border-blue-300 { border-color: #000080 !important; }
         .border-blue-400 { border-color: #4a5a7a !important; }
         .border-blue-500 { border-color: #2a3a5a !important; }
         .border-blue-600 { border-color: #1a2a4a !important; }
@@ -56,8 +56,8 @@
 
         .hover\:bg-blue-50:hover { background-color: #f8fafc !important; }
         .hover\:bg-blue-100:hover { background-color: #f1f5f9 !important; }
-        .hover\:bg-blue-200:hover { background-color: #000066 !important; }
-        .hover\:bg-blue-300:hover { background-color: #000066 !important; }
+        .hover\:bg-blue-200:hover { background-color: #000080 !important; }
+        .hover\:bg-blue-300:hover { background-color: #000080 !important; }
         .hover\:bg-blue-400:hover { background-color: #4a5a7a !important; }
         .hover\:bg-blue-500:hover { background-color: #2a3a5a !important; }
         .hover\:bg-blue-600:hover { background-color: #1a2a4a !important; }
@@ -67,8 +67,8 @@
 
         .hover\:text-blue-50:hover { color: #f8fafc !important; }
         .hover\:text-blue-100:hover { color: #f1f5f9 !important; }
-        .hover\:text-blue-200:hover { color: #000066 !important; }
-        .hover\:text-blue-300:hover { color: #000066 !important; }
+        .hover\:text-blue-200:hover { color: #000080 !important; }
+        .hover\:text-blue-300:hover { color: #000080 !important; }
         .hover\:text-blue-400:hover { color: #4a5a7a !important; }
         .hover\:text-blue-500:hover { color: #2a3a5a !important; }
         .hover\:text-blue-600:hover { color: #1a2a4a !important; }
@@ -695,41 +695,41 @@
               </div>
 
               <div className="relative">
-                <div className="absolute top-10 right-10 w-72 h-72 rounded-full filter blur-3xl opacity-60 animate-pulse" style={{ backgroundColor: '#000066' }}></div>
-                <div className="absolute bottom-10 left-10 w-72 h-72 rounded-full filter blur-3xl opacity-60 animate-pulse" style={{ backgroundColor: '#000066', animationDelay: '1s' }}></div>
+                <div className="absolute top-10 right-10 w-72 h-72 rounded-full filter blur-3xl opacity-60 animate-pulse" style={{ backgroundColor: '#000080' }}></div>
+                <div className="absolute bottom-10 left-10 w-72 h-72 rounded-full filter blur-3xl opacity-60 animate-pulse" style={{ backgroundColor: '#000080', animationDelay: '1s' }}></div>
                 
                 <div className="relative bg-white rounded-2xl shadow-2xl p-8 border border-blue-100">
                   <svg viewBox="0 0 400 400" className="w-full h-auto">
                     <defs>
                       <linearGradient id="brainGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#000066" stopOpacity="0.8" />
-                        <stop offset="100%" stopColor="#000066" stopOpacity="0.6" />
+                        <stop offset="0%" stopColor="#000080" stopOpacity="0.8" />
+                        <stop offset="100%" stopColor="#000080" stopOpacity="0.6" />
                       </linearGradient>
                     </defs>
                     
-                    <ellipse cx="200" cy="200" rx="150" ry="170" fill="#eff6ff" stroke="#000066" strokeWidth="3"/>
-                    <line x1="200" y1="30" x2="200" y2="370" stroke="#000066" strokeWidth="2" strokeDasharray="5,5" opacity="0.3"/>
+                    <ellipse cx="200" cy="200" rx="150" ry="170" fill="#eff6ff" stroke="#000080" strokeWidth="3"/>
+                    <line x1="200" y1="30" x2="200" y2="370" stroke="#000080" strokeWidth="2" strokeDasharray="5,5" opacity="0.3"/>
 
-                    <path d="M 80 150 Q 100 100, 150 120 T 180 160" fill="none" stroke="#000066" strokeWidth="2" opacity="0.7"/>
-                    <path d="M 70 200 Q 90 180, 130 190 T 170 210" fill="none" stroke="#000066" strokeWidth="2" opacity="0.7"/>
-                    <path d="M 85 250 Q 110 230, 150 245 T 180 270" fill="none" stroke="#000066" strokeWidth="2" opacity="0.7"/>
+                    <path d="M 80 150 Q 100 100, 150 120 T 180 160" fill="none" stroke="#000080" strokeWidth="2" opacity="0.7"/>
+                    <path d="M 70 200 Q 90 180, 130 190 T 170 210" fill="none" stroke="#000080" strokeWidth="2" opacity="0.7"/>
+                    <path d="M 85 250 Q 110 230, 150 245 T 180 270" fill="none" stroke="#000080" strokeWidth="2" opacity="0.7"/>
 
-                    <path d="M 320 150 Q 300 100, 250 120 T 220 160" fill="none" stroke="#000066" strokeWidth="2" opacity="0.7"/>
-                    <path d="M 330 200 Q 310 180, 270 190 T 230 210" fill="none" stroke="#000066" strokeWidth="2" opacity="0.7"/>
-                    <path d="M 315 250 Q 290 230, 250 245 T 220 270" fill="none" stroke="#000066" strokeWidth="2" opacity="0.7"/>
+                    <path d="M 320 150 Q 300 100, 250 120 T 220 160" fill="none" stroke="#000080" strokeWidth="2" opacity="0.7"/>
+                    <path d="M 330 200 Q 310 180, 270 190 T 230 210" fill="none" stroke="#000080" strokeWidth="2" opacity="0.7"/>
+                    <path d="M 315 250 Q 290 230, 250 245 T 220 270" fill="none" stroke="#000080" strokeWidth="2" opacity="0.7"/>
                     
                     <ellipse cx="140" cy="260" rx="25" ry="50" fill="url(#brainGradient)" opacity="0.8">
                       <animate attributeName="opacity" values="0.6;0.9;0.6" dur="3s" repeatCount="indefinite" />
                     </ellipse>
-                    <text x="140" y="335" fill="#000066" fontSize="16" fontWeight="bold" textAnchor="middle">L</text>
+                    <text x="140" y="335" fill="#000080" fontSize="16" fontWeight="bold" textAnchor="middle">L</text>
 
                     <ellipse cx="260" cy="260" rx="23" ry="48" fill="url(#brainGradient)" opacity="0.8">
                       <animate attributeName="opacity" values="0.6;0.9;0.6" dur="3s" repeatCount="indefinite" begin="0.5s" />
                     </ellipse>
-                    <text x="260" y="335" fill="#000066" fontSize="16" fontWeight="bold" textAnchor="middle">R</text>
+                    <text x="260" y="335" fill="#000080" fontSize="16" fontWeight="bold" textAnchor="middle">R</text>
 
-                    <circle cx="140" cy="260" r="55" fill="none" stroke="#000066" strokeWidth="2" strokeDasharray="3,3" opacity="0.5"/>
-                    <circle cx="260" cy="260" r="55" fill="none" stroke="#000066" strokeWidth="2" strokeDasharray="3,3" opacity="0.5"/>
+                    <circle cx="140" cy="260" r="55" fill="none" stroke="#000080" strokeWidth="2" strokeDasharray="3,3" opacity="0.5"/>
+                    <circle cx="260" cy="260" r="55" fill="none" stroke="#000080" strokeWidth="2" strokeDasharray="3,3" opacity="0.5"/>
                   </svg>
                   
                   <div className="mt-4 text-center">

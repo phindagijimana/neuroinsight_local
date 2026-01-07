@@ -8,17 +8,17 @@
   <script src="/static/js/react-dom.development.js"></script>
   <script src="/static/js/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Apply custom #000066 theme overrides after Tailwind loads -->
+  <!-- Apply custom #000080 theme overrides after Tailwind loads -->
   <script>
     // Wait for Tailwind to load, then apply our custom overrides
     setTimeout(function() {
       const style = document.createElement('style');
       style.textContent = `
-        /* Override Tailwind blue colors with custom #000066 theme */
+        /* Override Tailwind blue colors with custom #000080 theme */
         .bg-blue-50 { background-color: #f8fafc !important; }
         .bg-blue-100 { background-color: #f1f5f9 !important; }
-        .bg-blue-200 { background-color: #000066 !important; }
-        .bg-blue-300 { background-color: #000066 !important; }
+        .bg-blue-200 { background-color: #000080 !important; }
+        .bg-blue-300 { background-color: #000080 !important; }
         .bg-blue-400 { background-color: #4a5a7a !important; }
         .bg-blue-500 { background-color: #2a3a5a !important; }
         .bg-blue-600 { background-color: #1a2a4a !important; }
@@ -28,8 +28,8 @@
 
         .text-blue-50 { color: #f8fafc !important; }
         .text-blue-100 { color: #f1f5f9 !important; }
-        .text-blue-200 { color: #000066 !important; }
-        .text-blue-300 { color: #000066 !important; }
+        .text-blue-200 { color: #000080 !important; }
+        .text-blue-300 { color: #000080 !important; }
         .text-blue-400 { color: #4a5a7a !important; }
         .text-blue-500 { color: #2a3a5a !important; }
         .text-blue-600 { color: #1a2a4a !important; }

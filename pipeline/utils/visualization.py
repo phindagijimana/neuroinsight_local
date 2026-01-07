@@ -37,16 +37,16 @@ logger = get_logger(__name__)
 
 
 # Color map for hippocampal subfields - Unified NeuroInsight theme
-# All hippocampal regions use the same #000080 (RGB: 0, 0, 128) color
+# All hippocampal regions use the same #003d7a (RGB: 0, 61, 122) color
 SUBFIELD_COLORS = {
-    "whole_hippocampus": [0, 0, 128],      # NeuroInsight blue
-    "CA1": [0, 0, 128],                    # NeuroInsight blue
-    "CA3": [0, 0, 128],                    # NeuroInsight blue
-    "CA4_DG": [0, 0, 128],                 # NeuroInsight blue (dentate gyrus)
-    "subiculum": [0, 0, 128],              # NeuroInsight blue
-    "presubiculum": [0, 0, 128],           # NeuroInsight blue
-    "fimbria": [0, 0, 128],                # NeuroInsight blue
-    "HATA": [0, 0, 128],                   # NeuroInsight blue
+    "whole_hippocampus": [0, 61, 122],     # NeuroInsight blue
+    "CA1": [0, 61, 122],                   # NeuroInsight blue
+    "CA3": [0, 61, 122],                   # NeuroInsight blue
+    "CA4_DG": [0, 61, 122],                # NeuroInsight blue (dentate gyrus)
+    "subiculum": [0, 61, 122],             # NeuroInsight blue
+    "presubiculum": [0, 61, 122],          # NeuroInsight blue
+    "fimbria": [0, 61, 122],               # NeuroInsight blue
+    "HATA": [0, 61, 122],                  # NeuroInsight blue
 }
 
 # FreeSurfer label constants

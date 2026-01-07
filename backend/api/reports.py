@@ -101,8 +101,8 @@ async def generate_pdf_report(
         styles = getSampleStyleSheet()
 
         # Define custom colors matching dashboard theme
-        # blue-600 from Tailwind: #2563eb = RGB(37, 99, 235)
-        dashboard_blue = colors.Color(37/255, 99/255, 235/255)
+        # Custom NeuroInsight blue: #000080 = RGB(0, 0, 128)
+        dashboard_blue = colors.Color(0/255, 0/255, 128/255)
 
         # Create left-aligned heading style for table titles to match table content
         table_title_style = ParagraphStyle(
@@ -369,7 +369,7 @@ async def generate_pdf_report(
             # Add caption for the entire grid
             grid_caption = Paragraph(
                 "Figure: Coronal slices 3, 4 (top row) and 5, 6 (bottom row) showing T1-weighted anatomical images with hippocampal segmentation overlays at 15% opacity. "
-                "Blue regions indicate segmented hippocampal structures.",
+                "NeuroInsight blue regions indicate segmented hippocampal structures.",
                 ParagraphStyle('GridCaption', parent=styles['Normal'], fontSize=9, textColor=colors.gray, alignment=1)
             )
             story.append(grid_caption)

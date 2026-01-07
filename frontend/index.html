@@ -84,12 +84,20 @@
 
         /* Force orientation dropdown colors */
         #orientation-select,
+        #orientation-select:focus,
+        #orientation-select:hover,
         select[value*="coronal"], select[value*="axial"],
         .force-blue-colors {
           color: #003d7a !important;
           border-color: #003d7a !important;
           border: 1px solid #003d7a !important;
           background-color: #f8fafc !important;
+        }
+
+        /* Override focus ring colors for orientation select */
+        #orientation-select:focus {
+          --tw-ring-color: rgb(0 61 122 / var(--tw-ring-opacity)) !important;
+          box-shadow: 0 0 0 2px rgb(0 61 122 / 0.2) !important;
         }
         input[type="range"]::-webkit-slider-thumb {
           accent-color: #003d7a !important;
@@ -118,8 +126,21 @@
           orientationSelect.style.setProperty('border-color', '#003d7a', 'important');
           orientationSelect.style.setProperty('border', '1px solid #003d7a', 'important');
           orientationSelect.style.setProperty('background-color', '#f8fafc', 'important');
+          orientationSelect.style.setProperty('--tw-ring-color', 'rgb(0 61 122)', 'important');
+          orientationSelect.style.setProperty('box-shadow', '0 0 0 2px rgb(0 61 122 / 0.2)', 'important');
 
-          console.log('✅ Applied forced colors to orientation dropdown');
+          // Add event listeners to maintain colors on focus/hover
+          orientationSelect.addEventListener('focus', function() {
+            this.style.setProperty('border-color', '#003d7a', 'important');
+            this.style.setProperty('--tw-ring-color', 'rgb(0 61 122)', 'important');
+            this.style.setProperty('box-shadow', '0 0 0 2px rgb(0 61 122 / 0.2)', 'important');
+          });
+
+          orientationSelect.addEventListener('blur', function() {
+            this.style.setProperty('border-color', '#003d7a', 'important');
+          });
+
+          console.log('✅ Applied forced colors and event listeners to orientation dropdown');
           return true;
         }
         return false;

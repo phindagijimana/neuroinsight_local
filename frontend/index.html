@@ -854,16 +854,24 @@
           console.log('Data type:', typeof data);
           console.log('Is array:', Array.isArray(data));
           console.log('Data length:', data?.length);
-          
-          if (!data || !Array.isArray(data)) {
+
+          // Handle new API response format with pagination
+          let jobsArray = data;
+          if (data && typeof data === 'object' && data.jobs && Array.isArray(data.jobs)) {
+            jobsArray = data.jobs;
+            console.log('Extracted jobs array from response object, length:', jobsArray.length);
+          }
+
+          if (!jobsArray || !Array.isArray(jobsArray)) {
             console.error('Invalid data format:', data);
             console.error('Data type:', typeof data);
-            console.error('Is array:', Array.isArray(data));
+            console.error('Jobs array type:', typeof jobsArray);
+            console.error('Is jobs array:', Array.isArray(jobsArray));
             setJobs([]);
             return;
           }
-          
-          const uiJobs = data.map(toUiJob);
+
+          const uiJobs = jobsArray.map(toUiJob);
           console.log('Converted UI jobs:', uiJobs);
           console.log('UI jobs count:', uiJobs.length);
           
@@ -1527,7 +1535,9 @@
       const loadAvailableJobs = async () => {
         try {
           const data = await ApiService.getJobs();
-          const completedJobs = (data || []).filter(j =>
+          // Handle new API response format with pagination
+          const jobsArray = (data && typeof data === 'object' && data.jobs) ? data.jobs : (data || []);
+          const completedJobs = jobsArray.filter(j =>
             normalizeStatus(j.status) === 'completed'
           ).map(toUiJob);
           setAvailableJobs(completedJobs);
@@ -1862,7 +1872,9 @@
       const loadAvailableJobs = async () => {
         try {
           const data = await ApiService.getJobs();
-          const completedJobs = (data || []).filter(j => 
+          // Handle new API response format with pagination
+          const jobsArray = (data && typeof data === 'object' && data.jobs) ? data.jobs : (data || []);
+          const completedJobs = jobsArray.filter(j =>
             normalizeStatus(j.status) === 'completed'
           ).map(toUiJob);
           setAvailableJobs(completedJobs);

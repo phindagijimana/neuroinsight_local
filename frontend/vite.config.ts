@@ -10,6 +10,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      input: 'index.html',
+    },
+  },
   server: {
     port: 5173,
     host: true,

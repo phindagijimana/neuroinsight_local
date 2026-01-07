@@ -163,6 +163,19 @@ else:
         allow_headers=["*"],
     )
 
+# Add caching headers for static assets
+@app.middleware("http")
+async def add_cache_headers(request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        # Static assets: cache for 1 year (31536000 seconds)
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        response.headers["Expires"] = "Thu, 31 Dec 2037 23:59:59 GMT"
+    elif request.url.path == "/":
+        # HTML: cache for 1 hour to allow updates
+        response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
+
 
 # Health check endpoint - supports both GET and HEAD methods for wait-on compatibility
 @app.api_route("/health", methods=["GET", "HEAD"], tags=["health"])

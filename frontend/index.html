@@ -83,9 +83,13 @@
         }
 
         /* Force orientation dropdown colors */
-        select[value*="coronal"], select[value*="axial"] {
+        #orientation-select,
+        select[value*="coronal"], select[value*="axial"],
+        .force-blue-colors {
           color: #003d7a !important;
           border-color: #003d7a !important;
+          border: 1px solid #003d7a !important;
+          background-color: #f8fafc !important;
         }
         input[type="range"]::-webkit-slider-thumb {
           accent-color: #003d7a !important;
@@ -97,21 +101,37 @@
       document.head.appendChild(style);
       console.log('Custom NeuroInsight theme applied');
 
-      // Force dropdown colors with JavaScript as final fallback
-      setTimeout(function() {
-        const selects = document.querySelectorAll('select');
-        selects.forEach(select => {
-          if (select.value === 'coronal' || select.value === 'axial' ||
-              select.querySelector('option[value="coronal"]') ||
-              select.querySelector('option[value="axial"]')) {
-            select.style.color = '#003d7a !important';
-            select.style.borderColor = '#003d7a !important';
-            select.style.setProperty('color', '#003d7a', 'important');
-            select.style.setProperty('border-color', '#003d7a', 'important');
-            console.log('Forced dropdown colors applied');
-          }
-        });
-      }, 500);
+      // Force dropdown colors immediately and as fallback
+      function applyDropdownColors() {
+        const orientationSelect = document.getElementById('orientation-select');
+        if (orientationSelect) {
+          console.log('🎯 Applying colors to orientation dropdown...');
+
+          // Force the colors using multiple methods
+          orientationSelect.style.color = '#003d7a';
+          orientationSelect.style.borderColor = '#003d7a';
+          orientationSelect.style.border = '1px solid #003d7a';
+          orientationSelect.style.backgroundColor = '#f8fafc';
+
+          // Use setProperty with important for maximum override
+          orientationSelect.style.setProperty('color', '#003d7a', 'important');
+          orientationSelect.style.setProperty('border-color', '#003d7a', 'important');
+          orientationSelect.style.setProperty('border', '1px solid #003d7a', 'important');
+          orientationSelect.style.setProperty('background-color', '#f8fafc', 'important');
+
+          console.log('✅ Applied forced colors to orientation dropdown');
+          return true;
+        }
+        return false;
+      }
+
+      // Try immediately
+      if (!applyDropdownColors()) {
+        // If not found, try again after a short delay
+        setTimeout(applyDropdownColors, 500);
+        // And again after longer delay for slow loading
+        setTimeout(applyDropdownColors, 1500);
+      }
     }, 100);
   </script>
   <!-- <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script> -->
@@ -2066,19 +2086,23 @@
                         ))}
                       </select>
                       
-                      <select
-                        value={orientation}
-                        onChange={(e) => setOrientation(e.target.value)}
-                        className="rounded-lg px-4 py-2 text-sm font-semibold bg-blue-50 focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
-                        style={{
-                          color: '#003d7a !important',
-                          borderColor: '#003d7a !important',
-                          border: '1px solid #003d7a !important'
-                        }}
-                      >
+                      <div className="relative">
+                        <select
+                          id="orientation-select"
+                          value={orientation}
+                          onChange={(e) => setOrientation(e.target.value)}
+                          className="rounded-lg px-4 py-2 text-sm font-semibold bg-blue-50 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 appearance-none"
+                          style={{
+                            color: '#003d7a',
+                            borderColor: '#003d7a',
+                            border: '1px solid #003d7a',
+                            backgroundColor: '#f8fafc'
+                          }}
+                        >
                         <option value="coronal">Coronal (Front View)</option>
                         <option value="axial">Axial (View from Below)</option>
                       </select>
+                      </div>
                     </>
                   )}
                 </div>

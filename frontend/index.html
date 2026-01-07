@@ -14,6 +14,72 @@
   <script src="/static/js/react-dom.development.js"></script>
   <script src="/static/js/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Apply custom #003d7a theme overrides after Tailwind loads -->
+  <script>
+    // Wait for Tailwind to load, then apply our custom overrides
+    setTimeout(function() {
+      const style = document.createElement('style');
+      style.textContent = `
+        /* Override Tailwind blue colors with custom #003d7a theme */
+        .bg-blue-50 { background-color: #f8fafc !important; }
+        .bg-blue-100 { background-color: #f1f5f9 !important; }
+        .bg-blue-200 { background-color: #003d7a !important; }
+        .bg-blue-300 { background-color: #003d7a !important; }
+        .bg-blue-400 { background-color: #94a3b8 !important; }
+        .bg-blue-500 { background-color: #64748b !important; }
+        .bg-blue-600 { background-color: #475569 !important; }
+        .bg-blue-700 { background-color: #334155 !important; }
+        .bg-blue-800 { background-color: #1e293b !important; }
+        .bg-blue-900 { background-color: #0f172a !important; }
+
+        .text-blue-50 { color: #f8fafc !important; }
+        .text-blue-100 { color: #f1f5f9 !important; }
+        .text-blue-200 { color: #003d7a !important; }
+        .text-blue-300 { color: #003d7a !important; }
+        .text-blue-400 { color: #94a3b8 !important; }
+        .text-blue-500 { color: #64748b !important; }
+        .text-blue-600 { color: #475569 !important; }
+        .text-blue-700 { color: #334155 !important; }
+        .text-blue-800 { color: #1e293b !important; }
+        .text-blue-900 { color: #0f172a !important; }
+
+        .border-blue-50 { border-color: #f8fafc !important; }
+        .border-blue-100 { border-color: #f1f5f9 !important; }
+        .border-blue-200 { border-color: #003d7a !important; }
+        .border-blue-300 { border-color: #003d7a !important; }
+        .border-blue-400 { border-color: #94a3b8 !important; }
+        .border-blue-500 { border-color: #64748b !important; }
+        .border-blue-600 { border-color: #475569 !important; }
+        .border-blue-700 { border-color: #334155 !important; }
+        .border-blue-800 { border-color: #1e293b !important; }
+        .border-blue-900 { border-color: #0f172a !important; }
+
+        .hover\:bg-blue-50:hover { background-color: #f8fafc !important; }
+        .hover\:bg-blue-100:hover { background-color: #f1f5f9 !important; }
+        .hover\:bg-blue-200:hover { background-color: #003d7a !important; }
+        .hover\:bg-blue-300:hover { background-color: #003d7a !important; }
+        .hover\:bg-blue-400:hover { background-color: #94a3b8 !important; }
+        .hover\:bg-blue-500:hover { background-color: #64748b !important; }
+        .hover\:bg-blue-600:hover { background-color: #475569 !important; }
+        .hover\:bg-blue-700:hover { background-color: #334155 !important; }
+        .hover\:bg-blue-800:hover { background-color: #1e293b !important; }
+        .hover\:bg-blue-900:hover { background-color: #0f172a !important; }
+
+        .hover\:text-blue-50:hover { color: #f8fafc !important; }
+        .hover\:text-blue-100:hover { color: #f1f5f9 !important; }
+        .hover\:text-blue-200:hover { color: #003d7a !important; }
+        .hover\:text-blue-300:hover { color: #003d7a !important; }
+        .hover\:text-blue-400:hover { color: #94a3b8 !important; }
+        .hover\:text-blue-500:hover { color: #64748b !important; }
+        .hover\:text-blue-600:hover { color: #475569 !important; }
+        .hover\:text-blue-700:hover { color: #334155 !important; }
+        .hover\:text-blue-800:hover { color: #1e293b !important; }
+        .hover\:text-blue-900:hover { color: #0f172a !important; }
+      `;
+      document.head.appendChild(style);
+      console.log('Custom NeuroInsight theme applied');
+    }, 100);
+  </script>
   <!-- <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script> -->
   <style>
     @keyframes spin {

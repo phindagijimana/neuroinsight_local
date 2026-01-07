@@ -329,8 +329,8 @@ fi
 
 # Check and install Node.js and npm if needed for frontend building
 log_info "Checking Node.js and npm for frontend building..."
-if ! command -v node &> /dev/null; then
-    log_warning "Node.js not found. Installing Node.js 20.x via nvm (no sudo required)..."
+if ! command -v node &> /dev/null || [[ "$(node --version 2>/dev/null | sed 's/v//')" < "18" ]]; then
+    log_warning "Node.js not found or version too old. Installing Node.js 20.x via nvm (no sudo required)..."
     log_info "Installing nvm (Node Version Manager)..."
 
     # Install nvm without requiring sudo
@@ -351,9 +351,13 @@ if ! command -v node &> /dev/null; then
     echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.bashrc
     echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> ~/.bashrc
 
+    # Ensure node command points to nvm version
+    export PATH="$NVM_DIR/versions/node/v20.19.0/bin:$PATH"
+
     log_success "Node.js 20.x and npm installed via nvm"
 else
-    log_success "Node.js found: $(node --version)"
+    NODE_VERSION=$(node --version)
+    log_success "Node.js found: $NODE_VERSION"
 fi
 
 # Ensure npm is available
@@ -455,9 +459,12 @@ pip install -r requirements.txt
 # Build frontend
 log_info "Building frontend..."
 if command -v npm &> /dev/null; then
-    # Ensure nvm is sourced for npm commands
+    # Ensure nvm is sourced for npm commands and use Node.js 20
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    nvm use 20 2>/dev/null || true
+    # Ensure PATH includes nvm node
+    export PATH="$NVM_DIR/versions/node/v20.19.0/bin:$PATH"
 
     cd frontend
     npm install

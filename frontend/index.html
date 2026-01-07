@@ -96,6 +96,22 @@
       `;
       document.head.appendChild(style);
       console.log('Custom NeuroInsight theme applied');
+
+      // Force dropdown colors with JavaScript as final fallback
+      setTimeout(function() {
+        const selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+          if (select.value === 'coronal' || select.value === 'axial' ||
+              select.querySelector('option[value="coronal"]') ||
+              select.querySelector('option[value="axial"]')) {
+            select.style.color = '#003d7a !important';
+            select.style.borderColor = '#003d7a !important';
+            select.style.setProperty('color', '#003d7a', 'important');
+            select.style.setProperty('border-color', '#003d7a', 'important');
+            console.log('Forced dropdown colors applied');
+          }
+        });
+      }, 500);
     }, 100);
   </script>
   <!-- <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script> -->

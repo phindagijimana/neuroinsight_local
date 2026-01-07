@@ -47,11 +47,34 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
         logger.error("missing_visualization_dependencies", error=str(e))
         return False
 
-    # Find FastSurfer output directory
-    job_output_dir = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / str(job_id) / "fastsurfer"
+    # Find output directory - check both FastSurfer and FreeSurfer locations
+    base_output_dir = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / str(job_id)
+
+    # Try FastSurfer first (preferred)
+    job_output_dir = base_output_dir / "fastsurfer"
+    is_freesurfer = False
 
     if not job_output_dir.exists():
-        logger.error("fastsurfer_output_not_found", job_id=job_id, path=str(job_output_dir))
+        # Try FreeSurfer Docker output
+        freesurfer_dir = base_output_dir / "freesurfer" / "freesurfer_docker"
+        if freesurfer_dir.exists():
+            # Find the subject directory (format: freesurfer_docker_{job_id})
+            subject_dirs = list(freesurfer_dir.glob(f"freesurfer_docker_{job_id}"))
+            if subject_dirs:
+                job_output_dir = subject_dirs[0]
+                is_freesurfer = True
+            else:
+                # Check for any subject directory
+                all_dirs = [d for d in freesurfer_dir.iterdir() if d.is_dir()]
+                if all_dirs:
+                    job_output_dir = all_dirs[0]
+                    is_freesurfer = True
+
+    if not job_output_dir.exists():
+        logger.error("processing_output_not_found",
+                    job_id=job_id,
+                    fastsurfer_path=str(base_output_dir / "fastsurfer"),
+                    freesurfer_path=str(base_output_dir / "freesurfer" / "freesurfer_docker"))
         return False
 
     try:
@@ -395,15 +418,8 @@ def get_overlay_image(
 
     logger.info("overlay_request", job_id=job_id, slice_id=slice_id, orientation=orientation, layer=layer, method=request.method if request else "unknown")
 
-    # Convert string job_id to UUID
-    try:
-        job_uuid = UUID(job_id)
-    except ValueError:
-        if is_head_request:
-            return Response(status_code=404)
-        raise HTTPException(status_code=400, detail="Invalid job ID format")
-
-    job = JobService.get_job(db, job_uuid)
+    # Get job by string ID
+    job = JobService.get_job(db, job_id)
 
     if not job:
         logger.error("job_not_found", job_id=str(job_id))
@@ -421,10 +437,17 @@ def get_overlay_image(
     viz_dir = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / str(job_id) / "visualizations" / "overlays" / orientation
     viz_dir.mkdir(parents=True, exist_ok=True)
 
+    # Extract slice number from slice_id (format: "slice_00" -> 0)
+    try:
+        slice_num = int(slice_id.split('_')[1])
+        slice_str = f"{slice_num:02d}"
+    except (ValueError, IndexError):
+        slice_str = slice_id  # fallback to original
+
     if layer == "anatomical":
-        image_path = viz_dir / f"anatomical_slice_{slice_id:02d}.png"
+        image_path = viz_dir / f"anatomical_slice_{slice_str}.png"
     else:
-        image_path = viz_dir / f"hippocampus_overlay_slice_{slice_id:02d}.png"
+        image_path = viz_dir / f"hippocampus_overlay_slice_{slice_str}.png"
 
     logger.info("checking_image_path", path=str(image_path), exists=image_path.exists())
 

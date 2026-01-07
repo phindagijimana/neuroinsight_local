@@ -101,8 +101,8 @@ async def generate_pdf_report(
         styles = getSampleStyleSheet()
 
         # Define custom colors matching dashboard theme
-        # Custom NeuroInsight blue: #000080 = RGB(0, 0, 128)
-        dashboard_blue = colors.Color(0/255, 0/255, 128/255)
+        # Custom NeuroInsight blue: #000080
+        dashboard_blue = colors.HexColor('#000080')
 
         # Create left-aligned heading style for table titles to match table content
         table_title_style = ParagraphStyle(

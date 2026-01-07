@@ -287,7 +287,7 @@
        */
       async getJob(jobId) {
         try {
-          const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/${jobId}`);
+          const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/by-id?job_id=${jobId}`);
           if (!response.ok) throw new Error('Failed to fetch job');
           return await response.json();
         } catch (error) {

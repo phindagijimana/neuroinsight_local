@@ -330,35 +330,41 @@ fi
 # Check and install Node.js and npm if needed for frontend building
 log_info "Checking Node.js and npm for frontend building..."
 if ! command -v node &> /dev/null; then
-    log_warning "Node.js not found. Installing Node.js and npm..."
-    if command -v apt &> /dev/null; then
-        # Ubuntu/Debian
-        log_info "Installing Node.js 20.x and npm via NodeSource..."
-        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-        sudo apt install -y nodejs
-        log_success "Node.js and npm installed"
-    elif command -v dnf &> /dev/null; then
-        # Fedora/RHEL
-        sudo dnf install -y nodejs npm
-        log_success "Node.js and npm installed"
-    elif command -v yum &> /dev/null; then
-        # Older RHEL/CentOS
-        curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-        sudo yum install -y nodejs
-        log_success "Node.js and npm installed"
-    else
-        log_warning "Could not install Node.js automatically"
-        log_warning "Please install Node.js 16+ and npm manually"
-        log_warning "Then run: cd frontend && npm install && npm run build"
-    fi
+    log_warning "Node.js not found. Installing Node.js 20.x via nvm (no sudo required)..."
+    log_info "Installing nvm (Node Version Manager)..."
+
+    # Install nvm without requiring sudo
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+
+    # Source nvm in the current session
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+    # Install and use Node.js 20
+    nvm install 20
+    nvm use 20
+    nvm alias default 20
+
+    # Add nvm to shell profile for future sessions
+    echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.bashrc
+    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.bashrc
+    echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> ~/.bashrc
+
+    log_success "Node.js 20.x and npm installed via nvm"
 else
     log_success "Node.js found: $(node --version)"
 fi
 
+# Ensure npm is available
 if ! command -v npm &> /dev/null; then
-    log_error "npm not found even though Node.js is installed"
-    log_error "Please install npm manually"
-    exit 1
+    log_error "npm not found. Trying to source nvm..."
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    if ! command -v npm &> /dev/null; then
+        log_error "npm still not found. Please restart your terminal and try again."
+        exit 1
+    fi
 else
     log_success "npm found: $(npm --version)"
 fi
@@ -449,6 +455,10 @@ pip install -r requirements.txt
 # Build frontend
 log_info "Building frontend..."
 if command -v npm &> /dev/null; then
+    # Ensure nvm is sourced for npm commands
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
     cd frontend
     npm install
     npm run build
@@ -456,7 +466,7 @@ if command -v npm &> /dev/null; then
     log_success "Frontend built successfully"
 else
     log_warning "npm not found, skipping frontend build"
-    log_warning "Install Node.js and npm, then run: cd frontend && npm install && npm run build"
+    log_warning "Node.js installation may have failed. Try restarting your terminal."
 fi
 
 # Create necessary directories

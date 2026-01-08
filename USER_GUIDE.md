@@ -1187,3 +1187,642 @@ Valid indicators: `t1`, `t1w`, `t1-weighted`, `mprage`, `spgr`, `tfl`, `tfe`, `f
 ---
 
 ** Congratulations on completing NeuroInsight training!** Questions? Check the [FAQ](FAQ.md) or create an issue.
+---
+
+---
+
+## Detailed Installation Guide
+
+## Frequently Asked Questions
+
+## Getting Started
+
+### What is NeuroInsight?
+
+NeuroInsight is a web-based platform for automated hippocampal segmentation and analysis from T1-weighted MRI scans. It provides researchers with an easy-to-use interface for processing brain imaging data using FreeSurfer and advanced segmentation algorithms.
+
+### Who can use NeuroInsight?
+
+NeuroInsight is designed for:
+- **Neuroscience researchers** studying brain structure
+- **Clinical researchers** conducting neuroimaging studies
+- **Medical professionals** analyzing patient scans
+- **Students and educators** learning neuroimaging techniques
+
+### What are the system requirements?
+
+**Minimum Requirements:**
+- Ubuntu 18.04+ Linux distribution
+- 4 CPU cores, 16GB RAM, 50GB storage
+- Docker and Docker Compose installed
+
+**Recommended:**
+- Ubuntu 20.04+ LTS
+- 8 CPU cores, 32GB RAM, 100GB SSD storage
+
+### Is NeuroInsight free?
+
+Yes! NeuroInsight is open-source software released under the MIT license. However, it requires a FreeSurfer license, which is free for research use.
+
+## Data and Processing
+
+### What file formats does NeuroInsight support?
+
+- **NIfTI** (`.nii`, `.nii.gz`) - Recommended format
+- **DICOM** directories containing `.dcm` files
+- **Compressed archives** (`.zip`, `.tar.gz`)
+
+### How long does processing take?
+
+Typical processing time: **30-60 minutes** per scan, depending on:
+- Scan resolution and quality
+- System hardware specifications
+- Current system load
+
+### What's processed during analysis?
+
+NeuroInsight performs comprehensive analysis including:
+- **Cortical reconstruction** and surface generation
+- **Subcortical segmentation** (hippocampus, thalamus, etc.)
+- **Volume measurements** and morphometric analysis
+- **Shape analysis** and asymmetry calculations
+- **Quality metrics** and processing validation
+
+### Can I process multiple scans at once?
+
+Yes! NeuroInsight supports:
+- **Queue system**: Up to 5 pending + 1 running job
+- **Batch processing**: Upload multiple files sequentially
+- **Automatic queuing**: Next job starts when current completes
+
+## Technical Questions
+
+### Do I need a FreeSurfer license?
+
+Yes. FreeSurfer requires a license for processing. It's free for research use - register at: https://surfer.nmr.mgh.harvard.edu/registration.html
+
+### How does NeuroInsight work?
+
+NeuroInsight uses:
+- **FreeSurfer 7.4.1** running in Docker containers
+- **FastAPI backend** for web services
+- **React frontend** for user interface
+- **Celery** for background job processing
+- **PostgreSQL** for data storage
+- **Redis** for job queuing
+
+### Is my data secure?
+
+NeuroInsight processes data locally on your machine. No data is sent to external servers. However, always follow your institution's data security protocols.
+
+### Can I run NeuroInsight on Windows/Mac?
+
+Currently, NeuroInsight requires Linux due to FreeSurfer and Docker dependencies. Windows users can use WSL2, and Mac users can use Docker Desktop with Linux containers.
+
+## Results and Analysis
+
+### What metrics does NeuroInsight provide?
+
+Hippocampal analysis includes:
+- **Volume measurements** (left/right hippocampus in mm³)
+- **Shape indices** and morphological features
+- **Asymmetry calculations** (left-right differences)
+- **Age-adjusted norms** and percentiles
+- **Quality scores** and processing reliability
+
+### How accurate are the results?
+
+Accuracy depends on input scan quality, but NeuroInsight typically achieves:
+- **90-95%** segmentation accuracy for high-quality T1 scans
+- **Reliable volume measurements** within 5% of manual tracing
+- **Consistent results** across repeated processing
+
+### Can I export my results?
+
+Yes! Export options include:
+- **PDF reports** with visualizations and metrics
+- **CSV files** with raw measurements
+- **PNG/PDF images** of brain visualizations
+- **Raw data** for further statistical analysis
+
+## Troubleshooting
+
+### Why is my job stuck in "pending"?
+
+Common causes:
+- **Worker not running**: Check `./status.sh`
+- **Queue full**: Maximum 1 running + 5 pending jobs
+- **Redis issues**: Restart Redis service
+- **System overload**: Wait for current job to complete
+
+### Why did processing fail?
+
+Common reasons:
+- **Invalid file format**: Use NIfTI format
+- **FreeSurfer license issue**: Verify `license.txt`
+- **Insufficient resources**: Check RAM/disk space
+- **Corrupted input file**: Verify scan integrity
+
+### How do I restart the application?
+
+```bash
+# Stop all services
+./stop.sh
+
+# Start all services
+./start.sh
+
+# Check status
+./status.sh
+```
+
+### My web interface won't load
+
+Check:
+- Application is running: `./status.sh`
+- Browser cache cleared
+- Firewall not blocking port 8000
+- Correct URL: `http://localhost:8000`
+
+## Configuration
+
+### How do I change application settings?
+
+Edit the `.env` file in the NeuroInsight directory:
+
+```bash
+nano .env
+```
+
+Common settings:
+- `POSTGRES_PASSWORD`: Database password
+- `REDIS_PASSWORD`: Redis password
+- `MAX_WORKERS`: Number of processing workers
+
+### Can I customize the processing pipeline?
+
+Currently, the pipeline is optimized for hippocampal analysis. Advanced users can modify the MRI processor code, but this requires Python/Docker knowledge.
+
+### How do I backup my data?
+
+```bash
+# Backup configuration
+cp .env .env.backup
+
+# Backup database
+docker-compose exec db pg_dump -U neuroinsight neuroinsight > backup.sql
+
+# Backup processed data
+cp -r data data.backup
+```
+
+## Updates and Maintenance
+
+### How do I update NeuroInsight?
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Update dependencies
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Restart services
+./restart.sh
+```
+
+### How do I clean up old data?
+
+```bash
+# Remove completed job files (be careful!)
+rm -rf data/outputs/job_id_*
+
+# Clean Docker system
+docker system prune -a
+
+# Clear old logs
+./logs.sh --clean
+```
+
+## Clinical Use
+
+### Is NeuroInsight FDA approved?
+
+No. NeuroInsight is research software and should not be used for clinical diagnosis without proper validation and regulatory approval.
+
+### Can I use it for patient data?
+
+Yes, but:
+- Follow HIPAA and institutional privacy policies
+- Remove protected health information before processing
+- Validate results against clinical standards
+- Use appropriate security measures
+
+### What scan parameters work best?
+
+**Optimal T1-weighted scan parameters:**
+- **Resolution**: 1mm isotropic voxels
+- **Orientation**: Standard radiological (RAS)
+- **Field strength**: 3T preferred, 1.5T acceptable
+- **Sequence**: MPRAGE or similar T1-weighted sequence
+
+## 🤝 Support
+
+### Where can I get help?
+
+- **Documentation**: Check [USER_GUIDE.md](USER_GUIDE.md) and [TROUBLESHOUTING.md](TROUBLESHOUTING.md)
+- **GitHub Issues**: Report bugs and request features
+- **Community Discussions**: Join the conversation
+- **Email**: For sensitive support inquiries
+
+### How do I report a bug?
+
+When reporting issues, include:
+- Operating system and version
+- Docker and Docker Compose versions
+- Error messages and logs
+- Steps to reproduce the issue
+- Sample data (if possible, anonymized)
+
+### Can I contribute to NeuroInsight?
+
+Yes! Contributions are welcome:
+- **Bug fixes**: Create pull requests
+- **Features**: Discuss in GitHub Issues first
+- **Documentation**: Improve guides and tutorials
+- **Testing**: Help test on different systems
+
+##  Performance
+
+### Why is processing slow?
+
+Factors affecting speed:
+- **Hardware**: More CPU cores and RAM = faster processing
+- **Scan quality**: High-resolution scans take longer
+- **System load**: Close other applications
+- **Storage**: SSD storage significantly faster than HDD
+
+### Can I speed up processing?
+
+Optimization tips:
+- Use SSD storage for data directories
+- Ensure 16GB+ RAM available
+- Process during off-peak hours
+- Use high-quality scans (not necessarily highest resolution)
+
+### What's the maximum file size?
+
+- **Upload limit**: 1GB per file
+- **Recommended**: Keep under 500MB for best performance
+- **Processing**: Requires ~2-3x file size in temporary space
+
+---
+
+**Didn't find your question?** Check the [troubleshooting guide](TROUBLESHOUTING.md) or create a GitHub issue!
+## Prerequisites Checklist
+
+Before installation, ensure your system meets these requirements:
+
+### Hardware Requirements
+- **CPU**: 4+ cores (Intel/AMD x64 architecture)
+- **RAM**:
+  - **Installation Minimum**: 7 GB (allows basic UI functionality)
+  - **Processing Minimum**: 16 GB (required for MRI processing)
+  - **Recommended**: 32 GB (optimal for research workflows)
+- **Storage**: 50 GB free disk space
+- **Network**: Stable internet connection
+
+### Memory Usage Guidelines
+
+**8GB Systems (Installation Only):**
+- Can install and run the web interface
+- Can view results and manage jobs
+- MRI processing likely to fail due to insufficient RAM
+- Suitable only for evaluation/demo purposes
+
+**16GB+ Systems (Full Functionality):**
+- Reliable MRI processing and segmentation
+- FreeSurfer pipeline execution
+- Visualization generation
+- Recommended for actual research use
+
+**32GB+ Systems (Optimal Performance):**
+- Multiple concurrent processing jobs
+- Large dataset handling
+- Batch processing workflows
+- Production research environments
+
+### Operating System
+- **Ubuntu 20.04 LTS** or later (recommended)
+- **Ubuntu 18.04 LTS** (minimum, with backports)
+- **Red Hat Enterprise Linux 8+**
+- **Fedora 35+**
+- **Other Debian-based distributions**
+
+### Software Dependencies
+- **Docker**: Version 20.10 or later
+- **Docker Compose**: Version 2.0 or later
+- **Git**: For cloning the repository
+- **curl/wget**: For downloading files
+
+### User Permissions
+- **sudo access**: Required for Docker operations
+- **User in docker group**: For running Docker without sudo
+
+## Windows Installation (WSL2)
+
+**NeuroInsight requires Linux for optimal performance.** Windows users should use **Windows Subsystem for Linux 2 (WSL2)**:
+
+### Quick WSL2 Setup:
+```powershell
+# PowerShell (Administrator)
+wsl --install -d Ubuntu
+wsl --set-default-version 2
+```
+
+### Then follow Linux instructions in WSL2:
+```bash
+# In WSL2 Ubuntu terminal
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local
+./install.sh
+./start.sh
+```
+
+**Access from Windows browser:** `http://localhost:8000`
+
+*For detailed WSL2 instructions, see the main README.md*
+
+## Quick Installation
+
+### Option 1: Automated Installation (Recommended)
+
+   ```bash
+# Clone the repository
+git clone https://github.com/yourusername/neuroinsight.git
+cd neuroinsight
+
+# Make install script executable
+chmod +x install.sh
+
+# Run automated installation
+./install.sh
+   ```
+
+The automated installer will:
+- Check system compatibility
+- Install missing dependencies
+- Configure Docker permissions
+- Set up the application environment
+- Guide you through FreeSurfer license setup
+
+### Option 2: Manual Installation
+
+If automated installation fails, follow these manual steps:
+
+## Manual Installation Steps
+
+### Step 1: System Preparation
+
+```bash
+# Update your system
+sudo apt update && sudo apt upgrade -y
+
+# Install required packages
+sudo apt install -y curl wget git python3 python3-pip docker.io docker-compose-plugin
+
+# Start and enable Docker
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add user to docker group (logout/login required)
+sudo usermod -aG docker $USER
+```
+
+### Step 2: Clone Repository
+
+   ```bash
+# Clone the NeuroInsight repository
+git clone https://github.com/yourusername/neuroinsight.git
+   cd neuroinsight
+
+# Make scripts executable
+chmod +x *.sh
+   ```
+
+### Step 3: Python Environment Setup
+
+   ```bash
+# Create virtual environment
+   python3 -m venv venv
+
+# Activate virtual environment
+   source venv/bin/activate
+
+# Install Python dependencies
+   pip install -r requirements.txt
+   ```
+
+### Step 4: FreeSurfer License Setup
+
+NeuroInsight requires a FreeSurfer license for MRI processing:
+
+```bash
+# Get your free license at: https://surfer.nmr.mgh.harvard.edu/registration.html
+
+# Copy the license to the correct location
+# Place your license.txt file in this directory (same folder as NeuroInsight)
+
+# Edit the license file with your actual license content
+nano license.txt
+
+# Verify license format (should contain your email and license codes)
+head -5 license.txt
+```
+
+### Step 5: Environment Configuration
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit configuration (optional - defaults are usually fine)
+nano .env
+```
+
+### Step 6: Initial Application Setup
+
+```bash
+# Create required directories
+mkdir -p data/uploads data/outputs logs
+
+# Start supporting services (database, Redis, etc.)
+docker-compose up -d db redis minio
+
+# Wait for services to be ready
+sleep 30
+
+# Run database migrations (if any)
+# [Database setup commands would go here]
+```
+
+## Post-Installation Verification
+
+### Test 1: Docker Services
+
+```bash
+# Check if Docker services are running
+docker-compose ps
+
+# Expected output should show:
+# neuroinsight-db        Up
+# neuroinsight-redis     Up
+# neuroinsight-minio     Up
+```
+
+### Test 2: Application Startup
+
+```bash
+# Start the application
+./start.sh
+
+# Check if services are running
+./status.sh
+
+# Expected output:
+# Backend: RUNNING (PID: 12345)
+# Worker: RUNNING (PID: 12346)
+# Database: RUNNING
+# Redis: RUNNING
+# MinIO: RUNNING
+```
+
+### Test 3: Web Interface Access
+
+```bash
+# Test web interface
+curl -I http://localhost:8000
+
+# Expected: HTTP/1.1 200 OK
+```
+
+Visit `http://localhost:8000` (or your configured port) in your web browser to access NeuroInsight.
+
+**Note:** If port 8000 is already in use, NeuroInsight will detect this and provide instructions for using an alternative port.
+
+### Test 4: Basic Functionality
+
+```bash
+# Test API health endpoint
+curl http://localhost:8000/health
+
+# Expected: {"status": "healthy", "services": {...}}
+```
+
+## Troubleshooting Installation
+
+### Docker Issues
+
+**Problem**: `docker: command not found`
+```bash
+# Install Docker
+sudo apt install docker.io
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+# Logout and login again
+```
+
+**Problem**: `docker-compose: command not found`
+```bash
+# Install Docker Compose
+sudo apt install docker-compose-plugin
+```
+
+**Problem**: Permission denied when running Docker
+```bash
+# Add user to docker group
+sudo usermod -aG docker $USER
+# Logout and login again, or run: newgrp docker
+```
+
+### Python Issues
+
+**Problem**: `python3: command not found`
+```bash
+# Install Python 3
+sudo apt install python3 python3-pip python3-venv
+```
+
+**Problem**: Virtual environment issues
+```bash
+# Remove and recreate virtual environment
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### FreeSurfer License Issues
+
+**Problem**: License file not found
+```bash
+# Ensure license.txt exists in the project root
+ls -la license.txt
+
+# Check license content (first few lines should show your email)
+head -5 license.txt
+```
+
+**Problem**: Invalid license format
+```bash
+# License should contain:
+# your.email@institution.edu
+# license_number
+# license_code
+cat license.txt
+```
+
+### Network Issues
+
+**Problem**: Cannot access web interface
+```bash
+# Check if application is running
+./status.sh
+
+# Check firewall settings
+sudo ufw status
+
+# Test local connectivity
+curl http://localhost:8000
+```
+
+## System Compatibility Matrix
+
+| Distribution | Version | Status | Notes |
+|-------------|---------|--------|-------|
+| Ubuntu | 22.04 LTS | Fully Supported | Recommended |
+| Ubuntu | 20.04 LTS | Supported | Tested |
+| Ubuntu | 18.04 LTS | Minimal | May require backports |
+| RHEL | 8.x | Supported | Requires EPEL repository |
+| Fedora | 35+ | Supported | Tested |
+| Debian | 11+ | Supported | May need backports |
+
+## Next Steps
+
+After successful installation:
+
+1. **Upload Test Data**: Try processing a sample MRI scan
+2. **Review User Guide**: Read [USER_GUIDE.md](USER_GUIDE.md) for detailed usage
+3. **Configure Settings**: Adjust application settings in `.env`
+4. **Monitor Performance**: Use `./status.sh` and `./logs.sh` for monitoring
+
+## Getting Help
+
+- **Installation Issues**: Check [TROUBLESHOUTING.md](TROUBLESHOUTING.md)
+- **Usage Questions**: See [USER_GUIDE.md](USER_GUIDE.md)
+- **Bug Reports**: Create GitHub issues
+- **Community Support**: Join our discussions
+
+---
+

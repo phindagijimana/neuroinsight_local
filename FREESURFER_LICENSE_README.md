@@ -76,6 +76,29 @@ With a valid FreeSurfer license, NeuroInsight can perform:
 - Verify the file is named exactly `license.txt`
 - Verify the file is in the NeuroInsight project root directory
 
+### Error: "license.txt not found"
+```bash
+# Copy your license file to the NeuroInsight directory
+cp ~/Downloads/license.txt ./license.txt
+
+# Edit with your license content
+nano license.txt
+```
+
+### Error: "contains example content"
+- Open `license.txt`
+- Replace the example content with your actual license
+- Remove all comment lines starting with #
+
+### Error: "License file format incorrect"
+- Ensure the file has at least 3 lines
+- Check that the license content matches exactly what you received via email
+- No extra spaces or characters
+
+### Error: "Failed to validate license"
+- Check file permissions: `ls -la license.txt`
+- Ensure file is readable: `chmod 644 license.txt`
+
 ### Still Not Working
 - Restart the FreeSurfer container: `docker-compose restart freesurfer`
 - Check container logs: `docker-compose logs freesurfer`

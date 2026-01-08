@@ -304,6 +304,78 @@ app.include_router(reports_router, prefix="/api")
 app.include_router(visualizations_router, prefix="/api")
 app.include_router(cleanup_router, prefix="/api")  # Admin cleanup endpoints
 
+# System status endpoint
+@app.get("/api/status", response_model=dict)
+async def get_system_status(db: Session = Depends(get_db)):
+    """
+    Get comprehensive system status information.
+
+    Includes service health, job statistics, and system metrics.
+    This is the main status endpoint for monitoring the application.
+    """
+    from backend.services import JobService
+    from backend.models.job import JobStatus
+    import psutil
+    import time
+
+    try:
+        # Job statistics
+        total_jobs = JobService.count_jobs_by_status(db, [JobStatus.PENDING, JobStatus.RUNNING, JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED])
+        completed_jobs = JobService.count_jobs_by_status(db, [JobStatus.COMPLETED])
+        running_jobs = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
+        pending_jobs = JobService.count_jobs_by_status(db, [JobStatus.PENDING])
+        failed_jobs = JobService.count_jobs_by_status(db, [JobStatus.FAILED])
+
+        # System metrics
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+
+        # Process information
+        current_process = psutil.Process()
+        process_memory = current_process.memory_info().rss / 1024 / 1024  # MB
+
+        # Check service health
+        services = {
+            "database": "healthy",
+            "api": "healthy",
+            "celery": "unknown"  # Would need to check Celery heartbeat
+        }
+
+        return {
+            "status": "healthy",
+            "timestamp": time.time(),
+            "version": settings.app_version,
+            "services": services,
+            "jobs": {
+                "total": total_jobs,
+                "completed": completed_jobs,
+                "running": running_jobs,
+                "pending": pending_jobs,
+                "failed": failed_jobs
+            },
+            "system": {
+                "memory_usage_percent": round(memory.percent, 1),
+                "memory_used_gb": round(memory.used / (1024**3), 1),
+                "memory_total_gb": round(memory.total / (1024**3), 1),
+                "disk_usage_percent": round(disk.percent, 1),
+                "disk_free_gb": round(disk.free / (1024**3), 1),
+                "process_memory_mb": round(process_memory, 1)
+            },
+            "limits": {
+                "max_concurrent_jobs": settings.max_concurrent_jobs,
+                "max_upload_size_mb": round(settings.max_upload_size / (1024**2), 0)
+            }
+        }
+
+    except Exception as e:
+        logger.error("status_endpoint_error", error=str(e))
+        return {
+            "status": "error",
+            "error": str(e),
+            "timestamp": time.time()
+        }
+
+
 # WebSocket endpoint for real-time job updates
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

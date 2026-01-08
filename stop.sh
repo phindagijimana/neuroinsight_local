@@ -29,6 +29,32 @@ log_error() {
 
 log_info "Stopping NeuroInsight services..."
 
+# First, aggressively stop ALL NeuroInsight processes
+log_info "Cleaning up all NeuroInsight processes..."
+pkill -f "python3.*backend/main.py" 2>/dev/null || true
+pkill -f "python3.*celery.*processing_web" 2>/dev/null || true
+pkill -f "python3.*job_monitor" 2>/dev/null || true
+pkill -f "python3.*trigger_queue" 2>/dev/null || true
+
+# Wait a moment for processes to terminate
+sleep 2
+
+# Check for any remaining processes and force kill if necessary
+REMAINING_PROCESSES=$(pgrep -f "python3.*backend/main.py" 2>/dev/null || true)
+if [ ! -z "$REMAINING_PROCESSES" ]; then
+    log_warning "Force killing remaining backend processes..."
+    pkill -9 -f "python3.*backend/main.py" 2>/dev/null || true
+fi
+
+REMAINING_CELERY=$(pgrep -f "python3.*celery.*processing_web" 2>/dev/null || true)
+if [ ! -z "$REMAINING_CELERY" ]; then
+    log_warning "Force killing remaining Celery processes..."
+    pkill -9 -f "python3.*celery.*processing_web" 2>/dev/null || true
+fi
+
+# Clean up PID files
+rm -f neuroinsight.pid celery.pid job_monitor.pid
+
 # Run maintenance to detect interrupted jobs before shutdown
 log_info "Running maintenance to detect interrupted jobs..."
 python3 -c "
@@ -89,6 +115,31 @@ if [ -f "job_monitor.pid" ]; then
     fi
     rm -f job_monitor.pid
     log_success "Job monitor stopped"
+fi
+
+# Stop system monitor
+if [ -f "monitor.pid" ]; then
+    SYSMON_PID=$(cat monitor.pid)
+    if kill -0 $SYSMON_PID 2>/dev/null; then
+        log_info "Stopping system monitor (PID: $SYSMON_PID)..."
+        kill $SYSMON_PID 2>/dev/null || true
+
+        # Wait for graceful shutdown
+        WAIT_COUNT=0
+        while kill -0 $SYSMON_PID 2>/dev/null && [ $WAIT_COUNT -lt 3 ]; do
+            sleep 1
+            WAIT_COUNT=$((WAIT_COUNT + 1))
+        done
+
+        if kill -0 $SYSMON_PID 2>/dev/null; then
+            log_warning "System monitor didn't stop gracefully, forcing..."
+            kill -9 $SYSMON_PID 2>/dev/null || true
+        fi
+    else
+        log_warning "System monitor PID file exists but process not running"
+    fi
+    rm -f monitor.pid
+    log_success "System monitor stopped"
 fi
 
 # Stop backend

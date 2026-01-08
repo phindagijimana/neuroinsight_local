@@ -118,16 +118,19 @@ def get_system_stats(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to retrieve system statistics")
 
 
-@router.get("/{job_id}")
-def get_job(
-    job_id: str = Path(..., description="Job ID"),
+@router.get("/by-id")
+def get_job_by_query(
+    job_id: str = Query(..., min_length=8, max_length=8, description="Job ID (8 characters)"),
     db: Session = Depends(get_db),
 ):
     """
-    Retrieve a specific job by ID.
+    Retrieve a specific job by ID using query parameter.
+
+    This endpoint provides an alternative to the path parameter version
+    for compatibility with certain frontend implementations.
 
     Args:
-        id: Job identifier
+        job_id: Job identifier (8 characters)
         db: Database session dependency
 
     Returns:
@@ -139,7 +142,56 @@ def get_job(
     job_response = JobService.get_job_response(db, job_id)
 
     if not job_response:
-        raise HTTPException(status_code=404, detail="Job not found")
+        logger.warning("job_not_found_by_query", job_id=job_id)
+        raise HTTPException(status_code=404, detail=f"Job with ID '{job_id}' not found")
+
+    # Convert to dictionary response
+    return {
+        "id": str(job_response.id),
+        "filename": job_response.filename,
+        "file_path": job_response.file_path,
+        "status": job_response.status.value,  # Convert enum to string
+        "error_message": job_response.error_message,
+        "created_at": job_response.created_at.isoformat(),
+        "started_at": job_response.started_at.isoformat() if job_response.started_at else None,
+        "completed_at": job_response.completed_at.isoformat() if job_response.completed_at else None,
+        "result_path": job_response.result_path,
+        "progress": job_response.progress,
+        "current_step": job_response.current_step,
+        "patient_name": job_response.patient_name,
+        "patient_id": job_response.patient_id,
+        "patient_age": job_response.patient_age,
+        "patient_sex": job_response.patient_sex,
+        "scanner_info": job_response.scanner_info,
+        "sequence_info": job_response.sequence_info,
+        "notes": job_response.notes,
+        "metrics": [metric.dict() for metric in job_response.metrics]
+    }
+
+
+@router.get("/{job_id}")
+def get_job(
+    job_id: str = Path(..., description="Job ID"),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve a specific job by ID using path parameter.
+
+    Args:
+        job_id: Job identifier
+        db: Database session dependency
+
+    Returns:
+        Job record with associated metrics
+
+    Raises:
+        HTTPException: If job not found
+    """
+    job_response = JobService.get_job_response(db, job_id)
+
+    if not job_response:
+        logger.warning("job_not_found_by_path", job_id=job_id)
+        raise HTTPException(status_code=404, detail=f"Job with ID '{job_id}' not found")
 
     # Convert to dictionary response
     return {

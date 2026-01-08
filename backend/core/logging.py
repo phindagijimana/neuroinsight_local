@@ -7,9 +7,80 @@ environments and human-readable logging for development.
 
 import logging
 import sys
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import structlog
+
+
+class UserFriendlyLogger:
+    """
+    Enhanced logger that provides user-friendly error messages alongside technical logging.
+    """
+
+    def __init__(self, name: str):
+        self.logger = structlog.get_logger(name)
+
+    def error_with_user_message(self, error: Exception, user_message: str, **kwargs):
+        """
+        Log an error with both technical details and user-friendly message.
+
+        Args:
+            error: The exception that occurred
+            user_message: User-friendly message for frontend/API responses
+            **kwargs: Additional context for structured logging
+        """
+        self.logger.error(
+            "error_with_user_message",
+            error_type=type(error).__name__,
+            error_message=str(error),
+            user_message=user_message,
+            **kwargs
+        )
+
+    def warning_with_user_message(self, message: str, user_message: str, **kwargs):
+        """
+        Log a warning with user-friendly context.
+
+        Args:
+            message: Technical warning message
+            user_message: User-friendly message
+            **kwargs: Additional context
+        """
+        self.logger.warning(
+            "warning_with_user_message",
+            message=message,
+            user_message=user_message,
+            **kwargs
+        )
+
+    def info_with_user_context(self, message: str, user_context: str = None, **kwargs):
+        """
+        Log info with optional user-facing context.
+
+        Args:
+            message: Technical message
+            user_context: Optional user-friendly context
+            **kwargs: Additional context
+        """
+        self.logger.info(
+            "info_with_user_context",
+            message=message,
+            user_context=user_context,
+            **kwargs
+        )
+
+
+def get_user_friendly_logger(name: str) -> UserFriendlyLogger:
+    """
+    Get a user-friendly logger instance.
+
+    Args:
+        name: Logger name (usually __name__)
+
+    Returns:
+        UserFriendlyLogger instance
+    """
+    return UserFriendlyLogger(name)
 
 
 def setup_logging(log_level: str = "INFO", environment: str = "development") -> None:

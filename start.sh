@@ -64,17 +64,31 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if already running
-if [ -f "neuroinsight.pid" ]; then
-    if kill -0 $(cat neuroinsight.pid) 2>/dev/null; then
-        log_warning "NeuroInsight appears to be already running (PID: $(cat neuroinsight.pid))"
-        log_warning "Use './stop.sh' first if you want to restart"
-        exit 1
-    else
-        log_info "Removing stale PID file"
-        rm -f neuroinsight.pid
-    fi
+# Check if already running and clean up any orphaned processes
+log_info "Checking for existing NeuroInsight processes..."
+
+# Check for backend process
+EXISTING_BACKEND=$(pgrep -f "python3.*backend/main.py" 2>/dev/null || true)
+if [ ! -z "$EXISTING_BACKEND" ]; then
+    log_warning "Found existing backend process(es): $EXISTING_BACKEND"
+    log_warning "Stopping existing processes..."
+    ./stop.sh >/dev/null 2>&1 || true
+    sleep 3
 fi
+
+# Double-check cleanup
+EXISTING_BACKEND=$(pgrep -f "python3.*backend/main.py" 2>/dev/null || true)
+EXISTING_CELERY=$(pgrep -f "python3.*celery.*processing_web" 2>/dev/null || true)
+
+if [ ! -z "$EXISTING_BACKEND" ] || [ ! -z "$EXISTING_CELERY" ]; then
+    log_error "Failed to clean up existing processes. Please run './stop.sh' manually."
+    log_error "Existing backend: $EXISTING_BACKEND"
+    log_error "Existing Celery: $EXISTING_CELERY"
+    exit 1
+fi
+
+# Clean up any stale PID files
+rm -f neuroinsight.pid celery.pid job_monitor.pid
 
 # Port configuration - auto-select available port or use custom
 if [ -z "$PORT" ]; then
@@ -337,6 +351,18 @@ except Exception as e:
     log_success "Background job monitoring started"
 else
     log_warning "Background monitoring failed to start - jobs may not auto-process on completion"
+fi
+
+# Start periodic system health monitoring
+log_info "Starting periodic system health monitoring..."
+if nohup ./monitor.sh full > monitor.log 2>&1 &
+then
+    MONITOR_PID=$!
+    echo $MONITOR_PID > monitor.pid
+    log_success "System health monitoring started (PID: $MONITOR_PID)"
+    log_info "Monitor logs: monitor.log"
+else
+    log_warning "Failed to start system health monitoring"
 fi
 
 # Start processing any pending jobs automatically

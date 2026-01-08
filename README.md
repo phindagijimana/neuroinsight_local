@@ -48,16 +48,6 @@ Automated hippocampal segmentation and analysis from T1-weighted MRI scans using
 - **Storage**: MinIO for MRI files and generated outputs
 - **Processing**: FreeSurfer for automated hippocampal segmentation from T1-weighted scans
 
-## Screenshots
-
-### Home Page
-![NeuroInsight Home Page](images/home_page_screenshot.png)
-*The main interface for uploading MRI scans and accessing NeuroInsight features.*
-
-### Jobs Management
-![NeuroInsight Jobs Page](images/jobs_page_screenshot.png)
-*Monitor processing status, view completed jobs, and manage your MRI analysis queue.*
-
 ## Quick Start
 
 ### Prerequisites

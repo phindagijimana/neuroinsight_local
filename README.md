@@ -79,9 +79,16 @@ cd neuroinsight_local
 
 # Management commands
 ./status.sh     # Check system status and health
-./monitor.sh    # Run system health checks and cleanup
+./monitor.sh    # Run system health checks and automatic cleanup
+./monitor.sh status    # Show items being tracked for cleanup
 ./stop.sh       # Stop all services gracefully
 ./stop.sh --clear-stuck  # Stop services and clear stuck jobs
+
+# Automatic Maintenance (runs every 60 seconds)
+# - Orphaned processes cleaned up after 1 hour grace period
+# - Stuck jobs cleaned up after 1 hour grace period
+# - System health monitoring and resource checks
+# - Automatic queue processing for pending jobs
 ```
 
 ## File Requirements

@@ -30,6 +30,7 @@ cd neuroinsight_local
 # Get FreeSurfer license first
 # Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
 # Save license.txt in project directory
+# See: [FreeSurfer License Setup](FREESURFER_LICENSE_README.md) for detailed instructions
 
 # Install and start
 ./install.sh

@@ -22,18 +22,18 @@ The application will appear to work, but MRI analysis will fail silently or show
 
 ### Step 3: Install License in NeuroInsight
 1. Locate the downloaded `license.txt` file on your computer
-2. Copy the **entire contents** of `license.txt`
-3. Open `freesurfer_license.txt` in the NeuroInsight directory
-4. **Replace all content** with your license file content
-5. Save the file
+2. **Copy or move** the entire `license.txt` file to the NeuroInsight project directory
+3. Place it in the same folder as the other NeuroInsight files
 
 ## 📁 File Location
 
 ```
-neuroinsight/
-├── freesurfer_license.txt  ← **REPLACE THIS FILE**
-├── docker-compose.production.yml
-└── [other files...]
+neuroinsight_local/
+├── license.txt              ← **PLACE YOUR LICENSE FILE HERE**
+├── README.md
+├── start.sh
+├── stop.sh
+└── [other NeuroInsight files...]
 ```
 
 ## ✅ Verification
@@ -41,10 +41,13 @@ neuroinsight/
 After installing the license:
 
 ```bash
-# Start NeuroInsight
-./setup-production-environment.sh
+# Verify license is properly configured
+./check_license.sh
 
-# Upload a test MRI file (use test_data/test_brain.nii.gz)
+# Start NeuroInsight
+./start.sh
+
+# Upload a test MRI file
 # Check that processing completes with real results
 # Verify hippocampal volume measurements appear
 ```
@@ -68,14 +71,15 @@ With a valid FreeSurfer license, NeuroInsight can perform:
 ## 🆘 Troubleshooting
 
 ### License Not Recognized
-- Ensure you copied the **entire** license file content
+- Ensure you copied the **entire** license file (not just contents)
 - Check for extra spaces or formatting issues
-- Verify the file is named exactly `freesurfer_license.txt`
+- Verify the file is named exactly `license.txt`
+- Verify the file is in the NeuroInsight project root directory
 
 ### Still Not Working
 - Restart the FreeSurfer container: `docker-compose restart freesurfer`
 - Check container logs: `docker-compose logs freesurfer`
-- Verify license file permissions: `ls -la freesurfer_license.txt`
+- Verify license file permissions: `ls -la license.txt`
 
 ## 📞 Support
 
@@ -84,5 +88,6 @@ For FreeSurfer license issues:
 - FreeSurfer Support: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
 
 For NeuroInsight setup:
-- Check logs: `docker-compose logs neuroinsight-api`
-- Verify configuration: `cat freesurfer_license.txt`
+- Check license: `./check_license.sh`
+- Verify license file: `cat license.txt`
+- Check application logs: `cat neuroinsight.log`

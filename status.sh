@@ -37,34 +37,34 @@ log_info "Checking service status..."
 
 # Check backend API
 if curl -s http://localhost:8000/health > /dev/null 2>&1; then
-    log_success "✅ Backend API is running"
+    log_success "Backend API is running"
 else
-    log_error "❌ Backend API is not responding"
+    log_error "Backend API is not responding"
 fi
 
 # Check Celery workers
 CELERY_COUNT=$(pgrep -f "celery.*processing_web" | wc -l)
 if [ $CELERY_COUNT -gt 0 ]; then
-    log_success "✅ Celery workers running: $CELERY_COUNT process(es)"
+    log_success "Celery workers running: $CELERY_COUNT process(es)"
 else
-    log_error "❌ No Celery workers found"
+    log_error "No Celery workers found"
 fi
 
 # Check job monitor
 if pgrep -f "job_monitor" > /dev/null 2>&1; then
-    log_success "✅ Job monitor is running"
+    log_success "Job monitor is running"
 else
-    log_warning "⚠️  Job monitor not found (may be started by backend)"
+    log_warning "Job monitor not found (may be started by backend)"
 fi
 
 # Check Docker containers
 DOCKER_COUNT=$(docker ps | grep neuroinsight | wc -l)
 if [ $DOCKER_COUNT -gt 0 ]; then
-    log_success "✅ Docker containers running: $DOCKER_COUNT"
+    log_success "Docker containers running: $DOCKER_COUNT"
     echo "   Containers:"
     docker ps --filter name=neuroinsight --format "table {{.Names}}\t{{.Status}}"
 else
-    log_info "ℹ️  No NeuroInsight Docker containers running"
+    log_info "No NeuroInsight Docker containers running"
 fi
 
 echo
@@ -83,7 +83,7 @@ print(f'  Memory: {data.get(\"system\", {}).get(\"memory_usage_percent\", 0)}% u
 print(f'  Disk: {data.get(\"system\", {}).get(\"disk_usage_percent\", 0)}% used')
 "
 else
-    log_warning "⚠️  Could not fetch detailed system status"
+    log_warning "Could not fetch detailed system status"
 fi
 
 echo
@@ -106,7 +106,7 @@ for job in jobs:
     print(f'  {job.get(\"id\", \"unknown\")} - {filename} - {status}')
 "
 else
-    log_warning "⚠️  Could not fetch job information"
+    log_warning "Could not fetch job information"
 fi
 
 echo
@@ -116,12 +116,12 @@ log_info "Checking port usage..."
 if command -v netstat &> /dev/null; then
     PORT_8000=$(netstat -tln 2>/dev/null | grep :8000 || echo "")
     if [ ! -z "$PORT_8000" ]; then
-        log_success "✅ Port 8000 is in use (expected)"
+        log_success "Port 8000 is in use (expected)"
     else
-        log_warning "⚠️  Port 8000 is not in use"
+        log_warning "Port 8000 is not in use"
     fi
 else
-    log_info "ℹ️  netstat not available, skipping port check"
+    log_info "netstat not available, skipping port check"
 fi
 
 echo

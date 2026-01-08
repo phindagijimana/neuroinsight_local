@@ -18,12 +18,13 @@ from sqlalchemy.orm import Session
 
 from backend.core.config import get_settings
 from backend.core.database import get_db
-from backend.core.logging import get_logger
+from backend.core.logging import get_logger, get_user_friendly_logger
 from backend.models import Job
 from backend.schemas import JobCreate, JobResponse, JobStatus
 from backend.services import JobService, StorageService
 
 logger = get_logger(__name__)
+user_logger = get_user_friendly_logger(__name__)
 def verify_api_key(x_api_key: str = Header(None)):
     expected_key = os.getenv("API_KEY", "neuroinsight-dev-key")
     if not x_api_key or x_api_key != expected_key:
@@ -501,11 +502,10 @@ async def upload_mri(
             if running_jobs_now == 0:
                 try:
                     # Submit Celery task for processing
-                    try:
-                        from workers.tasks.processing_web import process_mri_task
-                        # Submit to Celery queue
-                        task = process_mri_task.delay(str(job.id))
-                        logger.info("celery_task_submitted_fallback", job_id=str(job.id), celery_task_id=task.id)
+                    from workers.tasks.processing_web import process_mri_task
+                    # Submit to Celery queue
+                    task = process_mri_task.delay(str(job.id))
+                    logger.info("celery_task_submitted_fallback", job_id=str(job.id), celery_task_id=task.id)
 
                 except ImportError as e:
                     logger.error("celery_import_failed", error=str(e))
@@ -534,14 +534,14 @@ async def upload_mri(
 
                     TaskService.submit_task(process_async)
 
-            except Exception as task_error:
-                # If task submission fails, log but don't fail the upload
-                logger.error(
-                    "web_task_enqueue_failed",
-                    job_id=str(job.id),
-                    error=str(task_error),
-                    error_type=type(task_error).__name__,
-                )
+                except Exception as task_error:
+                    # If task submission fails, log but don't fail the upload
+                    logger.error(
+                        "web_task_enqueue_failed",
+                        job_id=str(job.id),
+                        error=str(task_error),
+                        error_type=type(task_error).__name__,
+                    )
         else:
             # There's already a running job, this job stays in PENDING status
             logger.info("job_queued_pending", job_id=str(job.id), reason="another_job_running")

@@ -144,6 +144,30 @@ class Settings(BaseSettings):
 
         Tests PostgreSQL connection and falls back to SQLite if unavailable.
         """
+        # Production mode: Check if PostgreSQL containers are running
+        try:
+            import subprocess
+            result = subprocess.run(['docker', 'ps', '-q', '-f', 'name=neuroinsight-postgres'],
+                                  capture_output=True, text=True, timeout=2)
+            if result.returncode == 0 and result.stdout.strip():
+                # PostgreSQL container is running, try to connect
+                try:
+                    import psycopg2
+                    conn = psycopg2.connect(
+                        host='localhost',
+                        port=5432,
+                        user='neuroinsight',
+                        password='JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg',
+                        database='neuroinsight',
+                        connect_timeout=3
+                    )
+                    conn.close()
+                    return 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
+                except Exception:
+                    pass  # Fall back to normal logic
+        except Exception:
+            pass  # Docker not available, continue
+
         # Check if PostgreSQL environment variables are explicitly set or DATABASE_URL contains postgresql
         postgres_env_vars = ['POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_USER', 'POSTGRES_DB']
         postgres_env_set = any(os.getenv(var) for var in postgres_env_vars)

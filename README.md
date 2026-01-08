@@ -77,12 +77,20 @@ cd neuroinsight_local
 # Access at automatically selected port (typically http://localhost:8000)
 # The startup script will automatically find an available port in range 8000-8050
 
-# Management commands
-./status.sh     # Check system status and health
-./monitor.sh    # Run system health checks and automatic cleanup
-./monitor.sh status    # Show items being tracked for cleanup
-./stop.sh       # Stop all services gracefully
-./stop.sh --clear-stuck  # Stop services and clear stuck jobs
+# Management commands (Terminal-Agnostic)
+./neuroinsight start     # Start all services (avoids terminal issues)
+./neuroinsight stop      # Stop all services gracefully
+./neuroinsight stop --clear-stuck  # Stop and clear stuck jobs
+./neuroinsight status    # Check system status and health
+./neuroinsight monitor   # Run system health checks and cleanup
+./neuroinsight license   # Check/setup FreeSurfer license
+./neuroinsight monitor status  # Show items being tracked for cleanup
+
+# Alternative direct commands (if wrapper fails)
+python3 start.sh         # Direct Python startup
+python3 stop.sh          # Direct Python stop
+./status.sh             # System status
+./monitor.sh            # Health monitoring
 
 # Automatic Maintenance (runs every 60 seconds)
 # - Orphaned processes cleaned up after 3 hour grace period

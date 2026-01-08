@@ -481,3 +481,7 @@ def get_overlay_image(
         filename=f"{job_id}_{orientation}_{layer}_{slice_id}.png"
     )
 
+
+# Placeholder endpoints for frontend compatibility
+# These need to be mounted at the root API level, not under visualizations router
+

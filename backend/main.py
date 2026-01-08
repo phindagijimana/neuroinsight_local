@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from backend.api import cleanup_router, jobs_router, metrics_router, reports_router, upload_router, visualizations_router
+from backend.api import cleanup_router, jobs_router, metrics_router, placeholder_router, reports_router, upload_router, visualizations_router
 from backend.core import get_settings, init_db, setup_logging
 from backend.core.logging import get_logger
 from backend.core.database import get_db
@@ -300,6 +300,7 @@ async def global_exception_handler(request, exc):
 app.include_router(upload_router, prefix="/api")
 app.include_router(jobs_router, prefix="/api")
 app.include_router(metrics_router, prefix="/api")
+app.include_router(placeholder_router, prefix="/api")  # Frontend compatibility endpoints
 app.include_router(reports_router, prefix="/api")
 app.include_router(visualizations_router, prefix="/api")
 app.include_router(cleanup_router, prefix="/api")  # Admin cleanup endpoints

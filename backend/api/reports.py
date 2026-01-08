@@ -11,15 +11,27 @@ from pathlib import Path
 from typing import List, Optional
 from datetime import datetime
 
+import numpy as np
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 try:
     from PIL import Image as PILImage
-    PIL_AVAILABLE = True
+    try:
+        from PIL import Image as PILImageModule
+        # Try to import Resampling (PIL >= 9.1.0) or use ANTIALIAS
+        try:
+            Resampling = PILImageModule.Resampling
+        except AttributeError:
+            Resampling = PILImageModule
+        PIL_AVAILABLE = True
+    except ImportError:
+        PIL_AVAILABLE = False
+        print("Warning: PIL/Pillow not available. Image combination will not work.")
 except ImportError:
     PIL_AVAILABLE = False
+    Resampling = None
     print("Warning: PIL/Pillow not available. Image combination will not work.")
 
 from backend.core.config import get_settings
@@ -62,7 +74,8 @@ async def generate_pdf_report(
     - Processing metadata
     - Hippocampal volume metrics
     - Asymmetry analysis
-    - Coronal visualizations (slices 3, 4, 5, 6)
+    - Coronal visualizations with anatomical images and hippocampal overlays
+      (slices corresponding to viewer positions 3, 4, 5, 6)
 
     Args:
         job_id: Job identifier
@@ -273,7 +286,10 @@ async def generate_pdf_report(
         story.append(Spacer(1, 18))
 
         # Add coronal visualizations for slices 3, 4, 5, 6 in 2x2 grid
-        coronal_slices = [3, 4, 5, 6]
+        # Use viewer positions 3, 4, 5, 6 mapped to actual hippocampus-optimized slices
+        # These match exactly what users see in positions 3,4,5,6 of the web viewer
+        # Viewer position 3 → actual slice 138, position 4 → 140, position 5 → 143, position 6 → 145
+        coronal_slices = [138, 140, 143, 145]  # Viewer positions 3,4,5,6
 
         # Read visualization files directly from filesystem
         from backend.core.config import get_settings
@@ -282,6 +298,7 @@ async def generate_pdf_report(
 
         # Collect images for 2x2 grid
         images_data = []
+        logger.info(f"Starting to process {len(coronal_slices)} coronal slices: {coronal_slices}")
         for slice_idx in coronal_slices:
             try:
                 slice_id = f"slice_{slice_idx:02d}"
@@ -291,31 +308,80 @@ async def generate_pdf_report(
                 overlay_path = viz_dir / f"hippocampus_overlay_{slice_id}.png"
 
                 if anatomical_path.exists() and overlay_path.exists():
-                    # Combine anatomical and overlay images
+                    logger.info(f"Processing coronal slice {slice_idx}: anatomical={anatomical_path}, overlay={overlay_path}")
+
+                    # Load both anatomical and overlay images
                     anatomical_img = PILImage.open(anatomical_path)
                     overlay_img = PILImage.open(overlay_path)
 
-                    # Apply 15% opacity to overlay
-                    overlay_with_opacity = overlay_img.copy()
-                    overlay_with_opacity.putalpha(int(255 * 0.15))  # 15% opacity
+                    logger.info(f"Loaded images for slice {slice_idx}: anatomical {anatomical_img.size} {anatomical_img.mode}, overlay {overlay_img.size} {overlay_img.mode}")
 
-                    # Create combined image (overlay on top of anatomical)
-                    combined_img = PILImage.new('RGBA', anatomical_img.size, (0, 0, 0, 0))
-                    combined_img.paste(anatomical_img.convert('RGBA'), (0, 0))
-                    combined_img.paste(overlay_with_opacity, (0, 0), overlay_with_opacity)  # Use overlay as mask with opacity
+                    # Ensure anatomical is RGB
+                    if anatomical_img.mode != 'RGB':
+                        anatomical_img = anatomical_img.convert('RGB')
 
-                    # Convert back to RGB for PDF
-                    combined_img = combined_img.convert('RGB')
+                    # Handle overlay opacity properly
+                    if overlay_img.mode == 'RGBA':
+                        # Overlay already has alpha channel, just apply opacity reduction
+                        overlay_array = np.array(overlay_img)
+                        # Reduce alpha channel by 85% (keep 15% opacity)
+                        overlay_array[:, :, 3] = (overlay_array[:, :, 3] * 0.15).astype(np.uint8)
+                        overlay_with_opacity = PILImage.fromarray(overlay_array, 'RGBA')
+                    else:
+                        # Fallback for non-RGBA overlays
+                        overlay_with_opacity = overlay_img.copy()
+                        overlay_with_opacity.putalpha(int(255 * 0.15))
+
+                    # Create combined image using numpy for better control
+                    anatomical_array = np.array(anatomical_img.convert('RGBA'))
+                    overlay_array = np.array(overlay_with_opacity)
+
+                    # Ensure both arrays have same dimensions
+                    if anatomical_array.shape[:2] != overlay_array.shape[:2]:
+                        logger.warning(f"Dimension mismatch for slice {slice_idx}: anatomical {anatomical_array.shape[:2]}, overlay {overlay_array.shape[:2]}")
+                        # Resize overlay to match anatomical if needed
+                        overlay_with_opacity = overlay_with_opacity.resize(anatomical_img.size, PILImage.LANCZOS)
+                        overlay_array = np.array(overlay_with_opacity)
+
+                    # Composite images: anatomical as base, overlay on top
+                    combined_array = anatomical_array.copy()
+                    # Only apply overlay where it has non-transparent pixels
+                    mask = overlay_array[:, :, 3] > 0
+                    combined_array[mask] = overlay_array[mask]
+
+                    # Convert back to PIL Image
+                    combined_img = PILImage.fromarray(combined_array, 'RGBA')
+
+                    # Convert to RGB for PDF
+                    combined_rgb = combined_img.convert('RGB')
+
+                    logger.info(f"Combined image for slice {slice_idx}: {combined_rgb.size} {combined_rgb.mode}")
 
                     # Convert to ReportLab Image
                     combined_buffer = io.BytesIO()
-                    combined_img.save(combined_buffer, format='PNG')
+                    combined_rgb.save(combined_buffer, format='PNG')
+                    buffer_size = combined_buffer.tell()
                     combined_buffer.seek(0)
 
-                    img = Image(combined_buffer, width=2.5*inch, height=2*inch)  # Smaller for grid layout
+                    logger.info(f"Created buffer for slice {slice_idx}: {buffer_size} bytes")
+
+                    try:
+                        img = Image(combined_buffer, width=2.5*inch, height=2*inch)  # Smaller for grid layout
+                        logger.info(f"Created ReportLab Image for slice {slice_idx}")
+                    except Exception as img_error:
+                        logger.error(f"Failed to create ReportLab Image for slice {slice_idx}: {img_error}")
+                        # Create error placeholder instead
+                        error_placeholder = Paragraph(f"Slice {slice_idx}<br/>Image creation failed",
+                                                    ParagraphStyle('ErrorPlaceholder',
+                                                                  parent=styles['Normal'],
+                                                                  fontSize=9,
+                                                                  alignment=1,
+                                                                  textColor=colors.red))
+                        images_data.append([Paragraph(f"Slice {slice_idx}", ParagraphStyle('SliceTitle', parent=styles['Normal'], fontSize=10, alignment=1, spaceAfter=6)), error_placeholder])
+                        continue
 
                     # Add title above image
-                    title_para = Paragraph(f"Slice {slice_idx}",
+                    title_para = Paragraph(f"Slice {slice_idx}<br/><font size=8>(Anatomical + Hippocampal Overlay)</font>",
                                          ParagraphStyle('SliceTitle',
                                                        parent=styles['Normal'],
                                                        fontSize=10,
@@ -343,6 +409,8 @@ async def generate_pdf_report(
                                                           alignment=1,
                                                           textColor=colors.red))
                 images_data.append([Paragraph(f"Slice {slice_idx}", ParagraphStyle('SliceTitle', parent=styles['Normal'], fontSize=10, alignment=1, spaceAfter=6)), error_placeholder])
+
+        logger.info(f"Collected {len(images_data)} image entries for PDF")
 
         # Create 2x2 grid table
         if images_data:

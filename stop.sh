@@ -89,34 +89,54 @@ def kill_processes_by_pattern(pattern, process_name):
         log_warning(f"Error killing {process_name}: {e}")
 
 def stop_docker_services():
-    """Stop Docker services"""
+    """Stop Docker containers individually"""
     try:
         log_info("Stopping Docker containers...")
 
-        # Detect docker compose command
-        try:
-            subprocess.run(['docker', 'compose', 'version'],
-                         capture_output=True, check=True)
-            docker_cmd = ['docker', 'compose']
-        except subprocess.CalledProcessError:
+        containers = ['neuroinsight-minio', 'neuroinsight-redis', 'neuroinsight-postgres']
+        stopped_containers = []
+
+        for container in containers:
             try:
-                subprocess.run(['docker-compose', '--version'],
-                             capture_output=True, check=True)
-                docker_cmd = ['docker-compose']
-            except subprocess.CalledProcessError:
-                log_warning("Docker Compose not found")
-                return
+                # Check if container exists and is running
+                result = subprocess.run(['docker', 'ps', '-q', '-f', f'name={container}'],
+                                      capture_output=True, text=True)
+                if result.returncode == 0 and result.stdout.strip():
+                    log_info(f"Stopping {container}...")
+                    stop_result = subprocess.run(['docker', 'stop', container],
+                                               capture_output=True, text=True)
+                    if stop_result.returncode == 0:
+                        log_success(f"Stopped {container}")
+                        stopped_containers.append(container)
+                    else:
+                        log_warning(f"Failed to stop {container}: {stop_result.stderr}")
+                else:
+                    log_info(f"Container {container} not running")
+            except Exception as e:
+                log_error(f"Error stopping {container}: {e}")
 
-        # Stop services
-        result = subprocess.run(docker_cmd + ['-f', 'docker-compose.hybrid.yml', 'down'],
-                              capture_output=True, text=True, cwd='.')
+        # Remove containers
+        for container in containers:
+            try:
+                result = subprocess.run(['docker', 'ps', '-a', '-q', '-f', f'name={container}'],
+                                      capture_output=True, text=True)
+                if result.returncode == 0 and result.stdout.strip():
+                    log_info(f"Removing {container}...")
+                    rm_result = subprocess.run(['docker', 'rm', container],
+                                             capture_output=True, text=True)
+                    if rm_result.returncode == 0:
+                        log_success(f"Removed {container}")
+                    else:
+                        log_warning(f"Failed to remove {container}: {rm_result.stderr}")
+            except Exception as e:
+                log_error(f"Error removing {container}: {e}")
 
-        if result.returncode == 0:
-            log_success("Docker services stopped")
+        if stopped_containers:
+            log_success(f"Successfully stopped containers: {', '.join(stopped_containers)}")
         else:
-            log_warning(f"Docker stop had issues: {result.stderr}")
+            log_info("No containers were running")
 
-        # Force kill any remaining containers
+        # Force kill any remaining containers (fallback)
         try:
             result = subprocess.run(['docker', 'ps', '-q', '--filter', 'name=neuroinsight'],
                                   capture_output=True, text=True)

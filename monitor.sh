@@ -223,7 +223,7 @@ cleanup_processes() {
     fi
 
     if [ $cleaned -eq 0 ] && [ $tracked -eq 0 ]; then
-        log_info "✅ No orphaned processes found"
+        log_info "No orphaned processes found"
     fi
 }
 
@@ -368,10 +368,10 @@ except Exception as e:
     print('ERROR:$job_id')
 " 2>/dev/null | while read -r result; do
                                 if [[ "$result" == CLEANED_JOB:* ]]; then
-                                    log_success "✅ Successfully cleaned stuck job $job_id"
+                                    log_success "Successfully cleaned stuck job $job_id"
                                     untrack_item "job" "$job_id"
                                 elif [[ "$result" == ERROR:* ]]; then
-                                    log_error "❌ Failed to clean stuck job $job_id"
+                                    log_error "Failed to clean stuck job $job_id"
                                 fi
                             done
                         else
@@ -437,7 +437,7 @@ print(f'{ready_cleanup},{waiting}')
     fi
 
     if [ "$ready_cleanup" -eq 0 ] && [ "$waiting" -eq 0 ]; then
-        log_success "✅ No items currently being tracked for cleanup"
+        log_success "No items currently being tracked for cleanup"
     fi
 }
 

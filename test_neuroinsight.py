@@ -14,17 +14,17 @@ from pathlib import Path
 
 def test_component(name, test_func):
     """Test a component and report results"""
-    print(f"\n🧪 Testing {name}...")
+    print(f"\nTesting {name}...")
     try:
         result = test_func()
         if result:
-            print(f"✅ {name}: PASSED")
+            print(f"{name}: PASSED")
             return True
         else:
-            print(f"❌ {name}: FAILED")
+            print(f"{name}: FAILED")
             return False
     except Exception as e:
-        print(f"❌ {name}: ERROR - {e}")
+        print(f"{name}: ERROR - {e}")
         return False
 
 def test_database():
@@ -130,7 +130,7 @@ def main():
     print(f"TEST RESULTS: {passed}/{total} tests passed")
 
     if passed == total:
-        print("🎉 ALL TESTS PASSED - NeuroInsight is ready!")
+        print("ALL TESTS PASSED - NeuroInsight is ready!")
         print()
         print("Next steps:")
         print("1. Run: ./neuroinsight start")
@@ -138,7 +138,7 @@ def main():
         print("3. Upload MRI files and test processing")
         return True
     else:
-        print("❌ Some tests failed - check system setup")
+        print("Some tests failed - check system setup")
         return False
 
 if __name__ == "__main__":

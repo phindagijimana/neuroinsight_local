@@ -241,149 +241,173 @@ def generate_segmentation_overlays(
                 count = np.sum(seg_data == label)
                 logger.info("label_voxel_count", label=label, count=int(count))
         
-        # Normalize T1 data for display
-        t1_normalized = (t1_data - np.min(t1_data)) / (np.max(t1_data) - np.min(t1_data))
+        # Normalize T1 data for display using percentile-based normalization
+        # This prevents uniform grey appearance from skewed data distributions
+        t1_min = np.percentile(t1_data[t1_data > 0], 5) if np.any(t1_data > 0) else np.min(t1_data)
+        t1_max = np.percentile(t1_data[t1_data > 0], 95) if np.any(t1_data > 0) else np.max(t1_data)
+
+        # Ensure we have a valid range
+        if t1_max <= t1_min:
+            t1_max = np.max(t1_data)
+            t1_min = np.min(t1_data)
+
+        if t1_max > t1_min:
+            t1_normalized = np.clip((t1_data - t1_min) / (t1_max - t1_min), 0, 1)
+        else:
+            # Fallback: use simple scaling
+            t1_normalized = (t1_data - np.min(t1_data)) / (np.max(t1_data) - np.min(t1_data) + 1e-8)
         
         # Create output directory
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        # Find the range of slices containing the segmentation
-        slice_indices = []
+        # Smart slice selection: prioritize slices with highest hippocampus visibility
+        # Uses anatomical knowledge and segmentation data to select optimal slices
+        total_slices = t1_data.shape[slice_axis]
+        num_slices = 10
+
+        # Method 1: Find hippocampus extent and sample evenly across full range
         if highlight_mask is not None:
-            # Find the extent along the slicing axis
-            seg_indices = np.where(highlight_mask)
-            if len(seg_indices[slice_axis]) > 0:
-                min_idx = int(np.min(seg_indices[slice_axis]))
-                max_idx = int(np.max(seg_indices[slice_axis]))
-                
-                logger.info(f"hippocampus_extent_{orientation}", 
-                           min=min_idx, max=max_idx, 
-                           total_slices=max_idx-min_idx+1,
-                           axis=slice_axis)
-                
-                # Generate exactly 10 slices evenly distributed across the hippocampus extent
-                num_slices = 10
-                total_range = max_idx - min_idx + 1
-                
-                if total_range >= num_slices:
-                    # Generate evenly spaced slices including endpoints
-                    # Use numpy linspace for clean distribution
-                    slice_indices_float = np.linspace(min_idx, max_idx, num_slices)
-                    slice_indices_raw = [int(round(y)) for y in slice_indices_float]
-                    
-                    # Remove duplicates while preserving order, but ensure we get exactly 10 slices
-                    seen = set()
-                    slice_indices = []
-                    for y in slice_indices_raw:
-                        if y not in seen:
-                            slice_indices.append(y)
-                            seen.add(y)
-                    
-                    # If we have fewer than 10 due to duplicates, add more slices
-                    # by filling in gaps or extending the range slightly
-                    if len(slice_indices) < num_slices:
-                        # Try to add slices by expanding range slightly or finding gaps
-                        current_slices = set(slice_indices)
-                        additional_needed = num_slices - len(slice_indices)
-                        
-                        # Add slices from the extended range if available
-                        extended_min = max(0, min_idx - additional_needed)
-                        extended_max = min(t1_data.shape[slice_axis] - 1, max_idx + additional_needed)
-                        for idx in range(extended_min, extended_max + 1):
-                            if idx not in current_slices and len(slice_indices) < num_slices:
-                                if idx < min_idx:
-                                    slice_indices.insert(0, idx)
-                                elif idx > max_idx:
-                                    slice_indices.append(idx)
-                                else:
-                                    # Insert in sorted position
-                                    slice_indices.append(idx)
-                                    slice_indices.sort()
-                                current_slices.add(idx)
-                    
-                    # Ensure we have exactly 10 slices, truncate if we somehow got more
-                    if len(slice_indices) > num_slices:
-                        # Keep the first 10 that span the hippocampus extent
-                        slice_indices = slice_indices[:num_slices]
-                    
-                    # Final sort to ensure order and ensure exactly 10 slices
-                    slice_indices = sorted(list(set(slice_indices)))
-                    
-                    # Final check: ensure we have exactly 10 slices
-                    if len(slice_indices) < num_slices:
-                        # Fill remaining slots with evenly spaced slices from the extended range
-                        all_available = set(range(max(0, min_idx - 10), min(t1_data.shape[slice_axis], max_idx + 10)))
-                        missing = num_slices - len(slice_indices)
-                        candidates = sorted(list(all_available - set(slice_indices)))
-                        if candidates:
-                            # Add missing slices evenly from candidates
-                            step = len(candidates) // missing if missing > 0 else 1
-                            for i in range(0, len(candidates), max(1, step)):
-                                if len(slice_indices) >= num_slices:
-                                    break
-                                slice_indices.append(candidates[i])
-                            slice_indices = sorted(slice_indices[:num_slices])
-                    
-                else:
-                    # If range is smaller than requested slices, include all slices in range
-                    # and pad with nearby slices to get 10 total
-                    slice_indices = list(range(min_idx, max_idx + 1))
-                    
-                    # Pad to get 10 slices by extending the range symmetrically
-                    if len(slice_indices) < num_slices:
-                        additional_needed = num_slices - len(slice_indices)
-                        # Add slices before and after to pad to 10
-                        pre_slices = additional_needed // 2
-                        post_slices = additional_needed - pre_slices
-                        
-                        # Add slices before min_idx
-                        for i in range(pre_slices):
-                            idx_val = max(0, min_idx - i - 1)
-                            if idx_val not in slice_indices:
-                                slice_indices.insert(0, idx_val)
-                        
-                        # Add slices after max_idx
-                        for i in range(post_slices):
-                            idx_val = min(t1_data.shape[slice_axis] - 1, max_idx + i + 1)
-                            if idx_val not in slice_indices and len(slice_indices) < num_slices:
-                                slice_indices.append(idx_val)
-                        
-                        slice_indices = sorted(slice_indices[:num_slices])
-                    
-                # Final verification: we should have exactly 10 slices (or fewer if data doesn't allow)
-                actual_count = len(slice_indices)
-                if actual_count == num_slices:
-                    logger.info(f"generating_{orientation}_slices", 
-                              indices=slice_indices, 
-                              count=actual_count,
-                              expected=num_slices,
-                              note=f"Successfully generating {actual_count} {orientation} slices")
-                else:
-                    logger.warning(f"{orientation}_slice_count_mismatch",
-                                 actual=actual_count,
-                                 expected=num_slices,
-                                 indices=slice_indices,
-                                 note=f"Generated {actual_count} {orientation} slices instead of {num_slices} (data range may be limited)")
+            # Count hippocampus voxels in each slice along the current axis
+            hippocampus_counts = []
+            for slice_idx in range(total_slices):
+                if slice_axis == 2:  # axial (Z-axis)
+                    slice_voxels = highlight_mask[:, :, slice_idx]
+                elif slice_axis == 1:  # coronal (Y-axis)
+                    slice_voxels = highlight_mask[:, slice_idx, :]
+                else:  # sagittal (X-axis)
+                    slice_voxels = highlight_mask[slice_idx, :, :]
+
+                hippo_count = np.sum(slice_voxels)
+                hippocampus_counts.append(hippo_count)
+
+            # Find hippocampus visibility region using adaptive threshold
+            max_hippo_count = max(hippocampus_counts) if hippocampus_counts else 0
+
+            # Adaptive threshold: 5% of max count, but at least 1 voxel
+            threshold = max(max_hippo_count * 0.05, 1.0)
+
+            # Find start: first slice where hippocampus becomes visible
+            hippo_start = None
+            for i, count in enumerate(hippocampus_counts):
+                if count >= threshold:
+                    hippo_start = i
+                    break
+
+            # Find end: last slice where hippocampus is still visible
+            hippo_end = None
+            for i in range(len(hippocampus_counts) - 1, -1, -1):
+                if hippocampus_counts[i] >= threshold:
+                    hippo_end = i
+                    break
+
+            if hippo_start is not None and hippo_end is not None and hippo_end > hippo_start:
+                # Evenly divide hippocampus extent into 10 slices
+                hippo_range = hippo_end - hippo_start
+                slice_indices = []
+
+                for i in range(num_slices):
+                    # Linear interpolation across hippocampus extent
+                    fraction = i / (num_slices - 1) if num_slices > 1 else 0
+                    slice_position = hippo_start + (fraction * hippo_range)
+                    slice_idx = int(round(slice_position))
+
+                    # Ensure bounds
+                    slice_idx = max(0, min(slice_idx, total_slices - 1))
+                    slice_indices.append(slice_idx)
+
+                # Remove duplicates while maintaining order
+                unique_indices = []
+                for idx in slice_indices:
+                    if idx not in unique_indices:
+                        unique_indices.append(idx)
+
+                # If we lost slices due to duplicates, add adjacent slices
+                while len(unique_indices) < num_slices and len(unique_indices) > 0:
+                    last_idx = unique_indices[-1]
+                    next_idx = min(last_idx + 1, total_slices - 1)
+                    if next_idx not in unique_indices:
+                        unique_indices.append(next_idx)
+
+                slice_indices = unique_indices[:num_slices]
+
+                logger.info(f"generating_{orientation}_slices_hippocampus_extent",
+                           indices=slice_indices,
+                           hippo_start=hippo_start,
+                           hippo_end=hippo_end,
+                           hippo_range=hippo_range,
+                           threshold=int(threshold),
+                           max_count=max_hippo_count,
+                           total_volume_slices=total_slices,
+                           note=f"Evenly sampled {len(slice_indices)} slices across hippocampus extent ({hippo_start}-{hippo_end})")
+
             else:
-                # Fallback: use center slice
-                slice_indices = [t1_data.shape[slice_axis] // 2]
+                # Fallback: use top slices if extent detection fails
+                logger.warning(f"hippocampus_extent_detection_failed_{orientation}",
+                             max_count=max_hippo_count,
+                             threshold=int(threshold),
+                             hippo_start=hippo_start,
+                             hippo_end=hippo_end,
+                             note="Falling back to top slice selection")
+
+                # Create index-count pairs and sort by count
+                slice_count_pairs = [(i, count) for i, count in enumerate(hippocampus_counts)]
+                slice_count_pairs.sort(key=lambda x: x[1], reverse=True)
+
+                # Take top slices
+                top_slices = [s[0] for s in slice_count_pairs[:num_slices]]
+                slice_indices = sorted(top_slices)
+
+                logger.info(f"generating_{orientation}_slices_fallback_top",
+                           indices=slice_indices,
+                           hippo_counts=[s[1] for s in slice_count_pairs[:num_slices]],
+                           note=f"Fallback: selected top {len(slice_indices)} hippocampus-containing slices")
+
         else:
-            # No specific labels, use evenly spaced slices
-            slice_indices = list(range(0, t1_data.shape[slice_axis], 10))[:6]
+            # Fallback: Use anatomical knowledge for hippocampus location
+            # Hippocampus is typically in inferior temporal region
+            if orientation == 'axial':
+                # Axial: Focus on inferior slices where temporal lobe is visible
+                # Hippocampus spans roughly 30-70% of superior-inferior axis
+                start_percent = 0.25  # Start from more inferior position
+                end_percent = 0.75    # End before most superior slices
+            elif orientation == 'coronal':
+                # Coronal: Hippocampus visible in posterior temporal region
+                # Focus on slices showing temporal lobe (typically middle 60%)
+                start_percent = 0.20
+                end_percent = 0.80
+            else:  # sagittal
+                # Sagittal: Focus on medial slices
+                start_percent = 0.30
+                end_percent = 0.70
+
+            start_offset = int(total_slices * start_percent)
+            end_offset = int(total_slices * end_percent)
+            usable_range = end_offset - start_offset
+
+            slice_indices = []
+            for i in range(num_slices):
+                slice_idx = start_offset + int((i + 0.5) * usable_range / num_slices)
+                slice_idx = max(0, min(slice_idx, total_slices - 1))
+                slice_indices.append(slice_idx)
+
+            logger.info(f"generating_{orientation}_slices_anatomy_optimized",
+                       indices=slice_indices,
+                       total_volume_slices=total_slices,
+                       note=f"Using anatomy-optimized slices for {orientation} view ({start_percent:.0%}-{end_percent:.0%} range)")
         
         output_paths = {}
         
         # Generate overlay for each slice
         for idx, slice_num in enumerate(slice_indices):
             # Get T1 and segmentation data for this slice based on orientation
-            # Dynamic slicing based on orientation
-            if slice_axis == 0:  # Sagittal
+            # Dynamic slicing based on orientation - CRITICAL for alignment
+            if slice_axis == 0:  # Sagittal (X-axis slicing)
                 t1_slice = t1_normalized[slice_num, :, :]
                 seg_slice = seg_data[slice_num, :, :]
-            elif slice_axis == 1:  # Axial
+            elif slice_axis == 1:  # Coronal (Y-axis slicing)
                 t1_slice = t1_normalized[:, slice_num, :]
                 seg_slice = seg_data[:, slice_num, :]
-            else:  # Coronal (slice_axis == 2)
+            else:  # Axial (slice_axis == 2, Z-axis slicing)
                 t1_slice = t1_normalized[:, :, slice_num]
                 seg_slice = seg_data[:, :, slice_num]
             
@@ -398,25 +422,36 @@ def generate_segmentation_overlays(
             # ====================================================================
             # STEP 1: Generate anatomical-only image (grayscale T1 brain)
             # ====================================================================
-            fig, ax = plt.subplots(figsize=(10, 10))
-            ax.set_aspect('equal')
-            
-            # Show whole brain T1 slice in grayscale
-            # Transpose for matplotlib display (height, width) convention
-            ax.imshow(
-                t1_slice.T,
-                cmap='gray',
-                origin='upper',
-                interpolation='bilinear',
-                extent=[0, voxel_sizes[0] * t1_slice.shape[0], 0, voxel_sizes[1] * t1_slice.shape[1]],
-                aspect='equal',
-            )
-            
-            ax.axis('off')
-            # Save anatomical-only image
-            anatomical_path = output_dir / f"anatomical_slice_{idx:02d}.png"
-            plt.savefig(anatomical_path, bbox_inches='tight', dpi=150, facecolor='black')
-            plt.close()
+            fig, ax = plt.subplots(figsize=(8, 8))
+
+            # Ensure we have valid data and proper scaling
+            if t1_slice.size > 0 and np.any(t1_slice != 0):
+                # Normalize for better contrast
+                t1_display = t1_normalized[:, :, slice_num] if slice_axis == 2 else \
+                           t1_normalized[:, slice_num, :] if slice_axis == 1 else \
+                           t1_normalized[slice_num, :, :]
+
+                # Apply same orientation corrections as segmentation
+                if orientation in ['axial', 'coronal']:
+                    t1_display = np.flip(t1_display, axis=(0, 1))
+
+                # Simple display without complex extent calculation
+                ax.imshow(t1_display.T, cmap='gray', origin='upper', interpolation='bilinear')
+                ax.axis('off')
+
+                # Save anatomical-only image
+                anatomical_path = output_dir / f"anatomical_slice_{idx:02d}.png"
+                plt.savefig(anatomical_path, bbox_inches='tight', dpi=150, facecolor='white')
+                plt.close()
+                logger.info("saved_anatomical_slice", slice_num=slice_num, idx=idx, path=str(anatomical_path), orientation=orientation)
+            else:
+                logger.warning("empty_t1_slice", slice_num=slice_num, idx=idx, orientation=orientation)
+                # Create empty placeholder
+                fig.patch.set_facecolor('white')
+                ax.text(0.5, 0.5, 'No brain data', ha='center', va='center', transform=ax.transAxes)
+                anatomical_path = output_dir / f"anatomical_slice_{idx:02d}.png"
+                plt.savefig(anatomical_path, bbox_inches='tight', dpi=150, facecolor='white')
+                plt.close()
             
             logger.info("saved_anatomical_slice", slice_num=slice_num, idx=idx, path=str(anatomical_path), orientation=orientation)
             
@@ -489,7 +524,7 @@ def generate_segmentation_overlays(
             
             ax.axis('off')
             # Save overlay-only image (transparent PNG)
-            overlay_path = output_dir / f"{prefix}_overlay_slice_{idx:02d}.png"
+            overlay_path = output_dir / f"hippocampus_overlay_slice_{idx:02d}.png"
             plt.savefig(overlay_path, bbox_inches='tight', dpi=150, transparent=True)
             plt.close()
             

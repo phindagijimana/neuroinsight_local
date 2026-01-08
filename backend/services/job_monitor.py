@@ -26,7 +26,7 @@ class JobMonitor:
     handles system interruptions gracefully.
     """
 
-    def __init__(self, check_interval: int = 60, cleanup_grace_period_minutes: int = 60):
+    def __init__(self, check_interval: int = 60, cleanup_grace_period_minutes: int = 180):
         """
         Initialize the job monitor.
 

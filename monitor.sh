@@ -5,7 +5,7 @@
 set -e
 
 # Configuration
-CLEANUP_GRACE_PERIOD_MINUTES=60  # 1 hour grace period
+CLEANUP_GRACE_PERIOD_MINUTES=180  # 3 hour grace period
 MONITOR_STATE_FILE="/tmp/neuroinsight_monitor_state.json"
 
 # Colors for output
@@ -188,7 +188,7 @@ cleanup_processes() {
                 local cleanup_action=$(should_cleanup_item "process" "$pid")
 
                 if [ "$cleanup_action" = "cleanup" ]; then
-                    log_cleanup "🧹 AUTO-CLEANUP: Orphaned process PID $pid (tracked for >${CLEANUP_GRACE_PERIOD_MINUTES}min)"
+                    log_cleanup "🧹 AUTO-CLEANUP: Orphaned process PID $pid (tracked for >${CLEANUP_GRACE_PERIOD_MINUTES}min = 3 hours)"
 
                     # Kill the process
                     if kill -15 $pid 2>/dev/null; then
@@ -207,7 +207,7 @@ cleanup_processes() {
                 else
                     # Track for future cleanup
                     track_item "process" "$pid"
-                    log_warning "⏳ Tracking orphaned process PID $pid for auto-cleanup in ${CLEANUP_GRACE_PERIOD_MINUTES}min"
+                    log_warning "⏳ Tracking orphaned process PID $pid for auto-cleanup in ${CLEANUP_GRACE_PERIOD_MINUTES}min (3 hours)"
                     tracked=$((tracked + 1))
                 fi
             fi
@@ -215,7 +215,7 @@ cleanup_processes() {
     done
 
     if [ $cleaned -gt 0 ]; then
-        log_success "🧹 Auto-cleaned up $cleaned orphaned process(es) after ${CLEANUP_GRACE_PERIOD_MINUTES}min grace period"
+        log_success "🧹 Auto-cleaned up $cleaned orphaned process(es) after ${CLEANUP_GRACE_PERIOD_MINUTES}min (3 hours) grace period"
     fi
 
     if [ $tracked -gt 0 ]; then
@@ -445,7 +445,7 @@ print(f'{ready_cleanup},{waiting}')
 main() {
     echo "========================================"
     echo "   NeuroInsight Auto-Cleanup Monitor"
-    echo "   Grace Period: ${CLEANUP_GRACE_PERIOD_MINUTES} minutes"
+    echo "   Grace Period: ${CLEANUP_GRACE_PERIOD_MINUTES} minutes (3 hours)"
     echo "========================================"
     echo
 

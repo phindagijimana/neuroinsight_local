@@ -85,8 +85,8 @@ cd neuroinsight_local
 ./stop.sh --clear-stuck  # Stop services and clear stuck jobs
 
 # Automatic Maintenance (runs every 60 seconds)
-# - Orphaned processes cleaned up after 1 hour grace period
-# - Stuck jobs cleaned up after 1 hour grace period
+# - Orphaned processes cleaned up after 3 hour grace period
+# - Stuck jobs cleaned up after 3 hour grace period
 # - System health monitoring and resource checks
 # - Automatic queue processing for pending jobs
 ```

@@ -42,7 +42,7 @@ class ComprehensiveTestSuite:
         self.test_results.append(result_entry)
         print("2d"
     def run_all_tests(self):
-        print("🧪 COMPREHENSIVE NEUROINSIGHT TEST SUITE (50+ Test Cases)")
+        print(" COMPREHENSIVE NEUROINSIGHT TEST SUITE (50+ Test Cases)")
         print("=" * 65)
 
         # Installation & System Tests (10 tests)
@@ -69,7 +69,7 @@ class ComprehensiveTestSuite:
         self.print_final_report()
 
     def test_installation_system(self):
-        print("\n📦 INSTALLATION & SYSTEM TESTS")
+        print("\n INSTALLATION & SYSTEM TESTS")
         self.log_test("Memory Check (7GB min)", self._check_memory(), "System RAM >= 7GB", "Installation")
         self.log_test("Disk Space Check (50GB min)", self._check_disk_space(), "Available disk space >= 50GB", "Installation")
         self.log_test("Docker Installation", self._check_docker(), "Docker is installed and accessible", "Installation")
@@ -100,7 +100,7 @@ class ComprehensiveTestSuite:
         self.log_test("Job Search/Filter", self._test_job_search(), "Job filtering and search", "API")
 
     def test_data_processing(self):
-        print("\n🧠 DATA PROCESSING TESTS")
+        print("\n DATA PROCESSING TESTS")
         self.log_test("NIfTI Format Support", self._test_nifti_support(), "Process NIfTI .nii files", "Processing")
         self.log_test("Compressed NIfTI", self._test_compressed_nifti(), "Process .nii.gz files", "Processing")
         self.log_test("DICOM Support", self._test_dicom_support(), "Process DICOM series", "Processing")
@@ -113,7 +113,7 @@ class ComprehensiveTestSuite:
         self.log_test("Processing Time", self._test_processing_time(), "Reasonable processing duration", "Processing")
 
     def test_error_handling(self):
-        print("\n🚨 ERROR HANDLING TESTS")
+        print("\n ERROR HANDLING TESTS")
         self.log_test("Invalid File Rejection", self._test_invalid_file(), "Reject non-NIfTI files", "Error Handling")
         self.log_test("Corrupted File Handling", self._test_corrupted_file(), "Handle corrupted files gracefully", "Error Handling")
         self.log_test("Oversized File Handling", self._test_oversized_file(), "Handle files exceeding limits", "Error Handling")
@@ -132,7 +132,7 @@ class ComprehensiveTestSuite:
         self.log_test("Rate Limiting", self._test_rate_limiting(), "Prevent abuse via rate limiting", "Security")
 
     def test_performance(self):
-        print("\n⚡ PERFORMANCE TESTS")
+        print("\n PERFORMANCE TESTS")
         self.log_test("API Response Times", self._test_response_times(), "Fast API responses", "Performance")
         self.log_test("Concurrent Users", self._test_concurrent_users(), "Handle multiple users", "Performance")
         self.log_test("Memory Usage", self._test_memory_usage(), "Efficient memory usage", "Performance")
@@ -360,13 +360,13 @@ class ComprehensiveTestSuite:
         duration = end_time - self.start_time
 
         print(f"\n{'='*80}")
-        print("🎯 COMPREHENSIVE NEUROINSIGHT TEST SUITE - FINAL REPORT")
+        print(" COMPREHENSIVE NEUROINSIGHT TEST SUITE - FINAL REPORT")
         print(f"{'='*80}")
         print(f"⏱️  Test Duration: {duration.total_seconds():.1f} seconds")
-        print(f"📊 Total Tests: {self.test_count}")
-        print(f"✅ Passed: {self.passed}")
-        print(f"❌ Failed: {self.failed}")
-        print(f"📈 Success Rate: {(self.passed/self.test_count*100):.1f}%" if self.test_count > 0 else "0%")
+        print(f" Total Tests: {self.test_count}")
+        print(f" Passed: {self.passed}")
+        print(f" Failed: {self.failed}")
+        print(f" Success Rate: {(self.passed/self.test_count*100):.1f}%" if self.test_count > 0 else "0%")
 
         categories = {}
         for test in self.test_results:
@@ -379,11 +379,11 @@ class ComprehensiveTestSuite:
             else:
                 categories[cat]["failed"] += 1
 
-        print(f"\n📋 RESULTS BY CATEGORY:")
+        print(f"\n RESULTS BY CATEGORY:")
         for category, stats in categories.items():
             print("2d"
         if self.failed > 0:
-            print(f"\n❌ FAILED TESTS:")
+            print(f"\n FAILED TESTS:")
             for test in self.test_results:
                 if test["status"] == "FAIL":
                     print(f"   {test['test_id']:2d}. [{test['category']}] {test['test_name']} - {test['message']}")
@@ -394,13 +394,13 @@ class ComprehensiveTestSuite:
         print(f"\n💾 Detailed results saved to: comprehensive_test_results.json")
 
         if self.failed == 0:
-            print("🎉 ALL TESTS PASSED! NeuroInsight is fully production-ready!")
+            print(" ALL TESTS PASSED! NeuroInsight is fully production-ready!")
         elif (self.failed / self.test_count) < 0.1:
-            print("✅ MOSTLY READY: Minor issues found, suitable for production with fixes.")
+            print(" MOSTLY READY: Minor issues found, suitable for production with fixes.")
         elif (self.failed / self.test_count) < 0.25:
-            print("⚠️  REQUIRES ATTENTION: Several issues need fixing before production.")
+            print("  REQUIRES ATTENTION: Several issues need fixing before production.")
         else:
-            print("❌ NEEDS WORK: Significant issues found, not ready for production.")
+            print(" NEEDS WORK: Significant issues found, not ready for production.")
 
 def main():
     suite = ComprehensiveTestSuite()

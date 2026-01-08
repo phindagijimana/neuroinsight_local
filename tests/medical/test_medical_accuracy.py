@@ -230,25 +230,25 @@ if __name__ == "__main__":
 
     try:
         test_instance.test_hippocampal_volume_calculation_accuracy()
-        print("✅ Hippocampal volume calculation test passed")
+        print(" Hippocampal volume calculation test passed")
 
         test_instance.test_asymmetry_index_calculation()
-        print("✅ Asymmetry index calculation test passed")
+        print(" Asymmetry index calculation test passed")
 
         test_instance.test_hippocampal_sclerosis_detection()
-        print("✅ Hippocampal sclerosis detection test passed")
+        print(" Hippocampal sclerosis detection test passed")
 
         test_instance.test_clinical_thresholds()
-        print("✅ Clinical thresholds test passed")
+        print(" Clinical thresholds test passed")
 
         test_instance.test_error_handling_medical_context()
-        print("✅ Error handling test passed")
+        print(" Error handling test passed")
 
         test_instance.test_data_persistence()
-        print("✅ Data persistence test passed")
+        print(" Data persistence test passed")
 
-        print("\n🎉 All critical medical accuracy tests passed!")
+        print("\n All critical medical accuracy tests passed!")
 
     except Exception as e:
-        print(f"\n❌ Test failed: {e}")
+        print(f"\n Test failed: {e}")
         raise

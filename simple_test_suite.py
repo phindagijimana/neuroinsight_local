@@ -42,7 +42,7 @@ class SimpleNeuroInsightTestSuite:
 
     def run_tests(self):
         """Run core tests"""
-        print("🧪 NEUROINSIGHT CORE FUNCTIONALITY TEST SUITE")
+        print(" NEUROINSIGHT CORE FUNCTIONALITY TEST SUITE")
         print("=" * 50)
 
         # Basic connectivity tests
@@ -262,16 +262,16 @@ class SimpleNeuroInsightTestSuite:
         duration = end_time - self.start_time
 
         print(f"\n{'='*60}")
-        print("🧪 TEST SUITE RESULTS")
+        print(" TEST SUITE RESULTS")
         print(f"{'='*60}")
         print(f"⏱️  Duration: {duration.total_seconds():.1f} seconds")
-        print(f"📊 Tests Run: {self.test_count}")
-        print(f"✅ Passed: {self.passed}")
-        print(f"❌ Failed: {self.failed}")
-        print(f"📈 Success Rate: {(self.passed/self.test_count*100):.1f}%" if self.test_count > 0 else "0%")
+        print(f" Tests Run: {self.test_count}")
+        print(f" Passed: {self.passed}")
+        print(f" Failed: {self.failed}")
+        print(f" Success Rate: {(self.passed/self.test_count*100):.1f}%" if self.test_count > 0 else "0%")
 
         if self.failed > 0:
-            print(f"\n❌ FAILED TESTS:")
+            print(f"\n FAILED TESTS:")
             for test in self.test_results:
                 if test["status"] == "FAIL":
                     print(f"   {test['test_id']:2d}. {test['test_name']} - {test['message']}")
@@ -283,9 +283,9 @@ class SimpleNeuroInsightTestSuite:
         print(f"\n💾 Detailed results saved to: test_results.json")
 
         if self.failed == 0:
-            print("🎉 ALL TESTS PASSED! NeuroInsight is production-ready!")
+            print(" ALL TESTS PASSED! NeuroInsight is production-ready!")
         else:
-            print(f"⚠️  {self.failed} test(s) failed. Review issues before production deployment.")
+            print(f"  {self.failed} test(s) failed. Review issues before production deployment.")
 
 def main():
     suite = SimpleNeuroInsightTestSuite()

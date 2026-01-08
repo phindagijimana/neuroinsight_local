@@ -8,7 +8,7 @@ import Clock from '../components/icons/Clock.jsx'
 
 function ViewerPage({ selectedJobId, setSelectedJobId }) {
   // FORCE CACHE BUST TEST - If you see this, you have NEW CODE
-  console.log('🚨🚨🚨 NEW CODE LOADED - SLICE NAVIGATION FIX ACTIVE 🚨🚨🚨');
+  console.log(' NEW CODE LOADED - SLICE NAVIGATION FIX ACTIVE ');
   console.log('Current selectedJobId:', selectedJobId);
 
   const [activeView, setActiveView] = useState(0);

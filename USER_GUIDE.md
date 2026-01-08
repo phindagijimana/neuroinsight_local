@@ -2,15 +2,15 @@
 
 **Complete training guide for deploying and using NeuroInsight to process and analyze hippocampal MRI data on personal Linux machines.**
 
-## **⚡ QUICK START SUMMARY**
+## ** QUICK START SUMMARY**
 
 ### **What You'll Learn**
 This guide teaches you how to:
-- ✅ Deploy NeuroInsight on your Linux system
-- ✅ Process MRI scans safely and accurately
-- ✅ Troubleshoot common issues
-- ✅ Maintain system performance and security
-- ✅ Follow medical data privacy best practices
+-  Deploy NeuroInsight on your Linux system
+-  Process MRI scans safely and accurately
+-  Troubleshoot common issues
+-  Maintain system performance and security
+-  Follow medical data privacy best practices
 
 ### **Time Investment**
 - **Basic Setup**: 2-3 hours (essential for all users)
@@ -91,7 +91,7 @@ This guide teaches you how to:
 
 ---
 
-## **📋 MODULE 1: SYSTEM REQUIREMENTS & SETUP**
+## ** MODULE 1: SYSTEM REQUIREMENTS & SETUP**
 
 ### **System Requirements Training**
 
@@ -111,7 +111,7 @@ This guide teaches you how to:
 
 ### **Pre-Installation Checklist**
 
-**✅ Before starting installation, verify:**
+** Before starting installation, verify:**
 
 1. **System Resources**
    ```bash
@@ -147,7 +147,7 @@ This guide teaches you how to:
 
 #### **Step-by-Step Installation Process**
 
-**🎯 TRAINING OBJECTIVE**: Successfully install NeuroInsight on a Linux system
+** TRAINING OBJECTIVE**: Successfully install NeuroInsight on a Linux system
 
 **Estimated Time**: 30-45 minutes
 
@@ -185,7 +185,7 @@ chmod +x *.sh
 
 #### **FreeSurfer License Setup (Required)**
 
-**🎯 TRAINING OBJECTIVE**: Configure FreeSurfer license for MRI processing
+** TRAINING OBJECTIVE**: Configure FreeSurfer license for MRI processing
 
 **Step 1: Obtain License**
 - Visit FreeSurfer website: https://surfer.nmr.mgh.harvard.edu/
@@ -208,7 +208,7 @@ chmod +x *.sh
 
 #### **Pre-Processing System Checks**
 
-**🎯 TRAINING OBJECTIVE**: Ensure system is ready for MRI processing
+** TRAINING OBJECTIVE**: Ensure system is ready for MRI processing
 
 **Memory Validation:**
 ```bash
@@ -484,12 +484,12 @@ Export your results for further analysis:
    - Clean up old job files
    - Update software when available
 
-## **📋 MODULE 3: TROUBLESHOOTING & PROBLEM SOLVING TRAINING**
+## ** MODULE 3: TROUBLESHOOTING & PROBLEM SOLVING TRAINING**
 
 ### **Systematic Troubleshooting Methodology**
 
 #### **Problem-Solving Framework**
-**🎯 TRAINING OBJECTIVE**: Develop systematic approach to diagnosing and resolving issues
+** TRAINING OBJECTIVE**: Develop systematic approach to diagnosing and resolving issues
 
 **Step 1: Gather Information**
 ```bash
@@ -681,7 +681,7 @@ rm -rf /tmp/neuroinsight_*
 ### **Advanced Troubleshooting Training**
 
 #### **Log Analysis Techniques**
-**🎯 TRAINING OBJECTIVE**: Interpret system logs for problem diagnosis
+** TRAINING OBJECTIVE**: Interpret system logs for problem diagnosis
 
 **Log File Locations:**
 - `neuroinsight.log`: Main application log
@@ -730,7 +730,7 @@ grep -i error neuroinsight.log | tail -5
 ```
 
 #### **Backup and Recovery Training**
-**🎯 TRAINING OBJECTIVE**: Implement reliable backup procedures
+** TRAINING OBJECTIVE**: Implement reliable backup procedures
 
 **Backup Strategy:**
 ```bash
@@ -767,12 +767,12 @@ grep -i error neuroinsight.log | tail -5
 
 ---
 
-## **📋 MODULE 2: SAFETY & BEST PRACTICES TRAINING**
+## ** MODULE 2: SAFETY & BEST PRACTICES TRAINING**
 
 ### **Data Privacy and Security Training**
 
 #### **HIPAA Compliance Guidelines**
-**🎯 TRAINING OBJECTIVE**: Understand data handling requirements for medical imaging
+** TRAINING OBJECTIVE**: Understand data handling requirements for medical imaging
 
 **Key Principles:**
 1. **Patient Privacy**: Never upload scans with embedded PHI
@@ -803,7 +803,7 @@ grep -i error neuroinsight.log | tail -5
 ### **Quality Assurance Training**
 
 #### **Data Quality Standards**
-**🎯 TRAINING OBJECTIVE**: Ensure reliable and reproducible results
+** TRAINING OBJECTIVE**: Ensure reliable and reproducible results
 
 **Scan Quality Checklist:**
 - [ ] T1-weighted anatomical sequence confirmed
@@ -853,7 +853,7 @@ sudo apt update && sudo apt upgrade -y
 ### **Performance Optimization Training**
 
 #### **System Resource Management**
-**🎯 TRAINING OBJECTIVE**: Optimize processing performance and system stability
+** TRAINING OBJECTIVE**: Optimize processing performance and system stability
 
 **Memory Management:**
 - Monitor RAM usage during processing
@@ -960,12 +960,12 @@ pip install -r requirements.txt
 - **Disk Cleanup**: Remove completed job files when no longer needed
 - **Performance Monitoring**: Track system resources and processing times
 
-## **📋 MODULE 4: TRAINING ASSESSMENT & CERTIFICATION**
+## ** MODULE 4: TRAINING ASSESSMENT & CERTIFICATION**
 
 ### **Knowledge Assessment**
 
 #### **Basic User Certification Checklist**
-**🎯 TRAINING OBJECTIVE**: Verify fundamental NeuroInsight knowledge
+** TRAINING OBJECTIVE**: Verify fundamental NeuroInsight knowledge
 
 **System Requirements Knowledge:**
 - [ ] Can identify minimum hardware requirements (8GB RAM, 50GB storage)
@@ -1066,7 +1066,7 @@ pip install -r requirements.txt
 
 ---
 
-## **📋 MODULE 5: QUICK REFERENCE & CHEAT SHEETS**
+## ** MODULE 5: QUICK REFERENCE & CHEAT SHEETS**
 
 ### **Command Quick Reference**
 
@@ -1175,15 +1175,15 @@ Valid indicators: `t1`, `t1w`, `t1-weighted`, `mprage`, `spgr`, `tfl`, `tfe`, `f
 
 **Upon completion of this training guide, users should be able to:**
 
-✅ **Deploy NeuroInsight** on compatible Linux systems
-✅ **Process MRI scans** with confidence and accuracy
-✅ **Troubleshoot issues** using systematic problem-solving
-✅ **Maintain system health** through regular procedures
-✅ **Ensure data security** and compliance requirements
-✅ **Optimize performance** for efficient processing
+ **Deploy NeuroInsight** on compatible Linux systems
+ **Process MRI scans** with confidence and accuracy
+ **Troubleshoot issues** using systematic problem-solving
+ **Maintain system health** through regular procedures
+ **Ensure data security** and compliance requirements
+ **Optimize performance** for efficient processing
 
 **Remember**: Safe and effective use of NeuroInsight requires ongoing learning and adherence to best practices. Regular system maintenance and staying current with updates are essential for optimal performance.
 
 ---
 
-**🎉 Congratulations on completing NeuroInsight training!** Questions? Check the [FAQ](FAQ.md) or create an issue.
+** Congratulations on completing NeuroInsight training!** Questions? Check the [FAQ](FAQ.md) or create an issue.

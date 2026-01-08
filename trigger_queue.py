@@ -10,6 +10,6 @@ from backend.services.job_service import JobService
 try:
     db = next(get_db())
     JobService.process_job_queue(db)
-    print("✅ Job queue processing triggered successfully")
+    print(" Job queue processing triggered successfully")
 except Exception as e:
-    print(f"❌ Failed to trigger queue processing: {e}")
+    print(f" Failed to trigger queue processing: {e}")

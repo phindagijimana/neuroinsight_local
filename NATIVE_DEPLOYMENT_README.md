@@ -9,7 +9,7 @@ This guide covers the **Fully Native Deployment** architecture where PostgreSQL,
 │         FULLY NATIVE DEPLOYMENT                 │
 │    (PostgreSQL + Redis + MinIO ALL Native)     │
 ├─────────────────────────────────────────────────┤
-│ 🎨 Frontend (Static Files)                      │
+│  Frontend (Static Files)                      │
 │   ├── React Application (Built)                │
 │   ├── Served by FastAPI Backend                │
 │   └── Static Assets (CSS, JS, Images)          │
@@ -26,10 +26,10 @@ This guide covers the **Fully Native Deployment** architecture where PostgreSQL,
 │ 🔴 Redis Message Broker (Native)                │
 │   └── Runs directly on host system              │
 ├─────────────────────────────────────────────────┤
-│ 📦 MinIO Object Storage (Native)                │
+│  MinIO Object Storage (Native)                │
 │   └── Runs directly as native binary            │
 ├─────────────────────────────────────────────────┤
-│ 🧠 FreeSurfer (Containerized on-demand)         │
+│  FreeSurfer (Containerized on-demand)         │
 │   └── Docker/Apptainer for MRI processing       │
 │      + Native FreeSurfer fallback               │
 ├─────────────────────────────────────────────────┤
@@ -40,7 +40,7 @@ This guide covers the **Fully Native Deployment** architecture where PostgreSQL,
 └─────────────────────────────────────────────────┘
 ```
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - Linux system (Ubuntu 20.04+, RHEL/CentOS 8+, Fedora)
@@ -62,7 +62,7 @@ python migrate_sqlite_to_postgresql.py
 ./start_production_native.sh
 ```
 
-## 📋 Detailed Installation Steps
+##  Detailed Installation Steps
 
 ### Phase 1: System Service Installation
 
@@ -72,11 +72,11 @@ sudo ./setup_native_services.sh
 ```
 
 This script will:
-- ✅ Install PostgreSQL, Redis, MinIO system packages
-- ✅ Create system users (`postgres`, `redis`, `neuroinsight`)
-- ✅ Initialize databases and configure services
-- ✅ Install systemd service files for auto-startup
-- ✅ Enable and start all services
+-  Install PostgreSQL, Redis, MinIO system packages
+-  Create system users (`postgres`, `redis`, `neuroinsight`)
+-  Initialize databases and configure services
+-  Install systemd service files for auto-startup
+-  Enable and start all services
 
 ### Phase 2: Configuration Setup
 
@@ -128,7 +128,7 @@ python migrate_sqlite_to_postgresql.py
 | Frontend | React (Static) | Served by FastAPI |
 | FreeSurfer | Docker/Apptainer | On-demand containers |
 
-## 🔧 Configuration Files
+##  Configuration Files
 
 ### Environment Configuration
 - **`.env.native`** - Native deployment settings
@@ -146,7 +146,7 @@ python migrate_sqlite_to_postgresql.py
 - **`monitor_production_native.sh`** - Service monitoring
 - **`setup_native_services.sh`** - System service installation
 
-## 📊 Service Management
+##  Service Management
 
 ### Systemd Service Control
 ```bash
@@ -176,16 +176,16 @@ sudo systemctl disable neuroinsight-postgresql
 ./monitor_production_native.sh
 ```
 
-## 🔍 Monitoring & Health Checks
+##  Monitoring & Health Checks
 
 ### Built-in Monitoring
 The `monitor_native_services.sh` script provides:
-- ✅ Service health status (PostgreSQL, Redis, MinIO)
-- ✅ Database connection counts and sizes
-- ✅ Redis memory usage and performance
-- ✅ MinIO storage and API status
-- ✅ Log file monitoring
-- ✅ Performance recommendations
+-  Service health status (PostgreSQL, Redis, MinIO)
+-  Database connection counts and sizes
+-  Redis memory usage and performance
+-  MinIO storage and API status
+-  Log file monitoring
+-  Performance recommendations
 
 ### Access Points
 - **Web Application:** http://localhost:8000
@@ -255,21 +255,21 @@ python migrate_sqlite_to_postgresql.py
 ## 🔒 Security Considerations
 
 ### Password Management
-- ✅ Change default passwords in `.env.native`
-- ✅ Use strong, unique passwords for each service
-- ✅ Rotate passwords periodically
+-  Change default passwords in `.env.native`
+-  Use strong, unique passwords for each service
+-  Rotate passwords periodically
 
 ### Service Isolation
-- ✅ Services run as separate system users
-- ✅ Restricted file permissions
-- ✅ Network access limited to localhost
+-  Services run as separate system users
+-  Restricted file permissions
+-  Network access limited to localhost
 
 ### Data Protection
-- ✅ Automated backup scripts available (`backup_neuroinsight.sh`)
-- ✅ Database files have restricted permissions
-- ✅ Service accounts have minimal privileges
+-  Automated backup scripts available (`backup_neuroinsight.sh`)
+-  Database files have restricted permissions
+-  Service accounts have minimal privileges
 
-## 📈 Performance Optimization
+##  Performance Optimization
 
 ### Database Tuning
 ```sql
@@ -290,7 +290,7 @@ SELECT pg_reload_conf();
 - Appropriate permissions for data directories
 - Console access for administration
 
-## 🔄 Backup & Recovery
+##  Backup & Recovery
 
 ### Automated Backups
 ```bash
@@ -319,7 +319,7 @@ pg_dump neuroinsight > neuroinsight_backup.sql
 ./start_production_native.sh
 ```
 
-## 🆘 Emergency Procedures
+##  Emergency Procedures
 
 ### Complete System Reset
 ```bash
@@ -381,7 +381,7 @@ MINIO_ROOT_PASSWORD=custom_password
 MINIO_REGION=us-east-1
 ```
 
-## 🎯 Production Deployment Checklist
+##  Production Deployment Checklist
 
 - [ ] System services installed and running
 - [ ] Passwords changed from defaults
@@ -393,7 +393,7 @@ MINIO_REGION=us-east-1
 - [ ] Log rotation configured
 - [ ] Performance baseline established
 
-## 📞 Support
+##  Support
 
 ### Common Issues
 1. **Permission denied** → Check file ownership and sudo access
@@ -416,7 +416,7 @@ MINIO_REGION=us-east-1
 
 ---
 
-**The Fully Native Deployment provides enterprise-grade performance and reliability while maintaining simplicity of management.** 🚀
+**The Fully Native Deployment provides enterprise-grade performance and reliability while maintaining simplicity of management.** 
 
 
 

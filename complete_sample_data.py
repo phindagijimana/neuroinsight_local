@@ -21,7 +21,7 @@ try:
     from backend.models import Job, Metric
     from backend.models.job import JobStatus
 
-    print("🧠 Creating Complete Sample NeuroInsight Subject Data")
+    print(" Creating Complete Sample NeuroInsight Subject Data")
     print("=" * 60)
 
     # Connect to database
@@ -36,10 +36,10 @@ try:
         # Check if job exists
         job = db.query(Job).filter(Job.id == job_id).first()
         if not job:
-            print(f"❌ Job {job_id} not found. Please upload a file first.")
+            print(f" Job {job_id} not found. Please upload a file first.")
             return
 
-        print(f"📋 Found job: {job.filename}")
+        print(f" Found job: {job.filename}")
         print(f"   Original status: {job.status}")
 
         # Create realistic timestamps (scan 3 days ago, processed 2 days ago)
@@ -61,11 +61,11 @@ try:
         job.current_step = "Analysis completed successfully"
         job.result_path = f"data/outputs/{job_id}/hippocampal_analysis"
 
-        print("✅ Updated job with comprehensive patient information:")
+        print(" Updated job with comprehensive patient information:")
         print(f"   👤 Patient: {job.patient_name} (MRN: {job.patient_id})")
         print(f"   📅 Age/Sex: {job.patient_age} years / {job.patient_sex}")
-        print(f"   🏥 Scanner: {job.scanner_info}")
-        print(f"   🔬 Sequence: {job.sequence_info}")
+        print(f"    Scanner: {job.scanner_info}")
+        print(f"    Sequence: {job.sequence_info}")
         print(f"   📝 Notes: {job.notes[:80]}...")
 
         # Clear existing metrics
@@ -167,23 +167,23 @@ try:
             hs_classification = "No Hippocampal Sclerosis"
             lateralization = "Balanced"
 
-        print(f"🏥 HS Classification: {hs_classification}")
-        print(f"📊 Lateralization: {lateralization}")
+        print(f" HS Classification: {hs_classification}")
+        print(f" Lateralization: {lateralization}")
 
         # Verify data
         updated_job = db.query(Job).filter(Job.id == job_id).first()
         metrics = db.query(Metric).filter(Metric.job_id == job_id).all()
 
-        print(f"\n✅ Sample subject created successfully!")
+        print(f"\n Sample subject created successfully!")
         print(f"🆔 Job ID: {updated_job.id}")
-        print(f"📁 Filename: {updated_job.filename}")
-        print(f"🏥 Patient: {updated_job.patient_name} ({updated_job.patient_id})")
+        print(f" Filename: {updated_job.filename}")
+        print(f" Patient: {updated_job.patient_name} ({updated_job.patient_id})")
         print(f"📅 Age/Sex: {updated_job.patient_age}/{updated_job.patient_sex}")
-        print(f"🔬 Scanner: {updated_job.scanner_info}")
-        print(f"📊 Metrics: {len(metrics)} brain regions")
-        print(f"🎯 Status: {updated_job.status.value.upper()}")
+        print(f" Scanner: {updated_job.scanner_info}")
+        print(f" Metrics: {len(metrics)} brain regions")
+        print(f" Status: {updated_job.status.value.upper()}")
 
-        print(f"\n📈 Brain Volume Analysis:")
+        print(f"\n Brain Volume Analysis:")
         total_left = sum(m.left_volume for m in metrics if m.left_volume > 0)
         total_right = sum(m.right_volume for m in metrics if m.right_volume > 0)
         print(f"   Left Hemisphere Total: {total_left:.2f} mm³")
@@ -195,10 +195,10 @@ try:
         print(f"   Coronal slices: 10 anatomical + 10 overlay")
         print(f"   Axial slices: 10 anatomical + 10 overlay")
 
-        print(f"\n🎯 Ready for clinical review and reporting!")
+        print(f"\n Ready for clinical review and reporting!")
 
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         db.rollback()
         import traceback
         traceback.print_exc()
@@ -206,6 +206,6 @@ try:
         db.close()
 
 except ImportError as e:
-    print(f"❌ Import error: {e}")
+    print(f" Import error: {e}")
     print("Make sure you're running this from the correct directory")
     print("Current working directory:", os.getcwd())

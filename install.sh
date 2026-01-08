@@ -67,7 +67,7 @@ if (( TOTAL_RAM < 7 )); then
 elif (( TOTAL_RAM < 16 )); then
     log_warning "LIMITED MEMORY DETECTED: ${TOTAL_RAM}GB"
     log_warning ""
-    log_warning "⚠️  MEMORY LIMITATION WARNING ⚠️"
+    log_warning "  MEMORY LIMITATION WARNING "
     log_warning "You have ${TOTAL_RAM}GB RAM - sufficient for installation but not MRI processing."
     log_warning ""
     log_warning "MRI processing requires 16GB+ RAM. With ${TOTAL_RAM}GB:"

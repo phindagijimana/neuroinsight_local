@@ -1,4 +1,4 @@
-# 📦 Additional Containers Needed
+#  Additional Containers Needed
 
 ## HIGH PRIORITY (Medical Safety)
 
@@ -88,14 +88,14 @@ pgbouncer:
 
 | Container | Status | Priority | ETA |
 |-----------|--------|----------|-----|
-| PostgreSQL | ✅ Done | N/A | Complete |
-| Redis | ✅ Done | N/A | Complete |
-| MinIO | ✅ Done | N/A | Complete |
-| FreeSurfer | ✅ Done | N/A | Complete |
-| Celery | ✅ Done | N/A | Complete |
-| Audit Service | ❌ Missing | Critical | 1-2 months |
-| Auth Service | ❌ Missing | Critical | 1-2 months |
-| Backup Service | ❌ Missing | Critical | 1 month |
-| Monitoring | ⚠️ Partial | High | 2-4 weeks |
-| API Gateway | ❌ Missing | Medium | 2-4 weeks |
-| Cert Manager | ❌ Missing | Medium | 1-2 weeks |
+| PostgreSQL |  Done | N/A | Complete |
+| Redis |  Done | N/A | Complete |
+| MinIO |  Done | N/A | Complete |
+| FreeSurfer |  Done | N/A | Complete |
+| Celery |  Done | N/A | Complete |
+| Audit Service |  Missing | Critical | 1-2 months |
+| Auth Service |  Missing | Critical | 1-2 months |
+| Backup Service |  Missing | Critical | 1 month |
+| Monitoring |  Partial | High | 2-4 weeks |
+| API Gateway |  Missing | Medium | 2-4 weeks |
+| Cert Manager |  Missing | Medium | 1-2 weeks |

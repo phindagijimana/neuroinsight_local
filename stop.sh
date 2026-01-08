@@ -36,7 +36,7 @@ import sys
 sys.path.insert(0, '.')
 from backend.services.task_management_service import TaskManagementService
 result = TaskManagementService.run_maintenance()
-print(f'✅ Maintenance completed: {result}')
+print(f' Maintenance completed: {result}')
 " 2>/dev/null || log_warning "Maintenance check failed"
 
 # Stop Celery worker

@@ -205,7 +205,7 @@ if __name__ == '__main__':
     # Create sample images
     create_sample_images(job_id)
 
-    print("\n✅ Sample data created successfully!")
+    print("\n Sample data created successfully!")
     print(f"Job ID: {job_id}")
     print("Patient: John Smith, Age 67, Male")
     print("Scanner: Siemens Prisma, Sequence: T1_MPRAGE")

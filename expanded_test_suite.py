@@ -49,7 +49,7 @@ class ExpandedNeuroInsightTestSuite:
         print("2d"
     def run_all_tests(self):
         """Run all test categories"""
-        print("🧪 EXPANDED NEUROINSIGHT TEST SUITE (50+ Test Cases)")
+        print(" EXPANDED NEUROINSIGHT TEST SUITE (50+ Test Cases)")
         print("=" * 65)
 
         # Category 1: Installation & System (10 tests)
@@ -77,7 +77,7 @@ class ExpandedNeuroInsightTestSuite:
 
     def test_installation_system(self):
         """Installation & System Tests (10 tests)"""
-        print("\n📦 INSTALLATION & SYSTEM TESTS")
+        print("\n INSTALLATION & SYSTEM TESTS")
 
         # System Requirements
         self.log_test("Memory Check (7GB min)", self._check_memory(), "System RAM >= 7GB", "Installation")
@@ -122,7 +122,7 @@ class ExpandedNeuroInsightTestSuite:
 
     def test_data_processing(self):
         """Data Processing Tests (10 tests)"""
-        print("\n🧠 DATA PROCESSING TESTS")
+        print("\n DATA PROCESSING TESTS")
 
         # File Format Support
         self.log_test("NIfTI Format Support", self._test_nifti_support(), "Process NIfTI .nii files", "Processing")
@@ -140,7 +140,7 @@ class ExpandedNeuroInsightTestSuite:
 
     def test_error_handling(self):
         """Error Handling Tests (8 tests)"""
-        print("\n🚨 ERROR HANDLING TESTS")
+        print("\n ERROR HANDLING TESTS")
 
         # File Validation
         self.log_test("Invalid File Rejection", self._test_invalid_file(), "Reject non-NIfTI files", "Error Handling")
@@ -166,7 +166,7 @@ class ExpandedNeuroInsightTestSuite:
 
     def test_performance(self):
         """Performance Tests (5 tests)"""
-        print("\n⚡ PERFORMANCE TESTS")
+        print("\n PERFORMANCE TESTS")
 
         self.log_test("API Response Times", self._test_response_times(), "Fast API responses", "Performance")
         self.log_test("Concurrent Users", self._test_concurrent_users(), "Handle multiple users", "Performance")
@@ -406,13 +406,13 @@ class ExpandedNeuroInsightTestSuite:
         duration = end_time - self.start_time
 
         print(f"\n{'='*80}")
-        print("🎯 COMPREHENSIVE NEUROINSIGHT TEST SUITE - FINAL REPORT")
+        print(" COMPREHENSIVE NEUROINSIGHT TEST SUITE - FINAL REPORT")
         print(f"{'='*80}")
         print(f"⏱️  Test Duration: {duration.total_seconds():.1f} seconds")
-        print(f"📊 Total Tests: {self.test_count}")
-        print(f"✅ Passed: {self.passed}")
-        print(f"❌ Failed: {self.failed}")
-        print(f"📈 Success Rate: {(self.passed/self.test_count*100):.1f}%" if self.test_count > 0 else "0%")
+        print(f" Total Tests: {self.test_count}")
+        print(f" Passed: {self.passed}")
+        print(f" Failed: {self.failed}")
+        print(f" Success Rate: {(self.passed/self.test_count*100):.1f}%" if self.test_count > 0 else "0%")
 
         # Group results by category
         categories = {}
@@ -426,11 +426,11 @@ class ExpandedNeuroInsightTestSuite:
             else:
                 categories[cat]["failed"] += 1
 
-        print(f"\n📋 RESULTS BY CATEGORY:")
+        print(f"\n RESULTS BY CATEGORY:")
         for category, stats in categories.items():
             print("2d"
         if self.failed > 0:
-            print(f"\n❌ FAILED TESTS:")
+            print(f"\n FAILED TESTS:")
             for test in self.test_results:
                 if test["status"] == "FAIL":
                     print(f"   {test['test_id']:2d}. [{test['category']}] {test['test_name']} - {test['message']}")
@@ -443,13 +443,13 @@ class ExpandedNeuroInsightTestSuite:
 
         # Production readiness assessment
         if self.failed == 0:
-            print("🎉 ALL TESTS PASSED! NeuroInsight is fully production-ready!")
+            print(" ALL TESTS PASSED! NeuroInsight is fully production-ready!")
         elif (self.failed / self.test_count) < 0.1:  # Less than 10% failure rate
-            print("✅ MOSTLY READY: Minor issues found, suitable for production with fixes.")
+            print(" MOSTLY READY: Minor issues found, suitable for production with fixes.")
         elif (self.failed / self.test_count) < 0.25:  # Less than 25% failure rate
-            print("⚠️  REQUIRES ATTENTION: Several issues need fixing before production.")
+            print("  REQUIRES ATTENTION: Several issues need fixing before production.")
         else:
-            print("❌ NEEDS WORK: Significant issues found, not ready for production.")
+            print(" NEEDS WORK: Significant issues found, not ready for production.")
 
 def main():
     suite = ExpandedNeuroInsightTestSuite()

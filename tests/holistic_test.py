@@ -49,13 +49,13 @@ class HolisticTester:
         for test in tests:
             test_name = test.__name__
             try:
-                print(f"\n🔍 Running {test_name}...")
+                print(f"\n Running {test_name}...")
                 result = test()
                 results[test_name] = {"status": "PASSED", "details": result}
-                print(f"✅ {test_name}: PASSED")
+                print(f" {test_name}: PASSED")
             except Exception as e:
                 results[test_name] = {"status": "FAILED", "error": str(e)}
-                print(f"❌ {test_name}: FAILED - {e}")
+                print(f" {test_name}: FAILED - {e}")
 
         return results
 
@@ -491,12 +491,12 @@ Examples:
     tester = HolisticTester()
 
     if args.all:
-        print("🧪 Running complete holistic test suite for NeuroInsight local deployment...")
+        print(" Running complete holistic test suite for NeuroInsight local deployment...")
         print("=" * 70)
         results = tester.run_all_tests()
 
         print("\n" + "="*70)
-        print("📊 HOLISTIC TEST RESULTS SUMMARY")
+        print(" HOLISTIC TEST RESULTS SUMMARY")
         print("="*70)
 
         passed = 0
@@ -508,20 +508,20 @@ Examples:
             status = result['status']
             if status == 'PASSED':
                 passed += 1
-                print(f"✅ {test_name.replace('test_', '').replace('_', ' ').title()}: PASSED")
+                print(f" {test_name.replace('test_', '').replace('_', ' ').title()}: PASSED")
             else:
                 failed_tests.append(test_name)
-                print(f"❌ {test_name.replace('test_', '').replace('_', ' ').title()}: FAILED")
+                print(f" {test_name.replace('test_', '').replace('_', ' ').title()}: FAILED")
                 if args.verbose:
                     print(f"   Error: {result.get('error', 'Unknown error')}")
 
-        print(f"\n🎯 Overall Score: {passed}/{total} tests passed ({passed/total*100:.1f}%)")
+        print(f"\n Overall Score: {passed}/{total} tests passed ({passed/total*100:.1f}%)")
 
         if passed == total:
-            print("\n🎉 ALL TESTS PASSED! NeuroInsight is ready for local deployment.")
-            print("   ✅ System compatible, services running, functionality verified")
+            print("\n ALL TESTS PASSED! NeuroInsight is ready for local deployment.")
+            print("    System compatible, services running, functionality verified")
         else:
-            print(f"\n⚠️  {total-passed} tests failed. Issues need to be resolved before deployment.")
+            print(f"\n  {total-passed} tests failed. Issues need to be resolved before deployment.")
             if not args.verbose:
                 print("   Run with --verbose to see detailed error information")
 
@@ -544,7 +544,7 @@ Examples:
 
         for arg_name, test_func in test_functions.items():
             if getattr(args, arg_name):
-                print(f"🔍 Running {arg_name.replace('_', ' ')}...")
+                print(f" Running {arg_name.replace('_', ' ')}...")
                 try:
                     result = test_func()
                     if args.json:
@@ -552,10 +552,10 @@ Examples:
                     else:
                         print("Results:")
                         for key, value in result.items():
-                            status = "✅" if (isinstance(value, dict) and value.get('passed', False)) else "❌"
+                            status = "" if (isinstance(value, dict) and value.get('passed', False)) else ""
                             print(f"  {status} {key}: {value}")
                 except Exception as e:
-                    print(f"❌ Test failed with error: {e}")
+                    print(f" Test failed with error: {e}")
                     if args.verbose:
                         import traceback
                         traceback.print_exc()

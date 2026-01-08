@@ -52,16 +52,16 @@ def create_postgresql_schema(pg_conn):
         Job.__table__.create(pg_conn, checkfirst=True)
         Metric.__table__.create(pg_conn, checkfirst=True)
 
-        print("✅ PostgreSQL schema created")
+        print(" PostgreSQL schema created")
 
     except Exception as e:
-        print(f"❌ Error creating schema: {e}")
+        print(f" Error creating schema: {e}")
         # Fallback: create tables manually
         create_tables_manually(pg_conn)
 
 def create_tables_manually(pg_conn):
     """Create tables manually if SQLAlchemy import fails."""
-    print("🔧 Creating tables manually...")
+    print(" Creating tables manually...")
 
     with pg_conn.cursor() as cursor:
         # Jobs table
@@ -106,11 +106,11 @@ def create_tables_manually(pg_conn):
 
         pg_conn.commit()
 
-    print("✅ Tables created manually")
+    print(" Tables created manually")
 
 def migrate_jobs_table(sqlite_conn, pg_conn):
     """Migrate jobs table data."""
-    print("📋 Migrating jobs table...")
+    print(" Migrating jobs table...")
 
     sqlite_cursor = sqlite_conn.cursor()
     pg_cursor = pg_conn.cursor()
@@ -127,7 +127,7 @@ def migrate_jobs_table(sqlite_conn, pg_conn):
     sqlite_cursor.execute("PRAGMA table_info(jobs)")
     columns = [col[1] for col in sqlite_cursor.fetchall()]
 
-    print(f"📊 Migrating {len(jobs)} jobs...")
+    print(f" Migrating {len(jobs)} jobs...")
 
     # Insert into PostgreSQL
     for job in jobs:
@@ -170,15 +170,15 @@ def migrate_jobs_table(sqlite_conn, pg_conn):
                 job_dict.get('updated_at')
             ))
         except Exception as e:
-            print(f"⚠️ Error migrating job {job_dict.get('id')}: {e}")
+            print(f" Error migrating job {job_dict.get('id')}: {e}")
             continue
 
     pg_conn.commit()
-    print(f"✅ Migrated {len(jobs)} jobs")
+    print(f" Migrated {len(jobs)} jobs")
 
 def migrate_metrics_table(sqlite_conn, pg_conn):
     """Migrate metrics table data."""
-    print("📊 Migrating metrics table...")
+    print(" Migrating metrics table...")
 
     sqlite_cursor = sqlite_conn.cursor()
     pg_cursor = pg_conn.cursor()
@@ -195,7 +195,7 @@ def migrate_metrics_table(sqlite_conn, pg_conn):
     sqlite_cursor.execute("PRAGMA table_info(metrics)")
     columns = [col[1] for col in sqlite_cursor.fetchall()]
 
-    print(f"📈 Migrating {len(metrics)} metrics...")
+    print(f" Migrating {len(metrics)} metrics...")
 
     # Insert into PostgreSQL
     for metric in metrics:
@@ -218,15 +218,15 @@ def migrate_metrics_table(sqlite_conn, pg_conn):
                 metric_dict.get('created_at')
             ))
         except Exception as e:
-            print(f"⚠️ Error migrating metric {metric_dict.get('id')}: {e}")
+            print(f" Error migrating metric {metric_dict.get('id')}: {e}")
             continue
 
     pg_conn.commit()
-    print(f"✅ Migrated {len(metrics)} metrics")
+    print(f" Migrated {len(metrics)} metrics")
 
 def validate_migration(sqlite_conn, pg_conn):
     """Validate that migration was successful."""
-    print("🔍 Validating migration...")
+    print(" Validating migration...")
 
     sqlite_cursor = sqlite_conn.cursor()
     pg_cursor = pg_conn.cursor()
@@ -238,7 +238,7 @@ def validate_migration(sqlite_conn, pg_conn):
     pg_cursor.execute("SELECT COUNT(*) FROM jobs")
     pg_jobs = pg_cursor.fetchone()[0]
 
-    print(f"📋 Jobs: SQLite={sqlite_jobs}, PostgreSQL={pg_jobs}")
+    print(f" Jobs: SQLite={sqlite_jobs}, PostgreSQL={pg_jobs}")
 
     # Check metrics count
     sqlite_cursor.execute("SELECT COUNT(*) FROM metrics")
@@ -247,30 +247,30 @@ def validate_migration(sqlite_conn, pg_conn):
     pg_cursor.execute("SELECT COUNT(*) FROM metrics")
     pg_metrics = pg_cursor.fetchone()[0]
 
-    print(f"📊 Metrics: SQLite={sqlite_metrics}, PostgreSQL={pg_metrics}")
+    print(f" Metrics: SQLite={sqlite_metrics}, PostgreSQL={pg_metrics}")
 
     # Basic validation
     if sqlite_jobs == pg_jobs and sqlite_metrics == pg_metrics:
-        print("✅ Migration validation PASSED")
+        print(" Migration validation PASSED")
         return True
     else:
-        print("❌ Migration validation FAILED")
+        print(" Migration validation FAILED")
         print("   Data count mismatch detected")
         return False
 
 def main():
     """Main migration function."""
-    print("🚀 NeuroInsight SQLite to PostgreSQL Migration")
+    print(" NeuroInsight SQLite to PostgreSQL Migration")
     print("=" * 50)
 
     # Find SQLite database
     sqlite_db_path = Path("neuroinsight_web.db")
     if not sqlite_db_path.exists():
-        print(f"❌ SQLite database not found: {sqlite_db_path}")
+        print(f" SQLite database not found: {sqlite_db_path}")
         sys.exit(1)
 
-    print(f"📁 SQLite database: {sqlite_db_path}")
-    print(f"📊 SQLite size: {sqlite_db_path.stat().st_size} bytes")
+    print(f" SQLite database: {sqlite_db_path}")
+    print(f" SQLite size: {sqlite_db_path.stat().st_size} bytes")
 
     try:
         # Connect to databases
@@ -281,7 +281,7 @@ def main():
         pg_conn = get_postgresql_connection()
         pg_conn.autocommit = False
 
-        print("✅ Database connections established")
+        print(" Database connections established")
 
         # Create schema
         create_postgresql_schema(pg_conn)
@@ -292,24 +292,24 @@ def main():
 
         # Validate
         if validate_migration(sqlite_conn, pg_conn):
-            print("\n🎉 MIGRATION COMPLETED SUCCESSFULLY!")
+            print("\n MIGRATION COMPLETED SUCCESSFULLY!")
             print("===================================")
-            print("✅ All data migrated from SQLite to PostgreSQL")
-            print("✅ Schema created successfully")
-            print("✅ Data validation passed")
-            print("\n📋 Next steps:")
+            print(" All data migrated from SQLite to PostgreSQL")
+            print(" Schema created successfully")
+            print(" Data validation passed")
+            print("\n Next steps:")
             print("   1. Update your .env file to use PostgreSQL")
             print("   2. Restart the application with new configuration")
             print("   3. Test that everything works")
             print("   4. Optionally backup/remove the old SQLite file")
         else:
-            print("\n❌ MIGRATION VALIDATION FAILED")
+            print("\n MIGRATION VALIDATION FAILED")
             print("================================")
             print("Please check the logs above and resolve issues before proceeding")
             sys.exit(1)
 
     except Exception as e:
-        print(f"❌ Migration failed: {e}")
+        print(f" Migration failed: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

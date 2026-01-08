@@ -111,13 +111,13 @@ if __name__ == "__main__":
     try:
         success = asyncio.run(test_websocket_connectivity(ws_url))
         if success:
-            print("✅ WebSocket test PASSED")
+            print(" WebSocket test PASSED")
             sys.exit(0)
         else:
-            print("❌ WebSocket test FAILED")
+            print(" WebSocket test FAILED")
             sys.exit(1)
     except Exception as e:
-        print(f"❌ WebSocket test ERROR: {e}")
+        print(f" WebSocket test ERROR: {e}")
         sys.exit(1)
 
 import os
@@ -166,13 +166,13 @@ if __name__ == "__main__":
         fs_success = asyncio.run(test_freesurfer_processing(f"http://localhost:{port}"))
         
         if ws_success and fs_success:
-            print("✅ All tests PASSED")
+            print(" All tests PASSED")
             sys.exit(0)
         else:
-            print("❌ Some tests FAILED")
-            print(f"  WebSocket: {'✅' if ws_success else '❌'}")
-            print(f"  FreeSurfer: {'✅' if fs_success else '❌'}")
+            print(" Some tests FAILED")
+            print(f"  WebSocket: {'' if ws_success else ''}")
+            print(f"  FreeSurfer: {'' if fs_success else ''}")
             sys.exit(1)
     except Exception as e:
-        print(f"❌ Test ERROR: {e}")
+        print(f" Test ERROR: {e}")
         sys.exit(1)

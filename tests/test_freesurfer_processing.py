@@ -20,7 +20,7 @@ try:
     import nibabel as nib
     import numpy as np
 except ImportError:
-    print("❌ Required packages missing: nibabel, numpy")
+    print(" Required packages missing: nibabel, numpy")
     sys.exit(1)
 
 
@@ -37,7 +37,7 @@ class FreeSurferTestRunner:
         if self.freesurfer_home:
             self._setup_freesurfer_env()
 
-        print(f"🧠 FreeSurfer Test Runner initialized")
+        print(f" FreeSurfer Test Runner initialized")
         print(f"   FreeSurfer Home: {self.freesurfer_home or 'Not set'}")
         print(f"   Test Data: {self.test_data_dir}")
         print(f"   Temp Dir: {self.temp_dir}")
@@ -54,7 +54,7 @@ class FreeSurferTestRunner:
 
     def validate_test_data(self) -> bool:
         """Validate that test data exists and is readable."""
-        print("📊 Validating test data...")
+        print(" Validating test data...")
 
         test_files = [
             self.test_data_dir / "test_brain.nii.gz",
@@ -63,7 +63,7 @@ class FreeSurferTestRunner:
 
         for test_file in test_files:
             if not test_file.exists():
-                print(f"❌ Test file missing: {test_file}")
+                print(f" Test file missing: {test_file}")
                 return False
 
             try:
@@ -71,26 +71,26 @@ class FreeSurferTestRunner:
                 img = nib.load(str(test_file))
                 data = img.get_fdata()
 
-                print(f"✅ {test_file.name}: {data.shape} voxels, {data.dtype}")
+                print(f" {test_file.name}: {data.shape} voxels, {data.dtype}")
 
                 # Basic validation
                 if data.size == 0:
-                    print(f"❌ {test_file.name}: Empty data")
+                    print(f" {test_file.name}: Empty data")
                     return False
 
                 if not np.isfinite(data).all():
-                    print(f"❌ {test_file.name}: Contains non-finite values")
+                    print(f" {test_file.name}: Contains non-finite values")
                     return False
 
             except Exception as e:
-                print(f"❌ {test_file.name}: Load failed - {e}")
+                print(f" {test_file.name}: Load failed - {e}")
                 return False
 
         return True
 
     def test_freesurfer_commands(self) -> bool:
         """Test basic FreeSurfer command availability."""
-        print("🔧 Testing FreeSurfer commands...")
+        print(" Testing FreeSurfer commands...")
 
         commands_to_test = [
             "recon-all",
@@ -107,20 +107,20 @@ class FreeSurferTestRunner:
 
                 if result.returncode == 0:
                     version = result.stdout.strip().split('\n')[0]
-                    print(f"✅ {cmd}: {version}")
+                    print(f" {cmd}: {version}")
                 else:
-                    print(f"⚠️ {cmd}: Version check failed (may be normal)")
+                    print(f" {cmd}: Version check failed (may be normal)")
                     print(f"   stderr: {result.stderr.strip()}")
 
             except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-                print(f"❌ {cmd}: Not available - {e}")
+                print(f" {cmd}: Not available - {e}")
                 return False
 
         return True
 
     def test_basic_processing(self) -> bool:
         """Test basic MRI processing pipeline."""
-        print("🔬 Testing basic MRI processing...")
+        print(" Testing basic MRI processing...")
 
         # Create subject directory
         subject_dir = self.temp_dir / "subjects" / "test_subject"
@@ -145,25 +145,25 @@ class FreeSurferTestRunner:
                                   cwd=str(subject_dir))
 
             if result.returncode == 0:
-                print("✅ mri_convert: Conversion successful")
+                print(" mri_convert: Conversion successful")
 
                 # Verify output file
                 if output_file.exists():
                     size = output_file.stat().st_size
-                    print(f"✅ Output file created: {size} bytes")
+                    print(f" Output file created: {size} bytes")
                 else:
-                    print("❌ Output file not created")
+                    print(" Output file not created")
                     return False
 
             else:
-                print(f"❌ mri_convert failed: {result.stderr}")
+                print(f" mri_convert failed: {result.stderr}")
                 return False
 
         except subprocess.TimeoutExpired:
-            print("❌ mri_convert: Timeout")
+            print(" mri_convert: Timeout")
             return False
         except Exception as e:
-            print(f"❌ mri_convert: Error - {e}")
+            print(f" mri_convert: Error - {e}")
             return False
 
         return True
@@ -206,37 +206,37 @@ class FreeSurferTestRunner:
             success = True
             for expected_file in expected_files:
                 if expected_file.exists():
-                    print(f"✅ Created: {expected_file.relative_to(subjects_dir)}")
+                    print(f" Created: {expected_file.relative_to(subjects_dir)}")
                 else:
-                    print(f"❌ Missing: {expected_file.relative_to(subjects_dir)}")
+                    print(f" Missing: {expected_file.relative_to(subjects_dir)}")
                     success = False
 
             if result.returncode == 0:
-                print("✅ recon-all completed successfully")
+                print(" recon-all completed successfully")
             else:
-                print(f"⚠️ recon-all exited with code {result.returncode}")
+                print(f" recon-all exited with code {result.returncode}")
                 # Don't fail on non-zero exit if basic files were created
                 if success:
-                    print("✅ Basic processing files created despite exit code")
+                    print(" Basic processing files created despite exit code")
 
             return success
 
         except subprocess.TimeoutExpired:
-            print("❌ recon-all: Timeout (expected for full pipeline in CI)")
+            print(" recon-all: Timeout (expected for full pipeline in CI)")
             # Check if any processing started
             subject_dir = subjects_dir / subject_id
             if (subject_dir / "scripts").exists():
-                print("✅ Processing started (partial success)")
+                print(" Processing started (partial success)")
                 return True
             return False
 
         except Exception as e:
-            print(f"❌ recon-all: Error - {e}")
+            print(f" recon-all: Error - {e}")
             return False
 
     def run_neuroinsight_pipeline(self) -> bool:
         """Test the NeuroInsight MRI processing pipeline."""
-        print("🧠 Testing NeuroInsight processing pipeline...")
+        print(" Testing NeuroInsight processing pipeline...")
 
         try:
             # Import NeuroInsight processing modules
@@ -252,9 +252,9 @@ class FreeSurferTestRunner:
             preprocessed_file = preprocess_mri(str(input_file), str(output_dir))
 
             if os.path.exists(preprocessed_file):
-                print(f"✅ Preprocessing completed: {os.path.basename(preprocessed_file)}")
+                print(f" Preprocessing completed: {os.path.basename(preprocessed_file)}")
             else:
-                print("❌ Preprocessing failed - output file not created")
+                print(" Preprocessing failed - output file not created")
                 return False
 
             # Test segmentation (may be limited without FreeSurfer)
@@ -263,24 +263,24 @@ class FreeSurferTestRunner:
                 regions_file = segment_brain_regions(preprocessed_file, str(output_dir))
 
                 if regions_file and os.path.exists(regions_file):
-                    print(f"✅ Segmentation completed: {os.path.basename(regions_file)}")
+                    print(f" Segmentation completed: {os.path.basename(regions_file)}")
                 else:
-                    print("⚠️ Segmentation skipped or limited (may require full FreeSurfer)")
+                    print(" Segmentation skipped or limited (may require full FreeSurfer)")
             except Exception as e:
-                print(f"⚠️ Segmentation test failed: {e}")
+                print(f" Segmentation test failed: {e}")
 
             return True
 
         except ImportError as e:
-            print(f"❌ Cannot import NeuroInsight modules: {e}")
+            print(f" Cannot import NeuroInsight modules: {e}")
             return False
         except Exception as e:
-            print(f"❌ NeuroInsight pipeline test failed: {e}")
+            print(f" NeuroInsight pipeline test failed: {e}")
             return False
 
     def run_all_tests(self) -> Dict[str, Any]:
         """Run all FreeSurfer processing tests."""
-        print("🚀 Starting FreeSurfer Processing Tests")
+        print(" Starting FreeSurfer Processing Tests")
         print("=" * 50)
 
         results = {}
@@ -302,27 +302,27 @@ class FreeSurferTestRunner:
 
         # Summary
         print("\n" + "=" * 50)
-        print("📊 TEST RESULTS SUMMARY")
+        print(" TEST RESULTS SUMMARY")
         print("=" * 50)
 
         passed = 0
         total = len(results)
 
         for test_name, result in results.items():
-            status = "✅ PASS" if result else "❌ FAIL"
+            status = " PASS" if result else " FAIL"
             print(f"{status} {test_name.replace('_', ' ').title()}")
             if result:
                 passed += 1
 
-        print(f"\n🎯 Overall: {passed}/{total} tests passed")
+        print(f"\n Overall: {passed}/{total} tests passed")
 
         success = passed >= 3  # Require at least 3/5 tests to pass
         results['overall_success'] = success
 
         if success:
-            print("✅ FreeSurfer processing validation: SUCCESS")
+            print(" FreeSurfer processing validation: SUCCESS")
         else:
-            print("❌ FreeSurfer processing validation: FAILED")
+            print(" FreeSurfer processing validation: FAILED")
 
         return results
 
@@ -330,9 +330,9 @@ class FreeSurferTestRunner:
         """Clean up temporary files."""
         try:
             shutil.rmtree(self.temp_dir)
-            print(f"🧹 Cleaned up temporary directory: {self.temp_dir}")
+            print(f" Cleaned up temporary directory: {self.temp_dir}")
         except Exception as e:
-            print(f"⚠️ Cleanup warning: {e}")
+            print(f" Cleanup warning: {e}")
 
 
 def main():

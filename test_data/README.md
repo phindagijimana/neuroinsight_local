@@ -2,7 +2,7 @@
 
 This directory contains synthetic test datasets for validating the MRI processing pipeline and FreeSurfer integration.
 
-## 📁 Test Datasets
+##  Test Datasets
 
 ### `test_brain.nii.gz`
 - **Description**: Synthetic T1-weighted brain MRI dataset
@@ -20,14 +20,14 @@ This directory contains synthetic test datasets for validating the MRI processin
 - **Same specifications** as `test_brain.nii.gz`
 - **Purpose**: Test reproducibility and parameter variations
 
-## 🧠 FreeSurfer Integration Testing
+##  FreeSurfer Integration Testing
 
 ### Test Coverage
-- ✅ FreeSurfer installation and environment setup
-- ✅ `recon-all` pipeline execution
-- ✅ MRI preprocessing and conversion
-- ✅ Brain segmentation and labeling
-- ✅ Processing result validation
+-  FreeSurfer installation and environment setup
+-  `recon-all` pipeline execution
+-  MRI preprocessing and conversion
+-  Brain segmentation and labeling
+-  Processing result validation
 
 ### Test Scenarios
 1. **Basic Processing**: Single subject recon-all pipeline
@@ -35,7 +35,7 @@ This directory contains synthetic test datasets for validating the MRI processin
 3. **Error Handling**: Invalid input data handling
 4. **Output Validation**: Expected file structure verification
 
-## 🔬 Scientific Validation
+##  Scientific Validation
 
 ### Data Characteristics
 - **Realistic Intensity Ranges**:
@@ -50,11 +50,11 @@ This directory contains synthetic test datasets for validating the MRI processin
   - Tissue contrast preservation
 
 ### Limitations
-- ⚠️ **Not for Clinical Use**: Synthetic data only
-- ⚠️ **Simplified Anatomy**: Basic brain structures only
-- ⚠️ **No Pathology**: Healthy brain simulation only
+-  **Not for Clinical Use**: Synthetic data only
+-  **Simplified Anatomy**: Basic brain structures only
+-  **No Pathology**: Healthy brain simulation only
 
-## 📊 Usage in CI/CD
+##  Usage in CI/CD
 
 ### GitHub Actions Integration
 ```yaml
@@ -99,7 +99,7 @@ Test data is provided under the same license as the NeuroInsight project. These 
 
 ---
 
-**⚠️ Important**: This test data contains **no real medical information** and should **never be used for clinical diagnosis or research involving actual patient data**.
+** Important**: This test data contains **no real medical information** and should **never be used for clinical diagnosis or research involving actual patient data**.
 
 
 

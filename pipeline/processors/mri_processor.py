@@ -342,7 +342,7 @@ class MRIProcessor:
             # Warnings for different memory levels
             if total_gb < PROCESS_MIN_GB:
                 warning_msg = (
-                    f"⚠️  LIMITED MEMORY WARNING\n\n"
+                    f"  LIMITED MEMORY WARNING\n\n"
                     f"System RAM: {total_gb:.1f} GB\n"
                     f"Recommended for processing: {PROCESS_MIN_GB:.1f} GB+\n\n"
                     f"With {total_gb:.1f} GB RAM, MRI processing may:\n"
@@ -1335,7 +1335,7 @@ class MRIProcessor:
                 if self.progress_callback:
                     self.progress_callback(
                         self._get_current_progress(),
-                        f"✅ FreeSurfer Singularity container ready - continuing processing..."
+                        f" FreeSurfer Singularity container ready - continuing processing..."
                     )
 
                 return target_sif

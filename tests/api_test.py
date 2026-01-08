@@ -93,7 +93,7 @@ class NeuroInsightAPITester:
 
 def run_comprehensive_api_test(base_url: str = "http://localhost:8000"):
     """Run comprehensive API testing"""
-    print(f"🧪 Testing NeuroInsight API at: {base_url}")
+    print(f" Testing NeuroInsight API at: {base_url}")
     
     tester = NeuroInsightAPITester(base_url)
     
@@ -109,9 +109,9 @@ def run_comprehensive_api_test(base_url: str = "http://localhost:8000"):
         try:
             result = test_func()
             results[test_name] = result
-            print("✅ PASSED" if result else "❌ FAILED")
+            print(" PASSED" if result else " FAILED")
         except Exception as e:
-            print(f"❌ ERROR: {e}")
+            print(f" ERROR: {e}")
             results[test_name] = False
     
     # Test file upload if we have the capability
@@ -121,10 +121,10 @@ def run_comprehensive_api_test(base_url: str = "http://localhost:8000"):
             if tester.create_test_nifti(tmp.name):
                 upload_result = tester.test_upload_with_auth(tmp.name)
                 results["File Upload"] = upload_result
-                print("✅ PASSED" if upload_result else "❌ FAILED")
+                print(" PASSED" if upload_result else " FAILED")
             else:
                 results["File Upload"] = False
-                print("❌ SKIPPED (could not create test file)")
+                print(" SKIPPED (could not create test file)")
             
             # Clean up
             try:
@@ -133,22 +133,22 @@ def run_comprehensive_api_test(base_url: str = "http://localhost:8000"):
                 pass
                 
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f" ERROR: {e}")
         results["File Upload"] = False
     
     # Summary
     passed = sum(1 for result in results.values() if result)
     total = len(results)
     
-    print(f"\n📊 Test Results: {passed}/{total} tests passed")
+    print(f"\n Test Results: {passed}/{total} tests passed")
     
     if passed == total:
-        print("🎉 All API tests PASSED!")
+        print(" All API tests PASSED!")
         return True
     else:
-        print("⚠️  Some API tests failed")
+        print("  Some API tests failed")
         for test_name, result in results.items():
-            status = "✅" if result else "❌"
+            status = "" if result else ""
             print(f"    {status} {test_name}")
         return False
 

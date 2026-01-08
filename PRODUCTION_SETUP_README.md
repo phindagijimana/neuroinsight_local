@@ -1,14 +1,14 @@
-# 🏥 NeuroInsight Production Setup
+#  NeuroInsight Production Setup
 
 Complete production deployment with Docker containers for PostgreSQL, Redis, MinIO, FreeSurfer, and Celery.
 
-## 📋 Prerequisites
+##  Prerequisites
 
 - **Docker & Docker Compose** installed
 - **4GB+ RAM** available
 - **FreeSurfer License** (required for MRI processing)
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Initial Setup
 ```bash
@@ -20,11 +20,11 @@ cd neuroinsight
 ```
 
 This will:
-- ✅ Generate secure passwords
-- ✅ Create all necessary directories
-- ✅ Prompt for FreeSurfer license
-- ✅ Start all Docker services
-- ✅ Verify service health
+-  Generate secure passwords
+-  Create all necessary directories
+-  Prompt for FreeSurfer license
+-  Start all Docker services
+-  Verify service health
 
 ### 2. Database Initialization
 ```bash
@@ -58,7 +58,7 @@ This will:
 └─────────────────┘    └─────────────────┘
 ```
 
-## 📊 Services Overview
+##  Services Overview
 
 | Service | Purpose | Port | Access |
 |---------|---------|------|--------|
@@ -95,7 +95,7 @@ SECRET_KEY=your-super-secure-secret-key
 - Redis requires password authentication
 - MinIO uses secure object storage
 
-## 🧠 FreeSurfer Setup
+##  FreeSurfer Setup
 
 ### Getting Your License
 1. Register at: https://surfer.nmr.mgh.harvard.edu/registration.html
@@ -108,7 +108,7 @@ SECRET_KEY=your-super-secure-secret-key
 - License mounted at runtime
 - Health checks ensure availability
 
-## 📈 Monitoring & Maintenance
+##  Monitoring & Maintenance
 
 ### View Logs
 ```bash
@@ -189,7 +189,7 @@ celery-worker:
 # Add SQLAlchemy connection pooling settings
 ```
 
-## 🚀 Scaling
+##  Scaling
 
 ### Horizontal Scaling
 ```bash
@@ -206,7 +206,7 @@ docker-compose -f docker-compose.production.yml up -d --scale celery-worker=3
 - Increase RAM allocation
 - Use faster storage (SSD)
 
-## 🔄 Updates & Upgrades
+##  Updates & Upgrades
 
 ### Service Updates
 ```bash
@@ -226,7 +226,7 @@ docker-compose -f docker-compose.production.yml up -d postgres
 docker-compose -f docker-compose.production.yml run --rm celery-worker alembic upgrade head
 ```
 
-## 📞 Support
+##  Support
 
 ### Health Checks
 - API Health: http://localhost:8000/health
@@ -240,4 +240,4 @@ docker-compose -f docker-compose.production.yml run --rm celery-worker alembic u
 
 ---
 
-**⚠️ Medical Software Notice**: This setup is designed for research and clinical environments. Ensure compliance with relevant regulations (HIPAA, GDPR, etc.) before production use.
+** Medical Software Notice**: This setup is designed for research and clinical environments. Ensure compliance with relevant regulations (HIPAA, GDPR, etc.) before production use.

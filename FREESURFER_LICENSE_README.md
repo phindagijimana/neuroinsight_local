@@ -1,14 +1,14 @@
-# 🧠 FreeSurfer License Setup
+#  FreeSurfer License Setup
 
 **CRITICAL: Required for MRI processing functionality**
 
-## 🚨 IMPORTANT NOTICE
+##  IMPORTANT NOTICE
 
 **NeuroInsight cannot process MRI scans without a valid FreeSurfer license.**
 
 The application will appear to work, but MRI analysis will fail silently or show placeholder results.
 
-## 📋 How to Get Your FreeSurfer License
+##  How to Get Your FreeSurfer License
 
 ### Step 1: Register for FreeSurfer
 1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
@@ -25,7 +25,7 @@ The application will appear to work, but MRI analysis will fail silently or show
 2. **Copy or move** the entire `license.txt` file to the NeuroInsight project directory
 3. Place it in the same folder as the other NeuroInsight files
 
-## 📁 File Location
+##  File Location
 
 ```
 neuroinsight_local/
@@ -36,7 +36,7 @@ neuroinsight_local/
 └── [other NeuroInsight files...]
 ```
 
-## ✅ Verification
+##  Verification
 
 After installing the license:
 
@@ -52,23 +52,23 @@ After installing the license:
 # Verify hippocampal volume measurements appear
 ```
 
-## 🔍 What the License Enables
+##  What the License Enables
 
 With a valid FreeSurfer license, NeuroInsight can perform:
 
-- ✅ **Cortical Reconstruction**: Detailed brain surface analysis
-- ✅ **Subcortical Segmentation**: Identify brain structures
-- ✅ **Hippocampal Analysis**: Volume and asymmetry measurements
-- ✅ **Complete MRI Processing**: Full neuroimaging pipeline
+-  **Cortical Reconstruction**: Detailed brain surface analysis
+-  **Subcortical Segmentation**: Identify brain structures
+-  **Hippocampal Analysis**: Volume and asymmetry measurements
+-  **Complete MRI Processing**: Full neuroimaging pipeline
 
-## ⚠️ Without License
+##  Without License
 
-- ❌ MRI processing fails silently
-- ❌ No brain segmentation results
-- ❌ Placeholder or missing data
-- ❌ Incomplete analysis reports
+-  MRI processing fails silently
+-  No brain segmentation results
+-  Placeholder or missing data
+-  Incomplete analysis reports
 
-## 🆘 Troubleshooting
+##  Troubleshooting
 
 ### License Not Recognized
 - Ensure you copied the **entire** license file (not just contents)
@@ -81,7 +81,7 @@ With a valid FreeSurfer license, NeuroInsight can perform:
 - Check container logs: `docker-compose logs freesurfer`
 - Verify license file permissions: `ls -la license.txt`
 
-## 📞 Support
+##  Support
 
 For FreeSurfer license issues:
 - FreeSurfer Registration: https://surfer.nmr.mgh.harvard.edu/registration.html

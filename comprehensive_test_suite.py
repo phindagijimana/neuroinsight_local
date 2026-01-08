@@ -52,7 +52,7 @@ class NeuroInsightTestSuite:
         print(f"{test_name:<50} {status}")
     def run_all_tests(self):
         """Run all test categories"""
-        print("🧪 STARTING COMPREHENSIVE NEUROINSIGHT TEST SUITE")
+        print(" STARTING COMPREHENSIVE NEUROINSIGHT TEST SUITE")
         print("=" * 60)
 
         # Installation & Setup Tests (10 tests)
@@ -81,7 +81,7 @@ class NeuroInsightTestSuite:
 
     def test_installation_setup(self):
         """Test installation and setup functionality (10 tests)"""
-        print("\n📦 INSTALLATION & SETUP TESTS")
+        print("\n INSTALLATION & SETUP TESTS")
 
         # Test 1: System requirements check
         self.log_test("System Memory Check", self._check_system_memory(),
@@ -193,7 +193,7 @@ class NeuroInsightTestSuite:
 
     def test_data_processing(self):
         """Test data processing functionality (20 tests)"""
-        print("\n🧠 DATA PROCESSING TESTS")
+        print("\n DATA PROCESSING TESTS")
 
         # Test 41-50: MRI processing pipeline
         self.log_test("FreeSurfer Integration", self._test_freesurfer_integration(),
@@ -233,7 +233,7 @@ class NeuroInsightTestSuite:
 
     def test_error_handling(self):
         """Test error handling (15 tests)"""
-        print("\n🚨 ERROR HANDLING TESTS")
+        print("\n ERROR HANDLING TESTS")
 
         # Test 61-70: Input validation
         self.log_test("Corrupted File Handling", self._test_corrupted_file_handling(),
@@ -261,7 +261,7 @@ class NeuroInsightTestSuite:
 
     def test_performance(self):
         """Test performance characteristics (10 tests)"""
-        print("\n⚡ PERFORMANCE TESTS")
+        print("\n PERFORMANCE TESTS")
 
         # Test 76-85: Load and scalability
         self.log_test("Concurrent Uploads", self._test_concurrent_uploads(),
@@ -307,21 +307,21 @@ class NeuroInsightTestSuite:
         duration = end_time - self.start_time
 
         print("\n" + "="*80)
-        print("🎯 COMPREHENSIVE NEUROINSIGHT TEST SUITE - FINAL REPORT")
+        print(" COMPREHENSIVE NEUROINSIGHT TEST SUITE - FINAL REPORT")
         print("="*80)
         print(f"⏱️  Test Duration: {duration}")
-        print(f"📊 Total Tests: {self.test_count}")
-        print(f"✅ Passed: {self.passed}")
-        print(f"❌ Failed: {self.failed}")
+        print(f" Total Tests: {self.test_count}")
+        print(f" Passed: {self.passed}")
+        print(f" Failed: {self.failed}")
         print(".1f")
 
         if self.failed > 0:
-            print(f"\n❌ FAILED TESTS:")
+            print(f"\n FAILED TESTS:")
             for test in self.test_results:
                 if test["status"] == "FAIL":
                     print(f"   {test['test_id']:2d}. {test['test_name']} - {test['message']}")
 
-        print(f"\n📋 DETAILED RESULTS BY CATEGORY:")
+        print(f"\n DETAILED RESULTS BY CATEGORY:")
         categories = {
             "Installation & Setup": range(1, 11),
             "API Functionality": range(11, 36),
@@ -346,9 +346,9 @@ class NeuroInsightTestSuite:
         print(f"\n💾 Detailed results saved to: test_results.json")
 
         if self.failed == 0:
-            print("🎉 ALL TESTS PASSED! NeuroInsight is production-ready!")
+            print(" ALL TESTS PASSED! NeuroInsight is production-ready!")
         else:
-            print(f"⚠️  {self.failed} tests failed. Review and fix issues before production deployment.")
+            print(f"  {self.failed} tests failed. Review and fix issues before production deployment.")
 
     # Implementation of individual test methods
     def _check_system_memory(self):

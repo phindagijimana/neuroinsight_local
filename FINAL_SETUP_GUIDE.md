@@ -1,8 +1,8 @@
-# 🚀 NeuroInsight Complete Setup Guide
+#  NeuroInsight Complete Setup Guide
 
 **Containerized MRI Analysis Platform for Local Hosting**
 
-## 📋 QUICK START (5 Minutes)
+##  QUICK START (5 Minutes)
 
 ```bash
 # 1. Get FreeSurfer license (REQUIRED)
@@ -21,27 +21,27 @@
 
 ---
 
-## ✅ WHAT WORKS NOW
+##  WHAT WORKS NOW
 
 ### **Fully Containerized Services**
-- ✅ PostgreSQL (Database)
-- ✅ Redis (Message Queue)
-- ✅ MinIO (Object Storage) 
-- ✅ FreeSurfer (MRI Processing)
-- ✅ Celery (Background Tasks)
-- ✅ NeuroInsight API (Main App)
+-  PostgreSQL (Database)
+-  Redis (Message Queue)
+-  MinIO (Object Storage) 
+-  FreeSurfer (MRI Processing)
+-  Celery (Background Tasks)
+-  NeuroInsight API (Main App)
 
 ### **Core Features**
-- ✅ MRI file upload and validation
-- ✅ Asynchronous processing pipeline
-- ✅ Real-time progress tracking
-- ✅ Results visualization
-- ✅ REST API with documentation
-- ✅ Sample MRI test data included
+-  MRI file upload and validation
+-  Asynchronous processing pipeline
+-  Real-time progress tracking
+-  Results visualization
+-  REST API with documentation
+-  Sample MRI test data included
 
 ---
 
-## 🎯 NEXT STEPS PRIORITIES
+##  NEXT STEPS PRIORITIES
 
 ### **PHASE 1: Get MRI Processing Working (URGENT)**
 
@@ -116,7 +116,7 @@ open http://localhost:9001
 
 ---
 
-## 🔧 IMMEDIATE ACTION ITEMS
+##  IMMEDIATE ACTION ITEMS
 
 ### **Right Now (Today)**
 1. **Get FreeSurfer license** - Critical for MRI processing
@@ -138,7 +138,7 @@ open http://localhost:9001
 
 ---
 
-## 📊 SUCCESS METRICS
+##  SUCCESS METRICS
 
 ### **Minimal Viable Product (MVP)**
 - [ ] FreeSurfer license configured
@@ -156,7 +156,7 @@ open http://localhost:9001
 
 ---
 
-## 🏥 MEDICAL VALIDATION CHECKLIST
+##  MEDICAL VALIDATION CHECKLIST
 
 ### **For Research Use**
 - [ ] Actual FreeSurfer processing (not placeholder)
@@ -174,7 +174,7 @@ open http://localhost:9001
 
 ---
 
-## 🎯 CURRENT STATUS ASSESSMENT
+##  CURRENT STATUS ASSESSMENT
 
 **Technical Status:** ⭐⭐⭐⭐⭐ (Excellent - Fully containerized)
 **MRI Processing:** ⭐⭐⭐⚪⚪ (Needs FreeSurfer license)
@@ -185,7 +185,7 @@ open http://localhost:9001
 
 ---
 
-## 🚀 IMMEDIATE NEXT ACTIONS
+##  IMMEDIATE NEXT ACTIONS
 
 1. **CRITICAL:** Get FreeSurfer license and configure
 2. **HIGH:** Test complete MRI processing pipeline  

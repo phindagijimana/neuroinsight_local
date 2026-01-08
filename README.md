@@ -86,11 +86,6 @@ cd neuroinsight_local
 ./neuroinsight license   # Check/setup FreeSurfer license
 ./neuroinsight monitor status  # Show items being tracked for cleanup
 
-# Alternative direct commands (if wrapper fails)
-python3 start.sh         # Direct Python startup
-python3 stop.sh          # Direct Python stop
-./status.sh             # System status
-./monitor.sh            # Health monitoring
 
 # Automatic Maintenance (runs every 60 seconds)
 # - Orphaned processes cleaned up after 3 hour grace period
@@ -130,7 +125,6 @@ Then follow Linux installation steps within WSL2 terminal. Access at `http://loc
 ```bash
 ./start.sh    # Start all services
 ./stop.sh     # Stop all services
-./status.sh   # Check service status
 ./check_license.sh  # Verify FreeSurfer license
 ```
 

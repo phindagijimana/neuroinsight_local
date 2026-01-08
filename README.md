@@ -71,9 +71,9 @@ cd neuroinsight_local
 
 ```
 neuroinsight_local/
-├── license.txt ← Place license here
+├── license.txt          # Place license here
 ├── README.md
-└── ...
+└── ...                  # Other project files
 ```
 
 # Install and start

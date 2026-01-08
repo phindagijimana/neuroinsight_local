@@ -229,6 +229,76 @@ class TaskManagementService:
         return cancelled
 
     @staticmethod
+    def check_for_container_job_mismatches(db_session=None) -> List[dict]:
+        """
+        Check for jobs marked as RUNNING but whose Docker containers are not actually running.
+        This detects jobs that were interrupted by system sleep/shutdown.
+
+        Returns:
+            List of jobs that were marked as failed due to container mismatch
+        """
+        from sqlalchemy.orm import Session
+        from backend.core.database import SessionLocal
+        from backend.models.job import Job, JobStatus
+        from backend.services import JobService
+
+        db = db_session or SessionLocal()
+        try:
+            # Find all running jobs
+            running_jobs = db.query(Job).filter(Job.status == JobStatus.RUNNING).all()
+
+            failed_jobs = []
+            for job in running_jobs:
+                # Check if the job has a docker container ID
+                if job.docker_container_id:
+                    try:
+                        # Check if container is actually running
+                        import subprocess
+                        result = subprocess.run(
+                            ["docker", "ps", "--filter", f"name={job.docker_container_id}", "--format", "{{.Names}}"],
+                            capture_output=True, text=True, timeout=10
+                        )
+
+                        # If container name is not in output, container is not running
+                        if job.docker_container_id not in result.stdout:
+                            logger.warning(
+                                "container_job_mismatch_detected",
+                                job_id=str(job.id),
+                                container_id=job.docker_container_id,
+                                reason="Container not running but job status is RUNNING"
+                            )
+
+                            # Mark job as failed
+                            error_message = "Processing interrupted - system sleep/shutdown detected. Container stopped but job remained in running state."
+                            JobService.fail_job(db, job.id, error_message)
+
+                            elapsed_minutes = (datetime.utcnow() - job.started_at).total_seconds() / 60 if job.started_at else 0
+                            failed_jobs.append({
+                                "job_id": str(job.id),
+                                "container_id": job.docker_container_id,
+                                "started_at": job.started_at.isoformat() if job.started_at else None,
+                                "elapsed_minutes": elapsed_minutes,
+                                "reason": "container_stopped"
+                            })
+
+                    except subprocess.TimeoutExpired:
+                        logger.warning("container_check_timeout", job_id=str(job.id), container_id=job.docker_container_id)
+                    except Exception as e:
+                        logger.error("container_check_failed", job_id=str(job.id), container_id=job.docker_container_id, error=str(e))
+
+            if failed_jobs:
+                logger.info("container_job_mismatches_resolved", count=len(failed_jobs))
+
+            return failed_jobs
+
+        except Exception as e:
+            logger.error("container_job_mismatch_check_failed", error=str(e))
+            return []
+        finally:
+            if not db_session:
+                db.close()
+
+    @staticmethod
     def check_for_stuck_jobs(db_session=None, timeout_minutes: int = 120) -> List[dict]:
         """
         Check for jobs that have been processing too long and mark them as failed.
@@ -369,6 +439,9 @@ class TaskManagementService:
     def run_maintenance(db_session=None):
         """Run periodic maintenance tasks for desktop mode"""
         try:
+            # Check for container-job mismatches (jobs running but containers stopped)
+            container_mismatches = TaskManagementService.check_for_container_job_mismatches(db_session)
+
             # Check for stuck jobs (timeout after 2 hours for desktop)
             stuck_jobs = TaskManagementService.check_for_stuck_jobs(db_session, timeout_minutes=120)
 
@@ -378,11 +451,13 @@ class TaskManagementService:
             # Log system stats
             stats = TaskManagementService.get_system_stats()
             logger.info("maintenance_completed",
+                       container_mismatches=len(container_mismatches),
                        stuck_jobs=len(stuck_jobs),
                        cleaned_jobs=cleaned_count,
                        **stats)
 
             return {
+                "container_mismatches": container_mismatches,
                 "stuck_jobs": stuck_jobs,
                 "cleaned_jobs": cleaned_count,
                 "system_stats": stats

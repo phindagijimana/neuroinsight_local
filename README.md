@@ -104,6 +104,10 @@ cd neuroinsight_local
 ./start.sh
 ```
 
+**Automatic Job Processing:** NeuroInsight automatically starts processing any pending jobs when the application starts. Jobs are processed according to concurrency limits (1 job at a time by default).
+
+**System Resilience:** NeuroInsight includes automatic monitoring that detects jobs interrupted by system sleep or shutdown. Interrupted jobs are automatically marked as failed, allowing normal cleanup and preventing stuck job states.
+
 Visit `http://localhost:8000` to access NeuroInsight.
 
 ## File Upload Requirements
@@ -162,6 +166,27 @@ NeuroInsight supports the following file formats:
 - **Frontend**: 500MB per file
 - **Backend**: 1GB per file
 - **Processing**: 16GB+ RAM recommended for MRI analysis
+
+### Mock Data Usage
+
+NeuroInsight transparently indicates when synthetic/mock data is used instead of real FreeSurfer analysis. This occurs in the following scenarios:
+
+- **FreeSurfer License Missing**: When no `license.txt` file is found
+- **Processing Failures**: When FreeSurfer containers fail to run or complete
+- **Development/Testing**: When `NEUROINSIGHT_ALLOW_MOCK_FALLBACK=true` is set
+
+**How to identify mock data usage:**
+- Job names will display **"(Mock Data)"** suffix in the completed jobs list
+- Example: `brain_scan.nii.gz (Mock Data)`
+- Results will be clearly marked as simulated data
+
+**Clinical Use Warning:**
+Mock data provides realistic-looking results for testing purposes but should **never be used for clinical decisions**. Always ensure FreeSurfer license is properly installed for medical applications.
+
+To enable full FreeSurfer analysis:
+1. Obtain a FreeSurfer license from: https://surfer.nmr.mgh.harvard.edu/registration.html
+2. Place `license.txt` in the NeuroInsight application directory
+3. Restart the application
 
 ## Windows Installation (via WSL2)
 

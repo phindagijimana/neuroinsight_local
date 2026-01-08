@@ -214,7 +214,37 @@ class MRIProcessor:
                 logger.warning("failed_to_store_container_id", error=str(e), container_id=container_id)
                 self.db_session.rollback()
 
+    def _cleanup_job_containers(self) -> None:
+        """
+        Clean up any running Docker containers for this job.
 
+        This ensures containers don't remain running after job completion,
+        preventing concurrency limit exhaustion.
+        """
+        try:
+            container_name = f"freesurfer-job-{self.job_id}"
+            logger.info("cleaning_up_job_containers", job_id=str(self.job_id), container_name=container_name)
+
+            # Stop the container if it's running
+            result = subprocess_module.run(
+                ["docker", "stop", container_name],
+                capture_output=True,
+                timeout=30
+            )
+
+            if result.returncode == 0:
+                logger.info("stopped_job_container", job_id=str(self.job_id), container_name=container_name)
+            else:
+                # Container might not be running, which is fine
+                logger.debug("container_already_stopped_or_not_found",
+                           job_id=str(self.job_id),
+                           container_name=container_name,
+                           stderr=result.stderr.decode() if result.stderr else "")
+
+        except subprocess_module.TimeoutExpired:
+            logger.warning("container_stop_timeout", job_id=str(self.job_id), container_name=container_name)
+        except Exception as e:
+            logger.warning("container_cleanup_failed", job_id=str(self.job_id), error=str(e))
 
     def validate_disk_space(self) -> None:
         """
@@ -572,7 +602,10 @@ class MRIProcessor:
             job_id=str(self.job_id),
             metrics_count=len(metrics),
         )
-        
+
+        # Ensure any orphaned containers for this job are cleaned up
+        self._cleanup_job_containers()
+
         return {
             "job_id": str(self.job_id),
             "output_dir": str(self.output_dir),
@@ -3430,10 +3463,19 @@ class MRIProcessor:
 
         # Look for FreeSurfer subject directories
         for subdir in ["freesurfer_singularity", "freesurfer_docker", "freesurfer_fallback"]:
-            candidate_dir = freesurfer_dir / f"{subdir}_{self.job_id}" / "stats"
-            if candidate_dir.exists():
-                freesurfer_stats_dir = candidate_dir
-                logger.info("found_freesurfer_stats_directory", stats_dir=str(freesurfer_stats_dir))
+            # Check both direct path and nested Docker path
+            candidate_dirs = [
+                freesurfer_dir / f"{subdir}_{self.job_id}" / "stats",  # Direct path
+                freesurfer_dir / subdir / f"{subdir}_{self.job_id}" / "stats"  # Nested Docker path
+            ]
+
+            for candidate_dir in candidate_dirs:
+                if candidate_dir.exists():
+                    freesurfer_stats_dir = candidate_dir
+                    logger.info("found_freesurfer_stats_directory", stats_dir=str(freesurfer_stats_dir), subdir=subdir)
+                    break
+
+            if freesurfer_stats_dir:
                 break
 
         # Fall back to FastSurfer structure
@@ -4265,6 +4307,9 @@ class MRIProcessor:
         }
 
         logger.info("mock_processing_completed", job_id=str(self.job_id), output_dir=str(output_dir))
+
+        # Ensure any orphaned containers for this job are cleaned up
+        self._cleanup_job_containers()
 
         return results
 

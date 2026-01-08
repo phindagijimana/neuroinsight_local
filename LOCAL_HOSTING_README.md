@@ -87,7 +87,7 @@ cd neuroinsight
 
 # 3. Get FreeSurfer license (required)
 # Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
-# Place license.txt in pipeline/freesurfer_license.txt
+# Place license.txt in the project root directory
 
 # 4. Initialize database
 ./initialize-production-database.sh

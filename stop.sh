@@ -29,6 +29,16 @@ log_error() {
 
 log_info "Stopping NeuroInsight services..."
 
+# Run maintenance to detect interrupted jobs before shutdown
+log_info "Running maintenance to detect interrupted jobs..."
+python3 -c "
+import sys
+sys.path.insert(0, '.')
+from backend.services.task_management_service import TaskManagementService
+result = TaskManagementService.run_maintenance()
+print(f'✅ Maintenance completed: {result}')
+" 2>/dev/null || log_warning "Maintenance check failed"
+
 # Stop Celery worker
 if [ -f "celery.pid" ]; then
     WORKER_PID=$(cat celery.pid)
@@ -54,6 +64,31 @@ if [ -f "celery.pid" ]; then
     log_success "Celery worker stopped"
 else
     log_info "No Celery worker PID file found"
+fi
+
+# Stop job monitor
+if [ -f "job_monitor.pid" ]; then
+    MONITOR_PID=$(cat job_monitor.pid)
+    if kill -0 $MONITOR_PID 2>/dev/null; then
+        log_info "Stopping job monitor (PID: $MONITOR_PID)..."
+        kill $MONITOR_PID 2>/dev/null || true
+
+        # Wait for graceful shutdown
+        WAIT_COUNT=0
+        while kill -0 $MONITOR_PID 2>/dev/null && [ $WAIT_COUNT -lt 5 ]; do
+            sleep 1
+            WAIT_COUNT=$((WAIT_COUNT + 1))
+        done
+
+        if kill -0 $MONITOR_PID 2>/dev/null; then
+            log_warning "Job monitor didn't stop gracefully, forcing..."
+            kill -9 $MONITOR_PID 2>/dev/null || true
+        fi
+    else
+        log_warning "Job monitor PID file exists but process not running"
+    fi
+    rm -f job_monitor.pid
+    log_success "Job monitor stopped"
 fi
 
 # Stop backend

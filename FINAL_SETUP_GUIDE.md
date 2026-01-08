@@ -7,7 +7,7 @@
 ```bash
 # 1. Get FreeSurfer license (REQUIRED)
 # Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
-# Download license.txt and save to: pipeline/freesurfer_license.txt
+# Download license.txt and save to: license.txt (in the project root directory)
 
 # 2. Start everything
 ./setup-production-environment.sh
@@ -48,7 +48,7 @@
 #### **1. FreeSurfer License Setup** 🔴 CRITICAL
 ```bash
 # Download from: https://surfer.nmr.mgh.harvard.edu/registration.html
-# Save license.txt to: pipeline/freesurfer_license.txt
+# Save license.txt to: license.txt (in the project root directory)
 # Replace the placeholder content
 ```
 

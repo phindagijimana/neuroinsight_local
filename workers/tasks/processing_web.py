@@ -245,6 +245,17 @@ def process_mri_task(self, job_id: str):
 
         update_job_progress(db, job_id, 95, "Finalizing results")
 
+        # Check if mock data was used and update filename accordingly
+        if results and results.get("mock_processing"):
+            try:
+                job = db.query(Job).filter(Job.id == job_id).first()
+                if job and not job.filename.endswith(" (Mock Data)"):
+                    job.filename = f"{job.filename} (Mock Data)"
+                    db.commit()
+                    logger.info("job_filename_updated_for_mock_data", job_id=job_id, new_filename=job.filename)
+            except Exception as e:
+                logger.warning("failed_to_update_job_filename_for_mock_data", job_id=job_id, error=str(e))
+
         # Update job with results
         JobService.complete_job(db, job_id, results.get("output_dir"))
 

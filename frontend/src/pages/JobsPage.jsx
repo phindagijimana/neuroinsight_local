@@ -456,8 +456,10 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                         )}
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex items-center gap-2 ml-4">
+                  {/* Action buttons - always visible below content */}
+                  <div className="flex items-center justify-end gap-2 mt-4 border-t border-gray-200 pt-3">
                       {job.status === 'completed' && (
                         <>
                           <button
@@ -487,9 +489,6 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                                 if (response.ok) {
                                   const blob = await response.blob();
                                   const url = window.URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = `neuroinsight_report_${job.id}.pdf`;
                                   document.body.appendChild(a);
                                   a.click();
                                   document.body.removeChild(a);
@@ -521,7 +520,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                             }
                           }
                         }}
-                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
+                        className="p-3 bg-red-600 text-white hover:bg-red-700 rounded-lg transition font-semibold"
                         title="Delete Job"
                       >
                         <Trash2 className="w-5 h-5" />

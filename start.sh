@@ -315,6 +315,38 @@ log_success "Celery worker started (PID: $WORKER_PID)"
 # Final verification
 sleep 3
 
+# Run maintenance to detect any interrupted jobs from previous sessions
+log_info "Running maintenance to detect interrupted jobs..."
+if python3 -c "
+import sys
+sys.path.insert(0, '.')
+from backend.services.task_management_service import TaskManagementService
+result = TaskManagementService.run_maintenance()
+print(f'✅ Maintenance completed: {result}')
+" 2>/dev/null; then
+    log_success "Maintenance check completed"
+else
+    log_warning "Maintenance check failed"
+fi
+
+# Start background monitoring for interrupted jobs
+log_info "Starting background job monitoring..."
+python3 -c "
+import sys
+sys.path.insert(0, '.')
+from backend.services.job_monitor import JobMonitor
+monitor = JobMonitor()
+monitor.start_background_monitoring()
+" 2>/dev/null && log_success "Background job monitoring started" || log_warning "Background monitoring failed to start"
+
+# Start processing any pending jobs automatically
+log_info "Checking for pending jobs to process..."
+if python3 trigger_queue.py 2>/dev/null; then
+    log_success "Job queue processing initiated"
+else
+    log_warning "Job queue processing failed - you can run 'python3 trigger_queue.py' manually"
+fi
+
 if curl -s http://localhost:$PORT/health > /dev/null 2>&1; then
     log_success "NeuroInsight is running!"
     echo

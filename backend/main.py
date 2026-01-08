@@ -59,6 +59,9 @@ async def lifespan(app: FastAPI):
     try:
         init_db()
         logger.info("database_initialized")
+
+        # Note: Automatic job processing moved to startup event for better async handling
+
     except Exception as e:
         logger.error("database_initialization_failed", error=str(e))
         logger.warning("continuing_without_database_initialization")
@@ -131,6 +134,10 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+
+# Automatic job processing is handled by the trigger_queue.py script
+# Users should run: python3 trigger_queue.py
+# after starting the application to begin processing pending jobs
 
 # Direct API endpoints (must be defined immediately after app creation)
 @app.get("/api/test-endpoint")

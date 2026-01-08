@@ -69,13 +69,10 @@ cd neuroinsight_local
 # Save license.txt in project directory
 # See: [FreeSurfer License Setup](FREESURFER_LICENSE_README.md) for detailed instructions
 
-# Install and start
-./install.sh
-./check_license.sh  # Verify license
-./start.sh
+# Quick start
+./neuroinsight license  # Check/setup FreeSurfer license
+./neuroinsight start    # Start the complete system
 
-# Access at automatically selected port (typically http://localhost:8000)
-# The startup script will automatically find an available port in range 8000-8050
 
 # Management commands (Terminal-Agnostic)
 ./neuroinsight start     # Start all services (avoids terminal issues)
@@ -119,13 +116,6 @@ wsl --set-default-version 2
 ```
 
 Then follow Linux installation steps within WSL2 terminal. Access at `http://localhost:8000`.
-
-## Management Commands
-
-```bash
-./start.sh    # Start all services
-./stop.sh     # Stop all services
-./check_license.sh  # Verify FreeSurfer license
 ```
 
 ## Documentation

@@ -287,9 +287,9 @@ async def generate_pdf_report(
 
         # Add coronal visualizations for slices 3, 4, 5, 6 in 2x2 grid
         # Use viewer positions 3, 4, 5, 6 mapped to actual hippocampus-optimized slices
-        # These match exactly what users see in positions 3,4,5,6 of the web viewer
-        # Viewer position 3 → actual slice 138, position 4 → 140, position 5 → 143, position 6 → 145
-        coronal_slices = [138, 140, 143, 145]  # Viewer positions 3,4,5,6
+        # These match viewer positions 3,4,5,6 (mapped to sequential file indices)
+        # Viewer position 3 → file 00, position 4 → file 01, position 5 → file 02, position 6 → file 03
+        coronal_slices = [0, 1, 2, 3]  # Viewer positions 3,4,5,6
 
         # Read visualization files directly from filesystem
         from backend.core.config import get_settings

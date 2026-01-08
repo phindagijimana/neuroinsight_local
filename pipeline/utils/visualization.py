@@ -425,16 +425,14 @@ def generate_segmentation_overlays(
             fig, ax = plt.subplots(figsize=(8, 8))
 
             # Ensure we have valid data and proper scaling
+            # Ensure we have valid data and proper scaling
             if t1_slice.size > 0 and np.any(t1_slice != 0):
-                # Normalize for better contrast
-                t1_display = t1_normalized[:, :, slice_num] if slice_axis == 2 else \
-                           t1_normalized[:, slice_num, :] if slice_axis == 1 else \
-                           t1_normalized[slice_num, :, :]
+                # Use the already correctly extracted and oriented t1_slice
+                t1_display = t1_slice
 
-                # Apply same orientation corrections as segmentation
-                if orientation in ['axial', 'coronal']:
-                    t1_display = np.flip(t1_display, axis=(0, 1))
-
+                # Simple display without complex extent calculation
+                ax.imshow(t1_display.T, cmap="gray", origin="upper", interpolation="bilinear")
+                ax.axis("off")
                 # Simple display without complex extent calculation
                 ax.imshow(t1_display.T, cmap='gray', origin='upper', interpolation='bilinear')
                 ax.axis('off')
@@ -453,7 +451,6 @@ def generate_segmentation_overlays(
                 plt.savefig(anatomical_path, bbox_inches='tight', dpi=150, facecolor='white')
                 plt.close()
             
-            logger.info("saved_anatomical_slice", slice_num=slice_num, idx=idx, path=str(anatomical_path), orientation=orientation)
             
             # ====================================================================
             # STEP 2: Generate overlay-only image (transparent PNG with hippocampus)

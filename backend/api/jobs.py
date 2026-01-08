@@ -77,46 +77,6 @@ def list_jobs(
     return {"jobs": result, "total": len(result), "skip": skip, "limit": limit}
 
 
-@router.get("/stats", response_model=dict)
-def get_system_stats(db: Session = Depends(get_db)):
-    """
-    Get comprehensive system statistics for dashboard.
-
-    Includes job counts, performance metrics, and system status.
-
-    Args:
-        db: Database session dependency
-
-    Returns:
-        Dictionary with system statistics
-    """
-    try:
-        # Get job statistics
-        total_jobs = JobService.count_jobs_by_status(db, [JobStatus.PENDING, JobStatus.RUNNING, JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED])
-        completed_jobs = JobService.count_jobs_by_status(db, [JobStatus.COMPLETED])
-        failed_jobs = JobService.count_jobs_by_status(db, [JobStatus.FAILED])
-        running_jobs = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
-        pending_jobs = JobService.count_jobs_by_status(db, [JobStatus.PENDING])
-
-        # Calculate success rate
-        success_rate = (completed_jobs / total_jobs * 100) if total_jobs > 0 else 0
-
-        stats = {
-            "total_jobs": total_jobs,
-            "completed_jobs": completed_jobs,
-            "failed_jobs": failed_jobs,
-            "running_jobs": running_jobs,
-            "pending_jobs": pending_jobs,
-            "success_rate": round(success_rate, 2),
-            "timestamp": datetime.utcnow().isoformat()
-        }
-
-        return stats
-
-    except Exception as e:
-        logger.error("Failed to get system stats", error=str(e))
-        raise HTTPException(status_code=500, detail="Failed to retrieve system statistics")
-
 
 @router.get("/by-id")
 def get_job_by_query(

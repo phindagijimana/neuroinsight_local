@@ -69,6 +69,13 @@ cd neuroinsight_local
 # Save license.txt in project directory
 # See: [FreeSurfer License Setup](FREESURFER_LICENSE_README.md) for detailed instructions
 
+```
+neuroinsight_local/
+├── license.txt    ← Place license here
+├── README.md
+└── ...
+```
+
 # Install and start
 ./install.sh
 ./check_license.sh  # Verify license

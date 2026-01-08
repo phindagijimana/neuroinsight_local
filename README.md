@@ -76,6 +76,12 @@ cd neuroinsight_local
 
 # Access at automatically selected port (typically http://localhost:8000)
 # The startup script will automatically find an available port in range 8000-8050
+
+# Management commands
+./status.sh     # Check system status and health
+./monitor.sh    # Run system health checks and cleanup
+./stop.sh       # Stop all services gracefully
+./stop.sh --clear-stuck  # Stop services and clear stuck jobs
 ```
 
 ## File Requirements

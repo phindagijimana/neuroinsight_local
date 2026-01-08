@@ -11,38 +11,6 @@ Automated hippocampal segmentation and analysis from T1-weighted MRI scans using
 - Multi-format support (NIfTI, DICOM, ZIP)
 - Strict T1-weighted validation
 
-## Project Structure
-
-```
-neuroinsight_local/
-├── LICENSE.txt                    # FreeSurfer license file
-├── README.md                      # This documentation
-├── docker-compose.yml             # Container orchestration
-├── Dockerfile                     # Application container
-├── requirements.txt               # Python dependencies
-├── pyproject.toml                 # Project configuration
-├── start.sh                       # Main startup script
-├── install.sh                     # Installation script
-├── check_license.sh               # License verification
-├── api/                           # FastAPI backend
-│   ├── main.py                    # API entry point
-│   ├── config.py                  # Configuration
-│   └── routes/                    # API endpoints
-├── frontend/                      # React web interface
-│   ├── public/                    # Static assets
-│   ├── src/                       # React source code
-│   └── package.json               # Node dependencies
-├── workers/                       # Celery background tasks
-│   └── tasks/                     # Task definitions
-├── pipeline/                      # MRI processing pipeline
-│   ├── processors/                # Processing modules
-│   └── utils/                     # Helper utilities
-└── docs/                          # Documentation
-    ├── USER_GUIDE.md              # User manual
-    ├── TROUBLESHOUTING.md         # Problem solving
-    └── FREESURFER_LICENSE_README.md # License setup guide
-```
-
 ## Architecture
 
 ```
@@ -98,8 +66,15 @@ cd neuroinsight_local
 
 # Get FreeSurfer license first
 # Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
-# Place license.txt in project root (see Project Structure above)
+# Save license.txt in project directory
 # See: [FreeSurfer License Setup](FREESURFER_LICENSE_README.md) for detailed instructions
+
+```
+neuroinsight_local/
+├── license.txt ← Place license here
+├── README.md
+└── ...
+```
 
 # Install and start
 ./install.sh

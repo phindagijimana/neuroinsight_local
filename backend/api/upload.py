@@ -488,19 +488,24 @@ async def upload_mri(
         job = JobService.create_job(db, job_data)
 
         # Trigger processing asynchronously
-        # Check if there's already a running job (max 1 concurrent running job)
-        # (We already checked running_jobs above, but re-check after job creation to be safe)
-        running_jobs_now = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
+        # Always call process_job_queue to ensure proper job starting logic
+        try:
+            JobService.process_job_queue(db)
+            logger.info("job_queue_processed_after_creation", job_id=str(job.id))
+        except Exception as queue_error:
+            logger.warning("job_queue_processing_failed_after_creation",
+                         job_id=str(job.id), error=str(queue_error))
 
-        if running_jobs_now == 0:
-            # No running jobs, start processing immediately
-            try:
-                # Submit Celery task for processing
+            # Fallback: try to start job immediately if no running jobs
+            running_jobs_now = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
+            if running_jobs_now == 0:
                 try:
-                    from workers.tasks.processing_web import process_mri_task
-                    # Submit to Celery queue
-                    task = process_mri_task.delay(str(job.id))
-                    logger.info("celery_task_submitted", job_id=str(job.id), celery_task_id=task.id)
+                    # Submit Celery task for processing
+                    try:
+                        from workers.tasks.processing_web import process_mri_task
+                        # Submit to Celery queue
+                        task = process_mri_task.delay(str(job.id))
+                        logger.info("celery_task_submitted_fallback", job_id=str(job.id), celery_task_id=task.id)
 
                 except ImportError as e:
                     logger.error("celery_import_failed", error=str(e))

@@ -93,6 +93,31 @@ class JobMonitor:
                               container_mismatches=len(container_mismatches),
                               stuck_jobs=len(stuck_jobs))
 
+                # Check for and process pending jobs
+                try:
+                    from backend.core.database import SessionLocal
+                    from backend.services.job_service import JobService
+
+                    db = SessionLocal()
+                    try:
+                        pending_count = JobService.count_jobs_by_status(db, ['PENDING'])
+                        running_count = JobService.count_jobs_by_status(db, ['RUNNING'])
+
+                        if pending_count > 0 and running_count == 0:
+                            logger.info("monitor_found_pending_jobs_processing_queue",
+                                      pending_count=pending_count)
+                            JobService.process_job_queue(db)
+                        elif pending_count > 0:
+                            logger.debug("pending_jobs_waiting_for_running_jobs",
+                                       pending_count=pending_count,
+                                       running_count=running_count)
+                    finally:
+                        db.close()
+
+                except Exception as queue_error:
+                    logger.warning("job_queue_processing_failed_in_monitor",
+                                 error=str(queue_error))
+
                 # Sleep until next check
                 time.sleep(self.check_interval)
 

@@ -322,18 +322,48 @@ fi
 
 # Start background monitoring for interrupted jobs
 log_info "Starting background job monitoring..."
-python3 -c "
+if python3 -c "
 import sys
 sys.path.insert(0, '.')
 from backend.services.job_monitor import JobMonitor
-monitor = JobMonitor()
-monitor.start_background_monitoring()
-" 2>/dev/null && log_success "Background job monitoring started" || log_warning "Background monitoring failed to start"
+try:
+    monitor = JobMonitor()
+    monitor.start_background_monitoring()
+    print('Background monitoring started successfully')
+except Exception as e:
+    print(f'Error starting background monitoring: {e}')
+    exit(1)
+" 2>/dev/null; then
+    log_success "Background job monitoring started"
+else
+    log_warning "Background monitoring failed to start - jobs may not auto-process on completion"
+fi
 
 # Start processing any pending jobs automatically
 log_info "Checking for pending jobs to process..."
-if python3 trigger_queue.py 2>/dev/null; then
-    log_success "Job queue processing initiated"
+if python3 -c "
+import sys
+sys.path.insert(0, '.')
+from backend.core.database import get_db
+from backend.services.job_service import JobService
+
+try:
+    db = next(get_db())
+    pending_count = JobService.count_jobs_by_status(db, ['PENDING'])
+    running_count = JobService.count_jobs_by_status(db, ['RUNNING'])
+
+    if pending_count > 0:
+        print(f'Found {pending_count} pending job(s), starting queue processing...')
+        JobService.process_job_queue(db)
+        print('Job queue processing initiated successfully')
+    else:
+        print('No pending jobs found')
+
+except Exception as e:
+    print(f'Error during job queue processing: {e}')
+    exit(1)
+"; then
+    log_success "Job queue processing completed successfully"
 else
     log_warning "Job queue processing failed - you can run 'python3 trigger_queue.py' manually"
 fi

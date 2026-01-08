@@ -16,7 +16,7 @@ from backend.core.logging import get_logger
 from backend.schemas import JobResponse, JobStatus
 from backend.models import Job
 from backend.schemas.metric import MetricResponse
-from backend.services import JobService
+from backend.services import JobService, MetricService
 from backend.core.config import get_settings
 
 settings = get_settings()
@@ -118,9 +118,9 @@ def get_system_stats(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Failed to retrieve system statistics")
 
 
-@router.get("/by-id")
+@router.get("/{job_id}")
 def get_job(
-    job_id: str = Query(..., min_length=8, max_length=8, description="Job ID (8 characters)", pattern=r"^[a-f0-9]{8}$"),
+    job_id: str = Path(..., description="Job ID"),
     db: Session = Depends(get_db),
 ):
     """

@@ -9,10 +9,12 @@ NeuroInsight provides automated hippocampal segmentation and analysis from T1-we
 
 ## Features
 
+- **Strict T1-Weighted Validation**: Only accepts MRI scans with confirmed T1-weighted indicators in filenames
 - Automated MRI processing with FreeSurfer
 - Web-based interface for easy access
 - Real-time progress monitoring
 - Containerized deployment
+- Multi-format support (NIfTI, DICOM, ZIP)
 
 ## Architecture
 
@@ -43,13 +45,13 @@ NeuroInsight provides automated hippocampal segmentation and analysis from T1-we
 ```
 
 **Key Components:**
-- **Frontend**: React web interface for uploads and visualization
-- **API**: FastAPI backend handling requests and job management
+- **Frontend**: React web interface for T1-weighted MRI uploads and visualization
+- **API**: FastAPI backend handling requests, T1 validation, and job management
 - **Workers**: Celery processes for background MRI analysis
 - **Database**: PostgreSQL for storing job metadata and results
 - **Queue**: Redis for task coordination and real-time updates
 - **Storage**: MinIO for MRI files and generated outputs
-- **Processing**: FreeSurfer for automated hippocampal segmentation
+- **Processing**: FreeSurfer for automated hippocampal segmentation from T1-weighted scans
 
 ## Quick Start
 
@@ -59,6 +61,7 @@ NeuroInsight provides automated hippocampal segmentation and analysis from T1-we
 - 4+ CPU cores, 50GB+ storage
 - Docker and Docker Compose
 - FreeSurfer license (free for research)
+- **T1-weighted MRI scans** (filenames must contain T1 indicators)
 
 **Memory Warning:** While NeuroInsight installs on 8GB systems, MRI processing requires 16GB+ RAM. Systems with less than 16GB may experience processing failures.
 
@@ -102,6 +105,63 @@ cd neuroinsight_local
 ```
 
 Visit `http://localhost:8000` to access NeuroInsight.
+
+## File Upload Requirements
+
+**Important:** NeuroInsight only processes T1-weighted MRI scans. All uploaded files must have T1 indicators in their filenames.
+
+### Required T1 Indicators
+
+Your MRI scan filenames must include one of these T1-weighted indicators:
+
+- `t1` - Basic T1 indicator
+- `t1w` - T1-weighted
+- `t1-weighted` - T1-weighted (full)
+- `mprage` - MPRAGE sequence
+- `spgr` - SPGR sequence
+- `tfl` - TurboFLASH sequence
+- `tfe` - Turbo Field Echo
+- `fspgr` - Fast SPGR sequence
+
+### Valid Filename Examples
+
+**Accepted filenames:**
+- `patient001_T1w.nii`
+- `subject_01_mprage.nii.gz`
+- `scan_t1_weighted.dcm`
+- `brain_T1_spgr.nii`
+
+**Rejected filenames:**
+- `patient_scan.nii` (no T1 indicator)
+- `brain_image.dcm` (no T1 indicator)
+- `mri_data.nii.gz` (no T1 indicator)
+
+### Upload Validation
+
+NeuroInsight validates T1 requirements at multiple levels:
+
+1. **File Selection**: Immediate feedback when selecting invalid files
+2. **Form Submission**: Validation before upload begins
+3. **Backend Processing**: Final validation before job creation
+
+**Error Message:** `Filename must contain T1 indicators. Expected one of: t1, t1w, t1-weighted, mprage, spgr, tfl, tfe, fspgr`
+
+### Supported File Formats
+
+**Recommended:** Use NIfTI format (`.nii` or `.nii.gz`) for optimal processing and compatibility.
+
+NeuroInsight supports the following file formats:
+- **NIfTI** (Recommended): `.nii`, `.nii.gz` - Best format for MRI analysis
+- **DICOM**: `.dcm`, `.dicom` - Raw scanner output
+- **ZIP Archives**: `.zip` - Auto-extracted DICOM series
+
+**Note:** While DICOM and ZIP formats are supported, NIfTI is recommended for faster processing and better compatibility with FreeSurfer analysis tools.
+
+### File Size Limits
+
+- **Frontend**: 500MB per file
+- **Backend**: 1GB per file
+- **Processing**: 16GB+ RAM recommended for MRI analysis
 
 ## Windows Installation (via WSL2)
 
@@ -168,6 +228,27 @@ cd neuroinsight_local
 - **Web Interface:** Open browser on Windows → `http://localhost:8000`
 - **API Docs:** `http://localhost:8002/docs`
 - All services run within WSL2 but are accessible from Windows
+
+### Optional: Auto-Start Service (Linux)
+
+For automatic startup on system boot:
+
+```bash
+# Copy service file to systemd directory
+sudo cp neuroinsight.service /etc/systemd/system/
+
+# Reload systemd daemon
+sudo systemctl daemon-reload
+
+# Enable auto-start
+sudo systemctl enable neuroinsight
+
+# Start service manually
+sudo systemctl start neuroinsight
+
+# Check status
+sudo systemctl status neuroinsight
+```
 
 ### WSL2 Tips for Windows Users
 

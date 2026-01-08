@@ -62,6 +62,32 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error("database_initialization_failed", error=str(e))
         logger.warning("continuing_without_database_initialization")
+
+    # Clean up temporary files from previous runs
+    try:
+        import shutil
+        import os
+        from pathlib import Path
+
+        # Clean up temp directories older than 1 hour
+        temp_base = Path(settings.data_dir) / "temp"
+        if temp_base.exists():
+            import time
+            current_time = time.time()
+            for temp_dir in temp_base.iterdir():
+                if temp_dir.is_dir():
+                    try:
+                        # Check if directory is older than 1 hour
+                        dir_mtime = temp_dir.stat().st_mtime
+                        if current_time - dir_mtime > 3600:  # 1 hour
+                            shutil.rmtree(temp_dir)
+                            logger.info("cleanup_temp_directory", path=str(temp_dir))
+                    except Exception as e:
+                        logger.warning("temp_directory_cleanup_failed", path=str(temp_dir), error=str(e))
+
+        logger.info("temp_file_cleanup_completed")
+    except Exception as e:
+        logger.warning("temp_file_cleanup_failed", error=str(e))
         # Don't raise - let the app start even if DB init fails
 
 

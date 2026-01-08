@@ -82,7 +82,7 @@ if [ -z "$PORT" ]; then
     log_info "Finding available port (8000-8050)..."
 
     for port in {8000..8050}; do
-        if ! lsof -Pi :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
+        if ! lsof -i :$port -sTCP:LISTEN -t >/dev/null 2>&1; then
             PORT=$port
             log_success "Auto-selected available port: $PORT"
             break
@@ -184,6 +184,62 @@ elif (( $(echo "$TOTAL_MEM_GB < 32" | bc -l) )); then
     log_info "For optimal performance, consider 32GB+ RAM"
 else
     log_success "Memory: ${TOTAL_MEM_GB}GB (optimal for NeuroInsight)"
+fi
+
+# Check available disk space
+log_info "Checking disk space..."
+AVAILABLE_SPACE_GB=$(df -BG . | tail -1 | awk '{print $4}' | sed 's/G//')
+if [ $AVAILABLE_SPACE_GB -lt 10 ]; then
+    log_error "Insufficient disk space: ${AVAILABLE_SPACE_GB}GB available, minimum 10GB required"
+    log_error "Please free up disk space before starting NeuroInsight"
+    exit 1
+elif [ $AVAILABLE_SPACE_GB -lt 50 ]; then
+    log_warning "Limited disk space: ${AVAILABLE_SPACE_GB}GB available"
+    log_warning "Consider 50GB+ for processing multiple MRI scans"
+    log_warning "Temporary files during processing may exhaust disk space"
+else
+    log_success "Disk space: ${AVAILABLE_SPACE_GB}GB available"
+fi
+
+# Check port availability
+log_info "Checking port availability..."
+if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    log_error "Port 8000 is already in use"
+    log_error "Please stop the conflicting service or choose a different port"
+    log_info "To find what's using port 8000: sudo lsof -i :8000"
+    exit 1
+else
+    log_success "Port 8000 is available"
+fi
+
+# Validate Python version
+log_info "Validating Python version..."
+if command -v python3 &> /dev/null; then
+    PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+    PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+    PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+
+    if [ $PYTHON_MAJOR -eq 3 ] && [ $PYTHON_MINOR -ge 8 ] && [ $PYTHON_MINOR -le 12 ]; then
+        log_success "Python version: ${PYTHON_VERSION} (compatible)"
+    else
+        log_error "Python version ${PYTHON_VERSION} may not be compatible"
+        log_error "Recommended: Python 3.8 - 3.12"
+        exit 1
+    fi
+else
+    log_error "Python 3 not found. Please install Python 3.8+"
+    exit 1
+fi
+
+# Validate Docker availability
+log_info "Validating Docker availability..."
+if command -v docker &> /dev/null; then
+    DOCKER_VERSION=$(docker --version | sed 's/Docker version //' | cut -d, -f1)
+    log_success "Docker available: ${DOCKER_VERSION}"
+else
+    log_error "Docker not found. Please install Docker"
+    log_error "Visit: https://docs.docker.com/get-docker/"
+    exit 1
 fi
 
 # Allow app to start even without license (graceful degradation)

@@ -11,9 +11,7 @@ import Clock from '../components/icons/Clock.jsx'
 import XCircle from '../components/icons/XCircle.jsx'
 import Trash2 from '../components/icons/Trash2.jsx'
 
-function JobsPage({ setActivePage, setSelectedJobId }) {
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
+function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUpdate, lastRefreshTime, isRefreshing }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -26,14 +24,7 @@ function JobsPage({ setActivePage, setSelectedJobId }) {
     notes: ''
   });
   const [stats, setStats] = useState(null);
-
-  useEffect(() => {
-    loadJobs();
-    const interval = setInterval(() => {
-      loadJobs();
-    }, 10000); // Auto-refresh every 10 seconds
-    return () => clearInterval(interval);
-  }, []);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Calculate statistics whenever jobs change
   useEffect(() => {
@@ -49,10 +40,10 @@ function JobsPage({ setActivePage, setSelectedJobId }) {
     }
   }, [jobs]);
 
-  const loadJobs = async () => {
-    const fetchedJobs = await apiService.getJobs();
-    setJobs(fetchedJobs);
-    setLoading(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await onJobsUpdate();
+    setTimeout(() => setRefreshing(false), 500); // Show refresh indicator briefly
   };
 
   const handleFileSelect = (event) => {
@@ -117,7 +108,7 @@ function JobsPage({ setActivePage, setSelectedJobId }) {
         notes: ''
       });
       // Refresh jobs list
-      await loadJobs();
+      await onJobsUpdate();
       setTimeout(() => setUploadProgress(null), 2000);
     } catch (error) {
       console.error('Upload failed:', error);
@@ -321,13 +312,26 @@ function JobsPage({ setActivePage, setSelectedJobId }) {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-blue-100 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900">Recent Jobs</h2>
-            <div className="text-sm text-gray-500">
-              Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
-              {(stats?.completed > 0) && ` (${stats.completed} completed)`}
+            <div className="flex items-center gap-4">
+              {lastRefreshTime && (
+                <div className="text-xs text-gray-500 flex items-center gap-1">
+                  <div className={`w-2 h-2 rounded-full ${isRefreshing ? 'bg-blue-400 animate-pulse' : 'bg-green-400'}`}></div>
+                  Updated {lastRefreshTime.toLocaleTimeString()}
+                </div>
+              )}
+              <button
+                onClick={() => onJobsUpdate(true)}
+                disabled={isRefreshing}
+                className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition disabled:opacity-50"
+                title="Refresh job list"
+              >
+                <div className={`w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full transition-opacity ${isRefreshing ? 'animate-spin opacity-100' : 'opacity-0'}`}></div>
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
+              </button>
             </div>
           </div>
 
-          {loading ? (
+          {jobsLoading ? (
             <div className="p-12 text-center">
               <div className="animate-spin w-8 h-8 border-4 border-blue-800 border-t-transparent rounded-full mx-auto mb-4"></div>
               <p className="text-gray-600">Loading jobs...</p>
@@ -510,14 +514,7 @@ function JobsPage({ setActivePage, setSelectedJobId }) {
                           if (confirm('Delete this job?')) {
                             try {
                               await apiService.deleteJob(job.id);
-                              setJobs(jobs.filter(j => j.id !== job.id));
-                              // Update stats
-                              const newStats = {
-                                ...stats,
-                                total: stats.total - 1,
-                                [job.status]: stats[job.status] - 1
-                              };
-                              setStats(newStats);
+                              await onJobsUpdate(); // Refresh global job state
                             } catch (error) {
                               console.error('Delete failed:', error);
                               alert('Failed to delete job');

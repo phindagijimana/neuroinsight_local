@@ -300,15 +300,19 @@
       async uploadFile(file, onProgress, metadata = {}) {
         const formData = new FormData();
         formData.append('file', file);
-        
-        // Add patient metadata if provided
+
+        // Add patient metadata as JSON string
         if (metadata && Object.keys(metadata).length > 0) {
-          // Only append non-empty fields
+          // Filter out empty values and send as JSON
+          const cleanMetadata = {};
           Object.entries(metadata).forEach(([key, value]) => {
             if (value && value.trim() !== '') {
-              formData.append(key, value);
+              cleanMetadata[key] = value;
             }
           });
+          formData.append('patient_data', JSON.stringify(cleanMetadata));
+        } else {
+          formData.append('patient_data', '{}');
         }
         
         return new Promise((resolve, reject) => {
@@ -910,9 +914,17 @@
         } else {
           // Check file extension
           const allowedExtensions = ['.nii', '.nii.gz', '.dcm', '.dicom', '.zip'];
-          const fileExt = selectedFile.name.toLowerCase().substring(selectedFile.name.lastIndexOf('.'));
-          if (!allowedExtensions.includes(fileExt)) {
+          const fileName = selectedFile.name.toLowerCase();
+          const isValidExt = allowedExtensions.some(ext => fileName.endsWith(ext));
+          if (!isValidExt) {
             errors.file = `Invalid file type. Supported: ${allowedExtensions.join(', ')}`;
+          }
+
+          // Check for T1 indicators in filename
+          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr'];
+          const has_t1_indicator = t1_indicators.some(indicator => fileName.includes(indicator));
+          if (!has_t1_indicator) {
+            errors.file = `Filename must contain T1 indicators. Expected one of: ${t1_indicators.join(', ')}`;
           }
 
           // Check file size (500MB limit)
@@ -927,11 +939,17 @@
         return valid;
       };
 
-      // Validate form whenever patientInfo or selectedFile changes
+      // Form validation is now handled only on submit attempt
+
+      // Update form validity for button state (without showing errors)
       useEffect(() => {
-        validateForm();
-      }, [patientInfo, selectedFile]);
-      
+        const hasPatientName = patientInfo.patient_name.trim();
+        const hasFile = !!selectedFile;
+        const hasRequiredFields = hasPatientName && hasFile;
+        console.log('Form validity check:', { hasPatientName, hasFile, selectedFile: selectedFile?.name, hasRequiredFields });
+        setIsFormValid(hasRequiredFields);
+      }, [patientInfo.patient_name, selectedFile]);
+
       // Load jobs on mount and auto-refresh
       useEffect(() => {
         console.log('JobsPage mounted, loading jobs...');
@@ -1053,13 +1071,25 @@
       const handleFileSelect = (e) => {
         const file = e.target.files?.[0];
         if (file) {
-          const validFormats = ['.nii', '.gz', '.dcm', '.dicom'];
-          const isValid = validFormats.some(format => file.name.toLowerCase().endsWith(format));
-          if (isValid) {
-            setSelectedFile(file);
-          } else {
-            alert('Invalid file format. Please upload .nii, .gz, .dcm, or .dicom files.');
+          const validFormats = ['.nii', '.nii.gz', '.dcm', '.dicom', '.zip'];
+          const fileName = file.name.toLowerCase();
+          const isValidFormat = validFormats.some(format => fileName.endsWith(format));
+
+          if (!isValidFormat) {
+            alert('Invalid file format. Please upload .nii, .nii.gz, .dcm, .dicom, or .zip files.');
+            return;
           }
+
+          // Check for T1 indicators in filename
+          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr'];
+          const has_t1_indicator = t1_indicators.some(indicator => fileName.includes(indicator));
+
+          if (!has_t1_indicator) {
+            alert(`Filename must contain T1 indicators. Expected one of: ${t1_indicators.join(', ')}`);
+            return;
+          }
+
+          setSelectedFile(file);
         }
       };
       
@@ -1068,17 +1098,34 @@
         setIsDragging(false);
         const file = e.dataTransfer.files[0];
         if (file) {
-          const validFormats = ['.nii', '.gz', '.dcm', '.dicom'];
-          const isValid = validFormats.some(format => file.name.toLowerCase().endsWith(format));
-          if (isValid) {
-            setSelectedFile(file);
+          const validFormats = ['.nii', '.nii.gz', '.dcm', '.dicom', '.zip'];
+          const fileName = file.name.toLowerCase();
+          const isValidFormat = validFormats.some(format => fileName.endsWith(format));
+
+          if (!isValidFormat) {
+            return; // Invalid format, don't set file
           }
+
+          // Check for T1 indicators in filename
+          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr'];
+          const has_t1_indicator = t1_indicators.some(indicator => fileName.includes(indicator));
+
+          if (!has_t1_indicator) {
+            return; // No T1 indicator, don't set file
+          }
+
+          setSelectedFile(file);
         }
       };
       
       const handleUpload = async () => {
+        // Validate form before attempting upload
+        if (!validateForm()) {
+          return; // Validation failed, errors are now displayed
+        }
+
         if (!selectedFile) return;
-        
+
         try {
           setUploadProgress(0);
           const job = await ApiService.uploadFile(selectedFile, (progress) => {
@@ -1269,9 +1316,9 @@
                   </div>
                 )}
                 {!isFormValid && Object.keys(formErrors).length > 0 && !formErrors.submit && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-800 font-medium">Please fix the following errors:</p>
-                    <ul className="mt-1 text-sm text-red-700 list-disc list-inside">
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800 font-medium">Please fix the following errors:</p>
+                    <ul className="mt-1 text-sm text-blue-700 list-disc list-inside">
                       {Object.entries(formErrors).filter(([key]) => key !== 'submit').map(([field, error]) => (
                         <li key={field}>{error}</li>
                       ))}
@@ -1295,11 +1342,11 @@
                       onChange={(e) => handlePatientInfoChange('patient_name', e.target.value)}
                       placeholder="Enter patient name"
                       className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
-                        formErrors.patient_name ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                        formErrors.patient_name ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500' : 'border-gray-300'
                       }`}
                     />
                     {formErrors.patient_name && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.patient_name}</p>
+                      <p className="mt-1 text-sm text-blue-600">{formErrors.patient_name}</p>
                     )}
                   </div>
                   <div>
@@ -1314,11 +1361,11 @@
                       min="0"
                       max="150"
                       className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
-                        formErrors.age ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                        formErrors.age ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500' : 'border-gray-300'
                       }`}
                     />
                     {formErrors.age && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.age}</p>
+                      <p className="mt-1 text-sm text-blue-600">{formErrors.age}</p>
                     )}
                   </div>
                   <div>
@@ -1329,7 +1376,7 @@
                       value={patientInfo.sex}
                       onChange={(e) => handlePatientInfoChange('sex', e.target.value)}
                       className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
-                        formErrors.sex ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                        formErrors.sex ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500' : 'border-gray-300'
                       }`}
                     >
                       <option value="">Select...</option>
@@ -1338,7 +1385,7 @@
                       <option value="Other">Other</option>
                     </select>
                     {formErrors.sex && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.sex}</p>
+                      <p className="mt-1 text-sm text-blue-600">{formErrors.sex}</p>
                     )}
                   </div>
                   <div>
@@ -1351,11 +1398,11 @@
                       onChange={(e) => handlePatientInfoChange('scanner', e.target.value)}
                       placeholder="e.g., Siemens, GE, Philips"
                       className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
-                        formErrors.scanner ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                        formErrors.scanner ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500' : 'border-gray-300'
                       }`}
                     />
                     {formErrors.scanner && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.scanner}</p>
+                      <p className="mt-1 text-sm text-blue-600">{formErrors.scanner}</p>
                     )}
                   </div>
                   <div>
@@ -1366,13 +1413,13 @@
                       type="text"
                       value={patientInfo.sequence}
                       onChange={(e) => handlePatientInfoChange('sequence', e.target.value)}
-                      placeholder="e.g., T1w, T2w, FLAIR"
+                      placeholder="e.g., T1w"
                       className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
-                        formErrors.sequence ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300'
+                        formErrors.sequence ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500' : 'border-gray-300'
                       }`}
                     />
                     {formErrors.sequence && (
-                      <p className="mt-1 text-sm text-red-600">{formErrors.sequence}</p>
+                      <p className="mt-1 text-sm text-blue-600">{formErrors.sequence}</p>
                     )}
                   </div>
                   <div>
@@ -1424,7 +1471,7 @@
                     Accepted formats: .dcm, .nii, .nii.gz • Max size: 500MB
                   </p>
                   {formErrors.file && (
-                    <p className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
+                    <p className="mt-2 text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
                       {formErrors.file}
                     </p>
                   )}

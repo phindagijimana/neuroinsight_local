@@ -9,17 +9,17 @@ if [[ "$TERM_PROGRAM" == "vscode" ]] || [[ "$TERM_PROGRAM" == "vscode-insiders" 
     echo ""
 
     # Use Python directly to avoid terminal issues
-    exec python3 start.sh "$@"
+    exec python3 start.py "$@"
 else
     # Use Python-based scripts for consistency
     case "$1" in
         start)
             echo "Starting NeuroInsight..."
-            exec python3 start.sh
+            exec python3 start.py
             ;;
         stop)
             echo "Stopping NeuroInsight..."
-            exec python3 stop.sh "${@:2}"
+            exec python3 stop.py "${@:2}"
             ;;
         status)
             echo "NeuroInsight Status..."

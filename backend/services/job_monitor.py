@@ -26,17 +26,20 @@ class JobMonitor:
     handles system interruptions gracefully.
     """
 
-    def __init__(self, check_interval: int = 60):
+    def __init__(self, check_interval: int = 60, cleanup_grace_period_minutes: int = 60):
         """
         Initialize the job monitor.
 
         Args:
             check_interval: Seconds between maintenance checks (default: 60)
+            cleanup_grace_period_minutes: Minutes to wait before auto-cleanup (default: 60)
         """
         self.check_interval = check_interval
+        self.cleanup_grace_period_minutes = cleanup_grace_period_minutes
         self.monitor_thread: Optional[threading.Thread] = None
         self.running = False
         self.pid_file = "job_monitor.pid"
+        self.tracked_stuck_jobs = {}  # Track stuck jobs with timestamps
 
     def start_background_monitoring(self):
         """
@@ -97,6 +100,8 @@ class JobMonitor:
                 try:
                     from backend.core.database import SessionLocal
                     from backend.services.job_service import JobService
+                    from backend.models.job import Job, JobStatus
+                    from datetime import datetime, timedelta
 
                     db = SessionLocal()
                     try:
@@ -111,6 +116,70 @@ class JobMonitor:
                             logger.debug("pending_jobs_waiting_for_running_jobs",
                                        pending_count=pending_count,
                                        running_count=running_count)
+
+                        # Check for stuck jobs and implement grace period cleanup
+                        now = datetime.utcnow()
+                        grace_period = timedelta(minutes=self.cleanup_grace_period_minutes)
+
+                        # Find running jobs stuck for > 2 hours
+                        stuck_running = db.query(Job).filter(
+                            Job.status == JobStatus.RUNNING,
+                            Job.started_at < (now - timedelta(hours=2))
+                        ).all()
+
+                        # Find pending jobs stuck for > 24 hours
+                        stuck_pending = db.query(Job).filter(
+                            Job.status == JobStatus.PENDING,
+                            Job.created_at < (now - timedelta(hours=24))
+                        ).all()
+
+                        stuck_jobs = stuck_running + stuck_pending
+
+                        for job in stuck_jobs:
+                            job_id = str(job.id)
+
+                            # Track the job if not already tracked
+                            if job_id not in self.tracked_stuck_jobs:
+                                self.tracked_stuck_jobs[job_id] = {
+                                    'first_detected': now,
+                                    'job_status': job.status.value,
+                                    'last_seen': now
+                                }
+                                logger.warning("tracking_stuck_job_for_cleanup",
+                                             job_id=job_id,
+                                             status=job.status.value,
+                                             grace_period_minutes=self.cleanup_grace_period_minutes)
+
+                            # Update last seen time
+                            self.tracked_stuck_jobs[job_id]['last_seen'] = now
+
+                            # Check if grace period has expired
+                            first_detected = self.tracked_stuck_jobs[job_id]['first_detected']
+                            if now - first_detected > grace_period:
+                                logger.error("auto_cleanup_stuck_job",
+                                           job_id=job_id,
+                                           status=job.status.value,
+                                           tracked_for_minutes=self.cleanup_grace_period_minutes)
+
+                                try:
+                                    # Fail the stuck job
+                                    JobService.fail_job(db, job_id,
+                                                      f'Auto-cleaned: Stuck job after {self.cleanup_grace_period_minutes}min grace period')
+
+                                    # Process next job in queue
+                                    JobService.process_job_queue(db)
+
+                                    # Remove from tracking
+                                    del self.tracked_stuck_jobs[job_id]
+
+                                    logger.info("successfully_auto_cleaned_stuck_job",
+                                              job_id=job_id)
+
+                                except Exception as cleanup_error:
+                                    logger.error("failed_to_auto_cleanup_stuck_job",
+                                               job_id=job_id,
+                                               error=str(cleanup_error))
+
                     finally:
                         db.close()
 

@@ -118,10 +118,12 @@ class DockerNotAvailableError(Exception):
         self.instructions = error_info['instructions']
 
 
+print("DEBUG: MRIProcessor class definition loaded")
+
 class MRIProcessor:
     """
     Main processor for MRI hippocampal analysis.
-    
+
     Orchestrates the complete pipeline:
     1. File format validation/conversion
     2. FreeSurfer segmentation
@@ -150,6 +152,11 @@ class MRIProcessor:
 
         # Check if smoke test mode is enabled (for CI/testing)
         self.smoke_test_mode = os.getenv("FASTSURFER_SMOKE_TEST") == "1"
+
+        print(f"DEBUG: About to set mock_processing = False")
+        # Track if mock data was used during processing
+        self.mock_processing = False
+        print(f"DEBUG: Set mock_processing = {self.mock_processing}")
 
         # Initialize progress tracking
         self._current_progress = 0
@@ -606,12 +613,15 @@ class MRIProcessor:
         # Ensure any orphaned containers for this job are cleaned up
         self._cleanup_job_containers()
 
-        return {
+        result = {
             "job_id": str(self.job_id),
             "output_dir": str(self.output_dir),
             "metrics": metrics,
             "visualizations": visualization_paths,
+            "mock_processing": self.mock_processing,
         }
+        print(f"DEBUG: MRI processor returning mock_processing={self.mock_processing}")
+        return result
     
     def _prepare_input(self, input_path: str) -> Path:
         """
@@ -2327,6 +2337,8 @@ class MRIProcessor:
         Generates FreeSurfer directory structure and stats files.
         """
         logger.info("creating_mock_freesurfer_output", output_dir=str(output_dir))
+        # Mark that mock processing was used
+        self.mock_processing = True
 
         subject_id = f"mock_freesurfer_{self.job_id}"
 

@@ -1,241 +1,234 @@
-#!/bin/bash
-# NeuroInsight Stop Script
-# Gracefully stops all services
+#!/usr/bin/env python3
+"""
+NeuroInsight Stop Script - Python-based for reliability
+Aggressively stops all NeuroInsight processes and services
+"""
 
-set -e
+import os
+import sys
+import subprocess
+import signal
+import time
+import psutil
+from pathlib import Path
 
 # Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+RED = '\033[0;31m'
+GREEN = '\033[0;32m'
+YELLOW = '\033[1;33m'
+BLUE = '\033[0;34m'
+NC = '\033[0m'
 
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
+def log_info(msg):
+    print(f"{BLUE}[INFO]{NC} {msg}")
 
-log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
-}
+def log_success(msg):
+    print(f"{GREEN}[SUCCESS]{NC} {msg}")
 
-log_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
+def log_warning(msg):
+    print(f"{YELLOW}[WARNING]{NC} {msg}")
 
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
+def log_error(msg):
+    print(f"{RED}[ERROR]{NC} {msg}")
 
-log_info "Stopping NeuroInsight services..."
+def kill_process_by_pid_file(pid_file, process_name):
+    """Kill process using PID file"""
+    if os.path.exists(pid_file):
+        try:
+            with open(pid_file, 'r') as f:
+                pid = int(f.read().strip())
 
-# First, aggressively stop ALL NeuroInsight processes
-log_info "Cleaning up all NeuroInsight processes..."
-pkill -f "python3.*backend/main.py" 2>/dev/null || true
-pkill -f "python3.*celery.*processing_web" 2>/dev/null || true
-pkill -f "python3.*job_monitor" 2>/dev/null || true
-pkill -f "python3.*trigger_queue" 2>/dev/null || true
+            if psutil.pid_exists(pid):
+                log_info(f"Stopping {process_name} (PID: {pid})...")
 
-# Wait a moment for processes to terminate
-sleep 2
+                # Try graceful shutdown first
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                    # Wait up to 10 seconds for graceful shutdown
+                    for _ in range(10):
+                        if not psutil.pid_exists(pid):
+                            break
+                        time.sleep(1)
 
-# Check for any remaining processes and force kill if necessary
-REMAINING_PROCESSES=$(pgrep -f "python3.*backend/main.py" 2>/dev/null || true)
-if [ ! -z "$REMAINING_PROCESSES" ]; then
-    log_warning "Force killing remaining backend processes..."
-    pkill -9 -f "python3.*backend/main.py" 2>/dev/null || true
-fi
+                    if psutil.pid_exists(pid):
+                        log_warning(f"{process_name} didn't stop gracefully, forcing...")
+                        os.kill(pid, signal.SIGKILL)
+                    else:
+                        log_success(f"{process_name} stopped gracefully")
+                except OSError:
+                    log_warning(f"Process {pid} already dead")
+            else:
+                log_warning(f"{process_name} PID file exists but process not running")
 
-REMAINING_CELERY=$(pgrep -f "python3.*celery.*processing_web" 2>/dev/null || true)
-if [ ! -z "$REMAINING_CELERY" ]; then
-    log_warning "Force killing remaining Celery processes..."
-    pkill -9 -f "python3.*celery.*processing_web" 2>/dev/null || true
-fi
+        except (ValueError, IOError) as e:
+            log_warning(f"Error reading {process_name} PID file: {e}")
 
-# Clean up PID files
-rm -f neuroinsight.pid celery.pid job_monitor.pid
+        # Clean up PID file
+        os.remove(pid_file)
+    else:
+        log_info(f"No {process_name} PID file found")
 
-# Run maintenance to detect interrupted jobs before shutdown
-log_info "Running maintenance to detect interrupted jobs..."
-python3 -c "
-import sys
-sys.path.insert(0, '.')
-from backend.services.task_management_service import TaskManagementService
-result = TaskManagementService.run_maintenance()
-print(f' Maintenance completed: {result}')
-" 2>/dev/null || log_warning "Maintenance check failed"
+def kill_processes_by_pattern(pattern, process_name):
+    """Kill all processes matching a pattern"""
+    try:
+        # Use pgrep to find processes
+        result = subprocess.run(['pgrep', '-f', pattern],
+                              capture_output=True, text=True, check=False)
+        if result.returncode == 0:
+            pids = [int(pid.strip()) for pid in result.stdout.strip().split('\n') if pid.strip()]
+            killed = 0
+            for pid in pids:
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                    killed += 1
+                except (ProcessLookupError, OSError):
+                    pass  # Already dead
+            if killed > 0:
+                log_info(f"Killed {killed} {process_name} processes")
+    except Exception as e:
+        log_warning(f"Error killing {process_name}: {e}")
 
-# Stop Celery worker
-if [ -f "celery.pid" ]; then
-    WORKER_PID=$(cat celery.pid)
-    if kill -0 $WORKER_PID 2>/dev/null; then
-        log_info "Stopping Celery worker (PID: $WORKER_PID)..."
-        kill $WORKER_PID 2>/dev/null || true
-        
-        # Wait for graceful shutdown
-        WAIT_COUNT=0
-        while kill -0 $WORKER_PID 2>/dev/null && [ $WAIT_COUNT -lt 10 ]; do
-            sleep 1
-            WAIT_COUNT=$((WAIT_COUNT + 1))
-        done
-        
-        if kill -0 $WORKER_PID 2>/dev/null; then
-            log_warning "Worker didn't stop gracefully, forcing..."
-            kill -9 $WORKER_PID 2>/dev/null || true
-        fi
-    else
-        log_warning "Worker PID file exists but process not running"
-    fi
-    rm -f celery.pid
-    log_success "Celery worker stopped"
-else
-    log_info "No Celery worker PID file found"
-fi
+def stop_docker_services():
+    """Stop Docker services"""
+    try:
+        log_info("Stopping Docker containers...")
 
-# Stop job monitor
-if [ -f "job_monitor.pid" ]; then
-    MONITOR_PID=$(cat job_monitor.pid)
-    if kill -0 $MONITOR_PID 2>/dev/null; then
-        log_info "Stopping job monitor (PID: $MONITOR_PID)..."
-        kill $MONITOR_PID 2>/dev/null || true
+        # Detect docker compose command
+        try:
+            subprocess.run(['docker', 'compose', 'version'],
+                         capture_output=True, check=True)
+            docker_cmd = ['docker', 'compose']
+        except subprocess.CalledProcessError:
+            try:
+                subprocess.run(['docker-compose', '--version'],
+                             capture_output=True, check=True)
+                docker_cmd = ['docker-compose']
+            except subprocess.CalledProcessError:
+                log_warning("Docker Compose not found")
+                return
 
-        # Wait for graceful shutdown
-        WAIT_COUNT=0
-        while kill -0 $MONITOR_PID 2>/dev/null && [ $WAIT_COUNT -lt 5 ]; do
-            sleep 1
-            WAIT_COUNT=$((WAIT_COUNT + 1))
-        done
+        # Stop services
+        result = subprocess.run(docker_cmd + ['-f', 'docker-compose.hybrid.yml', 'down'],
+                              capture_output=True, text=True, cwd='.')
 
-        if kill -0 $MONITOR_PID 2>/dev/null; then
-            log_warning "Job monitor didn't stop gracefully, forcing..."
-            kill -9 $MONITOR_PID 2>/dev/null || true
-        fi
-    else
-        log_warning "Job monitor PID file exists but process not running"
-    fi
-    rm -f job_monitor.pid
-    log_success "Job monitor stopped"
-fi
+        if result.returncode == 0:
+            log_success("Docker services stopped")
+        else:
+            log_warning(f"Docker stop had issues: {result.stderr}")
 
-# Stop system monitor
-if [ -f "monitor.pid" ]; then
-    SYSMON_PID=$(cat monitor.pid)
-    if kill -0 $SYSMON_PID 2>/dev/null; then
-        log_info "Stopping system monitor (PID: $SYSMON_PID)..."
-        kill $SYSMON_PID 2>/dev/null || true
+        # Force kill any remaining containers
+        try:
+            result = subprocess.run(['docker', 'ps', '-q', '--filter', 'name=neuroinsight'],
+                                  capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                container_ids = result.stdout.strip().split('\n')
+                for container_id in container_ids:
+                    subprocess.run(['docker', 'kill', container_id], capture_output=True)
+                log_success("Force-killed remaining NeuroInsight containers")
+        except Exception as e:
+            log_warning(f"Error force-killing containers: {e}")
 
-        # Wait for graceful shutdown
-        WAIT_COUNT=0
-        while kill -0 $SYSMON_PID 2>/dev/null && [ $WAIT_COUNT -lt 3 ]; do
-            sleep 1
-            WAIT_COUNT=$((WAIT_COUNT + 1))
-        done
+    except Exception as e:
+        log_error(f"Docker stop error: {e}")
 
-        if kill -0 $SYSMON_PID 2>/dev/null; then
-            log_warning "System monitor didn't stop gracefully, forcing..."
-            kill -9 $SYSMON_PID 2>/dev/null || true
-        fi
-    else
-        log_warning "System monitor PID file exists but process not running"
-    fi
-    rm -f monitor.pid
-    log_success "System monitor stopped"
-fi
+def run_maintenance():
+    """Run maintenance before shutdown"""
+    try:
+        log_info("Running maintenance to detect interrupted jobs...")
+        sys.path.insert(0, '.')
+        from backend.services.task_management_service import TaskManagementService
 
-# Stop backend
-if [ -f "neuroinsight.pid" ]; then
-    BACKEND_PID=$(cat neuroinsight.pid)
-    if kill -0 $BACKEND_PID 2>/dev/null; then
-        log_info "Stopping backend (PID: $BACKEND_PID)..."
-        kill $BACKEND_PID 2>/dev/null || true
-        
-        # Wait for graceful shutdown
-        WAIT_COUNT=0
-        while kill -0 $BACKEND_PID 2>/dev/null && [ $WAIT_COUNT -lt 10 ]; do
-            sleep 1
-            WAIT_COUNT=$((WAIT_COUNT + 1))
-        done
-        
-        if kill -0 $BACKEND_PID 2>/dev/null; then
-            log_warning "Backend didn't stop gracefully, forcing..."
-            kill -9 $BACKEND_PID 2>/dev/null || true
-        fi
-    else
-        log_warning "Backend PID file exists but process not running"
-    fi
-    rm -f neuroinsight.pid
-    log_success "Backend stopped"
-else
-    log_info "No backend PID file found"
-fi
+        result = TaskManagementService.run_maintenance()
+        container_mismatches = len(result.get('container_mismatches', []))
+        cleaned_jobs = result.get('cleaned_jobs', 0)
+        log_success(f"Maintenance completed: {container_mismatches} mismatches, {cleaned_jobs} jobs cleaned")
+    except Exception as e:
+        log_warning(f"Maintenance check failed: {e}")
 
-# Stop Docker containers
-log_info "Stopping Docker containers..."
-# Detect available Docker Compose command
-detect_docker_compose() {
-    if command -v docker &> /dev/null; then
-        # Try new syntax first (Docker Compose V2)
-        if docker compose version &> /dev/null 2>&1; then
-            echo "docker compose"
-        # Fall back to old syntax
-        elif docker-compose --version &> /dev/null 2>&1; then
-            echo "docker-compose"
-        else
-            echo ""
-        fi
-    else
-        echo ""
-    fi
-}
+def clear_stuck_jobs():
+    """Clear stuck jobs if requested"""
+    try:
+        log_info("Clearing stuck jobs...")
+        sys.path.insert(0, '.')
+        from backend.core.database import get_db
+        from backend.models.job import Job, JobStatus
+        from datetime import datetime, timedelta
 
-DOCKER_COMPOSE_CMD=$(detect_docker_compose)
-$DOCKER_COMPOSE_CMD -f docker-compose.hybrid.yml down 2>/dev/null || true
+        db = next(get_db())
+        now = datetime.utcnow()
 
-# Check for any remaining containers
-if docker ps | grep -q neuroinsight; then
-    log_warning "Some NeuroInsight containers still running"
-    docker ps | grep neuroinsight
-else
-    log_success "All containers stopped"
-fi
+        # Clear running jobs stuck for >2 hours
+        stuck_running = db.query(Job).filter(
+            Job.status == JobStatus.RUNNING,
+            Job.started_at < (now - timedelta(hours=2))
+        ).all()
 
-log_success "NeuroInsight services stopped"
+        cleared = 0
+        for job in stuck_running:
+            job.status = JobStatus.FAILED
+            job.error_message = "Cleared stuck job during shutdown"
+            job.completed_at = now
+            cleared += 1
 
-# Clear stuck jobs if requested
-if [ "$1" = "--clear-stuck" ]; then
-    log_info "Clearing stuck jobs..."
-    python3 -c "
-import sys
-sys.path.insert(0, '.')
-from datetime import datetime, timedelta
-from backend.core.database import get_db
-from backend.models.job import Job, JobStatus
+        if cleared > 0:
+            db.commit()
+            log_success(f"Cleared {cleared} stuck running jobs")
 
-db = next(get_db())
-now = datetime.utcnow()
-timeout_hours = 2
-cleared_count = 0
+        db.close()
 
-running_jobs = db.query(Job).filter(Job.status == JobStatus.RUNNING).all()
-for job in running_jobs:
-    if job.started_at and (now - job.started_at) > timedelta(hours=timeout_hours):
-        job.status = JobStatus.FAILED
-        job.error_message = f'Auto-cleared: Job stuck for >{timeout_hours} hours'
-        job.completed_at = now
-        cleared_count += 1
-        print(f'Cleared stuck job: {job.id}')
+    except Exception as e:
+        log_error(f"Failed to clear stuck jobs: {e}")
 
-if cleared_count > 0:
-    db.commit()
-    print(f' Cleared {cleared_count} stuck job(s)')
-else:
-    print('ℹ  No stuck jobs to clear')
+def main():
+    print("=" * 50)
+    print("   NeuroInsight Stop (Python-based)")
+    print("=" * 50)
+    print()
 
-db.close()
-" 2>/dev/null || log_error "Failed to clear stuck jobs"
-fi
+    # Change to script directory
+    script_dir = Path(__file__).parent
+    os.chdir(script_dir)
 
-echo
-echo "To restart: ./start.sh"
-echo "To check status: ./status.sh"
-echo "To clear stuck jobs: ./stop.sh --clear-stuck"
+    # Run maintenance first
+    run_maintenance()
+
+    # Check for --clear-stuck flag
+    if len(sys.argv) > 1 and sys.argv[1] == "--clear-stuck":
+        clear_stuck_jobs()
+
+    # Aggressive process cleanup
+    log_info("Aggressively stopping all NeuroInsight processes...")
+
+    # Kill by PID files first
+    kill_process_by_pid_file("neuroinsight.pid", "backend")
+    kill_process_by_pid_file("celery.pid", "Celery worker")
+    kill_process_by_pid_file("job_monitor.pid", "job monitor")
+    kill_process_by_pid_file("monitor.pid", "system monitor")
+
+    # Kill any remaining processes by pattern
+    kill_processes_by_pattern("python3.*backend/main.py", "backend")
+    kill_processes_by_pattern("python3.*celery.*processing_web", "Celery")
+    kill_processes_by_pattern("python3.*job_monitor", "job monitor")
+    kill_processes_by_pattern("python3.*monitor.sh", "system monitor")
+
+    # Stop Docker services
+    stop_docker_services()
+
+    # Final cleanup
+    for pid_file in ["neuroinsight.pid", "celery.pid", "job_monitor.pid", "monitor.pid"]:
+        if os.path.exists(pid_file):
+            try:
+                os.remove(pid_file)
+            except OSError:
+                pass
+
+    log_success("NeuroInsight services stopped completely")
+
+    print()
+    print("=" * 50)
+    print("To restart: python3 start.sh")
+    print("To check status: ./status.sh")
+    print("=" * 50)
+
+if __name__ == "__main__":
+    main()

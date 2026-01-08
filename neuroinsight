@@ -1,0 +1,54 @@
+#!/bin/bash
+"""
+NeuroInsight Launcher - Terminal-agnostic wrapper
+Avoids VS Code/Cursor terminal corruption issues
+"""
+
+# Detect if we're in a problematic terminal environment
+if [[ "$TERM_PROGRAM" == "vscode" ]] || [[ "$TERM_PROGRAM" == "vscode-insiders" ]] || [[ -n "$VSCODE_PID" ]]; then
+    echo "⚠️  Detected VS Code terminal environment"
+    echo "🔧 Using Python-based startup to avoid corruption issues..."
+    echo ""
+
+    # Use Python directly to avoid terminal issues
+    exec python3 start.sh "$@"
+else
+    # Use Python-based scripts for consistency
+    case "$1" in
+        start)
+            echo "🚀 Starting NeuroInsight..."
+            exec python3 start.sh
+            ;;
+        stop)
+            echo "🛑 Stopping NeuroInsight..."
+            exec python3 stop.sh "${@:2}"
+            ;;
+        status)
+            echo "📊 NeuroInsight Status..."
+            exec ./status.sh
+            ;;
+        monitor)
+            echo "🔍 NeuroInsight Monitoring..."
+            exec ./monitor.sh "${@:2}"
+            ;;
+        *)
+            echo "NeuroInsight Control Script"
+            echo ""
+            echo "Usage: $0 {start|stop|status|monitor}"
+            echo ""
+            echo "Commands:"
+            echo "  start   - Start all NeuroInsight services"
+            echo "  stop    - Stop all NeuroInsight services"
+            echo "  status  - Show system status"
+            echo "  monitor - Advanced monitoring options"
+            echo ""
+            echo "Examples:"
+            echo "  $0 start          # Start NeuroInsight"
+            echo "  $0 stop           # Stop NeuroInsight"
+            echo "  $0 stop --clear-stuck  # Stop and clear stuck jobs"
+            echo "  $0 status         # Show system status"
+            echo "  $0 monitor cleanup # Clean up orphaned processes"
+            exit 1
+            ;;
+    esac
+fi

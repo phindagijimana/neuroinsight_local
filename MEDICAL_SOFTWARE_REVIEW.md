@@ -64,3 +64,7 @@
 ## Conclusion
 
 NeuroInsight demonstrates promising neuroimaging capabilities but requires substantial development for medical software standards. Currently appropriate only for controlled research environments with expert oversight.
+
+---
+
+© 2025 University of Rochester. All rights reserved.

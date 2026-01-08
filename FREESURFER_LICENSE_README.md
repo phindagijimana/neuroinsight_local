@@ -45,3 +45,7 @@ neuroinsight_local/
 
 - FreeSurfer: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
 - Check logs: `cat neuroinsight.log`
+
+---
+
+© 2025 University of Rochester. All rights reserved.

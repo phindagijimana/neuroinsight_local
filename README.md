@@ -84,3 +84,5 @@ Then follow Linux installation steps within WSL2 terminal. Access at `http://loc
 ## License
 
 MIT License. FreeSurfer requires separate license for research use.
+
+© 2025 University of Rochester. All rights reserved.

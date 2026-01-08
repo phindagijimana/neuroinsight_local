@@ -118,3 +118,7 @@ docker system prune -a  # Careful: removes all unused containers
 - Check logs: `tail -f neuroinsight.log`
 - GitHub Issues: Report bugs
 - FreeSurfer Support: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
+
+---
+
+© 2025 University of Rochester. All rights reserved.

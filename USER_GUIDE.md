@@ -110,3 +110,7 @@ No, research software only. Not for clinical diagnosis.
 - **Documentation**: Check troubleshooting guide
 - **FreeSurfer**: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
 
+
+---
+
+© 2025 University of Rochester. All rights reserved.

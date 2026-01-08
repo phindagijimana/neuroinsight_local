@@ -67,3 +67,7 @@ Raw MRI → Validation → FreeSurfer → Statistics → Visualization → PDF R
 - Containerized processing for reproducibility
 - PostgreSQL storage for results persistence
 - Redis-based job queue for concurrent processing
+
+---
+
+© 2025 University of Rochester. All rights reserved.

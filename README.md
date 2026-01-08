@@ -74,7 +74,8 @@ cd neuroinsight_local
 ./check_license.sh  # Verify license
 ./start.sh
 
-# Access at http://localhost:8000
+# Access at automatically selected port (typically http://localhost:8000)
+# The startup script will automatically find an available port in range 8000-8050
 ```
 
 ## File Requirements

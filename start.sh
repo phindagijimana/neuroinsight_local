@@ -201,16 +201,7 @@ else
     log_success "Disk space: ${AVAILABLE_SPACE_GB}GB available"
 fi
 
-# Check port availability
-log_info "Checking port availability..."
-if lsof -Pi :8000 -sTCP:LISTEN -t >/dev/null 2>&1; then
-    log_error "Port 8000 is already in use"
-    log_error "Please stop the conflicting service or choose a different port"
-    log_info "To find what's using port 8000: sudo lsof -i :8000"
-    exit 1
-else
-    log_success "Port 8000 is available"
-fi
+# Port availability already checked above during auto-selection
 
 # Validate Python version
 log_info "Validating Python version..."
@@ -277,7 +268,7 @@ source venv/bin/activate
 
 # Start backend
 log_info "Starting NeuroInsight backend..."
-PORT=$PORT PYTHONPATH="$(pwd)" python3 backend/main.py > neuroinsight.log 2>&1 &
+API_PORT=$PORT PORT=$PORT PYTHONPATH="$(pwd)" python3 backend/main.py > neuroinsight.log 2>&1 &
 BACKEND_PID=$!
 echo $BACKEND_PID > neuroinsight.pid
 

@@ -64,6 +64,9 @@ Automated hippocampal segmentation and analysis from T1-weighted MRI scans using
 git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local
 
+# Run installation (one-time setup)
+./install.sh
+
 # Get FreeSurfer license first
 # Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
 # Save license.txt in project directory

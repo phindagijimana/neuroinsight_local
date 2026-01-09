@@ -410,7 +410,7 @@
        */
       async deleteJob(jobId) {
         try {
-          const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/delete/?job_id=${jobId}`, { method: 'DELETE' });
+          const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/delete/${jobId}`, { method: 'DELETE' });
           if (!response.ok) throw new Error('Failed to delete job');
           return true;
         } catch (error) {

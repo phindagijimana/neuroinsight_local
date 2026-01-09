@@ -298,7 +298,7 @@ def get_job_status(
     }
 
 
-@router.delete("/delete/{job_id}", status_code=204)
+@router.delete("/delete/{job_id}")
 def delete_job_by_id(
     job_id: str,
     db: Session = Depends(get_db),
@@ -306,12 +306,17 @@ def delete_job_by_id(
     """
     Delete a job by path parameter (for frontend compatibility).
     """
+    logger.info("delete_job_endpoint_called", job_id=job_id)
     deleted = JobService.delete_job(db, job_id)
 
     if not deleted:
+        logger.warning("job_not_found_for_deletion", job_id=job_id)
         raise HTTPException(status_code=404, detail="Job not found")
 
-@router.delete("/remove", status_code=204)
+    logger.info("job_deleted_successfully", job_id=job_id)
+    return {"message": "Job deleted successfully"}
+
+@router.delete("/remove")
 def delete_job_simple(
     job_id: str = Query(..., description="Job ID"),
     db: Session = Depends(get_db),
@@ -319,8 +324,17 @@ def delete_job_simple(
     """
     Delete a job by query parameter (alternative method).
     """
+    logger.info("delete_job_simple_endpoint_called", job_id=job_id)
     deleted = JobService.delete_job(db, job_id)
 
     if not deleted:
         raise HTTPException(status_code=404, detail="Job not found")
+
+    return {"message": "Job deleted successfully"}
+
+@router.delete("/test-delete")
+def test_delete_endpoint():
+    """Test DELETE endpoint to verify DELETE methods work."""
+    logger.info("test_delete_endpoint_called")
+    return {"message": "DELETE method works!", "method": "DELETE"}
 

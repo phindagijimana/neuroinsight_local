@@ -107,7 +107,7 @@ export const apiService = {
   async deleteJob(jobId) {
     try {
       console.log('Deleting job:', jobId);
-      const response = await fetch(`${API_BASE_URL}/jobs/delete/${jobId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/jobs/delete/${jobId}`, {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json',
@@ -118,9 +118,9 @@ export const apiService = {
         throw new Error(`Failed to delete job: ${response.status} ${response.statusText}`);
       }
 
-      const result = await response.json();
-      console.log('Job deleted successfully:', result);
-      return result;
+      // Backend returns 204 No Content for successful deletion
+      console.log('Job deleted successfully:', jobId);
+      return { success: true };
     } catch (error) {
       console.error('Failed to delete job:', error);
       throw error;

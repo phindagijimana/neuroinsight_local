@@ -536,17 +536,20 @@ class MRIProcessor:
             Dictionary containing processing results and metrics
         """
         logger.info("processing_pipeline_started", job_id=str(self.job_id))
-        print(f"DEBUG: MRI Processor process() called for job {self.job_id}")
+        print(f"DEBUG: MRI Processor process() called for job {self.job_id} - NEW CODE VERSION")
 
-        # Check if we should use real FreeSurfer processing via API bridge
-        use_real_freesurfer = os.getenv("USE_REAL_FREESURFER", "false").lower() == "true"
+        # PRODUCTION MODE: Always use real FreeSurfer processing by default
+        # Only use mock processing if explicitly requested via environment variable
         use_mock = os.getenv("USE_MOCK_PROCESSING", "false").lower() == "true"
 
-        if use_real_freesurfer:
-            return self._api_bridge_process(input_path)
-        elif use_mock:
+        logger.info("production_processing_mode", use_mock=use_mock, default_to_docker=True)
+        print(f"DEBUG: PRODUCTION MODE - use_mock={use_mock}, defaulting to Docker FreeSurfer processing")
+
+        if use_mock:
+            logger.info("explicit_mock_processing_requested")
             return self._mock_process(input_path)
 
+        # For real FreeSurfer processing (default), continue with Docker-based processing
         # Validate system requirements
         self.validate_disk_space()
         self.validate_memory()

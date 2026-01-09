@@ -92,6 +92,29 @@ export class ApiService {
   }
 
   /**
+   * Delete a job by ID
+   */
+  async deleteJob(jobId: string): Promise<void> {
+    try {
+      console.log('Deleting job:', jobId);
+      const response = await fetch(`${this.baseUrl}/api/jobs/delete/${jobId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Delete error:', errorText);
+        throw new Error(`Failed to delete job: ${response.status} ${response.statusText}`);
+      }
+
+      console.log('Job deleted successfully:', jobId);
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get health status
    */
   async getHealth(): Promise<{ status: string }> {

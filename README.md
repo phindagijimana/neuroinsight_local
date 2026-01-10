@@ -21,6 +21,8 @@ cd neuroinsight_local
 # Access at http://localhost:8000
 ```
 
+**Need to reinstall?** Run `./neuroinsight reinstall` for a complete guide.
+
 ## Requirements
 
 - Ubuntu 20.04+ Linux
@@ -38,6 +40,8 @@ Supported formats: NIfTI (.nii, .nii.gz), DICOM (.dcm), ZIP archives
 ## Management Commands
 
 ```bash
+./neuroinsight install   # Install NeuroInsight (one-time setup)
+./neuroinsight reinstall # Complete reinstallation guide
 ./neuroinsight start     # Start all services
 ./neuroinsight stop      # Stop all services
 ./neuroinsight status    # Check system health

@@ -557,8 +557,8 @@ log_success "Python environment setup completed"
 
 log_info "Running final verification..."
 
-# Check if key components can be imported
-python3 -c "
+# Check if key components can be imported (using venv python)
+./venv/bin/python -c "
 try:
     import fastapi
     import sqlalchemy

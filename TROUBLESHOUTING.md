@@ -110,7 +110,7 @@ docker-compose exec redis redis-cli FLUSHALL
 ./neuroinsight stop
 docker-compose down -v --remove-orphans
 docker system prune -a  # Careful: removes all unused containers
-./install.sh  # Reinstall from scratch
+./neuroinsight reinstall  # Get complete reinstallation guide
 ```
 
 ## Support

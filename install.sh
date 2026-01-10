@@ -486,10 +486,10 @@ if [ ! -f "license.txt" ]; then
     echo "   1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
     echo "   2. Register (free for research)"
     echo "   3. Save your license as: license.txt"
-    echo "   4. Run: ./check_license.sh"
+    echo "   4. Run: ./neuroinsight license"
     echo
 else
-    ./check_license.sh
+    ./neuroinsight license
 fi
 
 # Final verification
@@ -578,11 +578,11 @@ echo "      - Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
 echo "      - Download your license.txt file"
 echo "      - Place license.txt in this directory (same folder as NeuroInsight)"
 echo "   2. Start NeuroInsight:"
-echo "      ./start.sh"
+echo "      ./neuroinsight start"
 echo "   3. Open your browser:"
-echo "      http://localhost:8000 (or auto-selected port - check ./status.sh)"
+echo "      http://localhost:8000 (or auto-selected port - check ./neuroinsight status)"
 echo
 echo "For help, see: README.md"
-echo "For troubleshooting: ./check_license.sh"
+echo "For troubleshooting: ./neuroinsight license"
 
 exit 0

@@ -69,7 +69,7 @@ cd neuroinsight_local
 - Ensure license.txt is present
 
 **Web interface won't load:**
-- Confirm services are running (`./status.sh`)
+- Confirm services are running (`./neuroinsight status`)
 - Check port 8000 availability
 - Clear browser cache
 

@@ -65,7 +65,7 @@ git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local
 
 # Run installation (one-time setup)
-./install.sh
+./neuroinsight install
 
 # Get FreeSurfer license first
 # Visit: https://surfer.nmr.mgh.harvard.edu/registration.html

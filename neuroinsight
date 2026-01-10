@@ -4,7 +4,15 @@
 
 # Detect if we're in a problematic terminal environment
 if [[ "$TERM_PROGRAM" == "vscode" ]] || [[ "$TERM_PROGRAM" == "vscode-insiders" ]] || [[ -n "$VSCODE_PID" ]]; then
-            echo "Detected VS Code terminal environment"
+    # Special case for installation - needs regular terminal
+    if [[ "$1" == "install" ]]; then
+        echo "Installation requires a regular terminal (not VS Code terminal)"
+        echo "Please run this command in a regular terminal:"
+        echo "  ./neuroinsight install"
+        exit 1
+    fi
+
+    echo "Detected VS Code terminal environment"
     echo "Using Python-based startup to avoid corruption issues..."
     echo ""
 
@@ -61,12 +69,24 @@ else
                 echo "Note: Without license, NeuroInsight will use mock processing for demonstrations"
             fi
             ;;
+        install)
+            echo "NeuroInsight Installation"
+            if [ -f "install.sh" ]; then
+                echo "Running installation script..."
+                exec ./install.sh
+            else
+                echo "Error: install.sh not found in current directory"
+                echo "Please ensure you're in the NeuroInsight project directory"
+                exit 1
+            fi
+            ;;
         *)
             echo "NeuroInsight Control Script"
             echo ""
-            echo "Usage: $0 {start|stop|status|monitor|license}"
+            echo "Usage: $0 {install|start|stop|status|monitor|license}"
             echo ""
             echo "Commands:"
+            echo "  install - Run NeuroInsight installation"
             echo "  start   - Start all NeuroInsight services"
             echo "  stop    - Stop all NeuroInsight services"
             echo "  status  - Show system status"
@@ -74,6 +94,7 @@ else
             echo "  license - FreeSurfer license management"
             echo ""
             echo "Examples:"
+            echo "  $0 install        # Install NeuroInsight"
             echo "  $0 start          # Start NeuroInsight"
             echo "  $0 stop           # Stop NeuroInsight"
             echo "  $0 stop --clear-stuck  # Stop and clear stuck jobs"

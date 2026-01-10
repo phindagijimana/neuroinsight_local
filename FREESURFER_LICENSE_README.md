@@ -22,8 +22,8 @@ neuroinsight_local/
 ## Verify
 
 ```bash
-./check_license.sh  # Should show license valid
-./start.sh         # Start NeuroInsight
+./neuroinsight license  # Should show license valid
+./neuroinsight start    # Start NeuroInsight
 # Upload MRI file and verify real processing results
 ```
 
@@ -37,7 +37,7 @@ neuroinsight_local/
 - Check file permissions: `chmod 644 license.txt`
 
 **Still not working:**
-- Restart services: `./stop.sh && ./start.sh`
+- Restart services: `./neuroinsight stop && ./neuroinsight start`
 - Check logs: `docker-compose logs freesurfer`
 - Re-download license from FreeSurfer website
 

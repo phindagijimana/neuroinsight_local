@@ -24,9 +24,9 @@ cd neuroinsight_local
 # Save as license.txt in project directory
 
 # Install and start
-./install.sh
-./check_license.sh  # Verify license
-./start.sh
+./neuroinsight install  # One-time installation
+./neuroinsight license  # Verify license
+./neuroinsight start    # Start NeuroInsight
 
 # Access at http://localhost:8000
 ```
@@ -47,10 +47,11 @@ cd neuroinsight_local
 ## Management Commands
 
 ```bash
-./start.sh      # Start all services
-./stop.sh       # Stop all services  
-./status.sh     # Check service status
-./check_license.sh  # Verify FreeSurfer license
+./neuroinsight start     # Start all services
+./neuroinsight stop      # Stop all services
+./neuroinsight status    # Check service status
+./neuroinsight license   # Verify FreeSurfer license
+./neuroinsight monitor   # Advanced monitoring
 ```
 
 ## Troubleshooting
@@ -58,9 +59,9 @@ cd neuroinsight_local
 ### Common Issues
 
 **Jobs stuck in pending:**
-- Check `./status.sh` for running services
+- Check `./neuroinsight status` for running services
 - Ensure FreeSurfer license is valid
-- Restart services: `./stop.sh && ./start.sh`
+- Restart services: `./neuroinsight stop && ./neuroinsight start`
 
 **Processing fails:**
 - Verify T1 indicators in filename

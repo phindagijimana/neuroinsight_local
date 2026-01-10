@@ -3,8 +3,8 @@
 ## Quick Diagnosis
 
 ```bash
-./status.sh  # Check all services
-docker-compose logs  # View container logs
+./neuroinsight status  # Check all services
+docker-compose logs    # View container logs
 ```
 
 ## Common Issues
@@ -36,7 +36,7 @@ docker-compose up -d db
 **License not found:**
 - Verify `license.txt` exists in project root
 - Check file permissions: `ls -la license.txt`
-- Run: `./check_license.sh`
+- Run: `./neuroinsight license`
 
 **Processing shows mock data:**
 - License file missing or invalid
@@ -64,7 +64,7 @@ docker-compose up -d db
 
 **Interface won't load:**
 - Confirm port 8000 available: `netstat -tlnp | grep 8000`
-- Check backend running: `./status.sh`
+- Check backend running: `./neuroinsight status`
 - Clear browser cache, try different browser
 
 **Upload fails:**
@@ -88,26 +88,26 @@ docker-compose up -d db
 
 ### Reset Database
 ```bash
-./stop.sh
+./neuroinsight stop
 docker-compose down -v  # Removes all data
-./start.sh  # Recreates fresh database
+./neuroinsight start  # Recreates fresh database
 ```
 
 ### Clear Job Queue
 ```bash
 # Stop workers first
-./stop.sh
+./neuroinsight stop
 
 # Clear Redis queue
 docker-compose exec redis redis-cli FLUSHALL
 
 # Restart
-./start.sh
+./neuroinsight start
 ```
 
 ### Full System Reset
 ```bash
-./stop.sh
+./neuroinsight stop
 docker-compose down -v --remove-orphans
 docker system prune -a  # Careful: removes all unused containers
 ./install.sh  # Reinstall from scratch

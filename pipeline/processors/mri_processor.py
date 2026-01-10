@@ -31,7 +31,7 @@ settings = get_settings()
 # FreeSurfer fallback constants
 FREESURFER_CONTAINER_IMAGE = "freesurfer/freesurfer:7.4.1"  # Use direct FreeSurfer, not BIDS App
 FREESURFER_CONTAINER_SIZE_GB = 20  # Updated for freesurfer/freesurfer:7.4.1
-FREESURFER_PROCESSING_TIMEOUT_MINUTES = 180  # Extended for primary FreeSurfer usage
+FREESURFER_PROCESSING_TIMEOUT_MINUTES = 300  # Extended for primary FreeSurfer usage (5 hours)
 FREESURFER_DOWNLOAD_TIMEOUT_MINUTES = 20
 
 # FreeSurfer Singularity constants (if available)

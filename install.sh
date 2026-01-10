@@ -509,7 +509,18 @@ fi
 # Final verification
 log_info "Setting up Python environment..."
 
-# Create Python virtual environment
+# Setup Python virtual environment
+if [ -d "venv" ]; then
+    log_info "Checking existing Python virtual environment..."
+    # Test if existing venv is functional
+    if venv/bin/python -c "import psutil, fastapi, sqlalchemy" 2>/dev/null; then
+        log_success "Existing virtual environment is functional"
+    else
+        log_warning "Existing virtual environment is incomplete or broken, recreating..."
+        rm -rf venv
+    fi
+fi
+
 if [ ! -d "venv" ]; then
     log_info "Creating Python virtual environment..."
     python3 -m venv venv
@@ -524,8 +535,6 @@ if [ ! -d "venv" ]; then
         fi
     fi
     log_success "Python virtual environment created"
-else
-    log_warning "Python virtual environment already exists"
 fi
 
 # Activate virtual environment and install dependencies

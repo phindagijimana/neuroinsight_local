@@ -440,21 +440,7 @@ if ! groups | grep -q docker; then
     log_warning "User is not in docker group. You may need to log out and back in."
 fi
 
-# Create Python virtual environment
-log_info "Creating Python virtual environment..."
-python3 -m venv venv
-source venv/bin/activate
-
-# Upgrade pip
-pip install --upgrade pip
-
-# Install build tools for Python 3.12+ compatibility
-log_info "Installing Python build tools..."
-pip install setuptools==68.2.2 wheel
-
-# Install dependencies
-log_info "Installing Python dependencies..."
-pip install -r requirements.txt
+# Python environment setup will be done later in the script
 
 # Build frontend
 log_info "Building frontend..."

@@ -41,7 +41,7 @@ Supported formats: NIfTI (.nii, .nii.gz), DICOM (.dcm), ZIP archives
 
 ```bash
 ./neuroinsight install   # Install NeuroInsight (one-time setup)
-./neuroinsight reinstall # Complete reinstallation guide
+./neuroinsight reinstall # Get step-by-step guide to completely remove and reinstall NeuroInsight for troubleshooting
 ./neuroinsight start     # Start all services
 ./neuroinsight stop      # Stop all services
 ./neuroinsight status    # Check system health

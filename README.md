@@ -21,7 +21,7 @@ cd neuroinsight_local
 # Access at http://localhost:8000
 ```
 
-**Need to reinstall?** Run `./neuroinsight reinstall` for a complete guide.
+**Need to reinstall?** Run `./neuroinsight reinstall` to get detailed step-by-step instructions for completely removing the NeuroInsight directory and performing a fresh installation when troubleshooting persistent issues.
 
 ## Requirements
 
@@ -41,7 +41,7 @@ Supported formats: NIfTI (.nii, .nii.gz), DICOM (.dcm), ZIP archives
 
 ```bash
 ./neuroinsight install   # Install NeuroInsight (one-time setup)
-./neuroinsight reinstall # Get step-by-step guide to completely remove and reinstall NeuroInsight for troubleshooting
+./neuroinsight reinstall # Provides detailed step-by-step instructions to completely remove NeuroInsight directory and perform fresh installation for troubleshooting persistent issues
 ./neuroinsight start     # Start all services
 ./neuroinsight stop      # Stop all services
 ./neuroinsight status    # Check system health

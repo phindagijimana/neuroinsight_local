@@ -86,30 +86,69 @@ else
             echo ""
             echo "This will completely remove NeuroInsight and allow a fresh installation."
             echo ""
-            echo "📋 STEP-BY-STEP INSTRUCTIONS:"
+
+            # Automated cleanup section
+            echo "🔄 AUTOMATED CLEANUP (Running now...):"
             echo ""
-            echo "1. 📁 Navigate to the parent directory (where neuroinsight_local is located):"
+
+            # Stop any running NeuroInsight services first
+            echo "1. 🛑 Stopping any running NeuroInsight services..."
+            if command -v docker &> /dev/null; then
+                # Stop containers if they exist
+                if docker ps -q --filter "name=neuroinsight" | grep -q .; then
+                    echo "   Stopping running containers..."
+                    docker stop $(docker ps -q --filter "name=neuroinsight") 2>/dev/null || true
+                fi
+
+                # Remove containers if they exist
+                if docker ps -a -q --filter "name=neuroinsight" | grep -q .; then
+                    echo "   Removing containers..."
+                    docker rm $(docker ps -a -q --filter "name=neuroinsight") 2>/dev/null || true
+                fi
+
+                # Clean up volumes (optional, ask user)
+                echo "   💡 TIP: Run 'docker volume prune' manually if you want to remove old data volumes"
+                echo "   💡 TIP: Run 'docker system prune' for complete Docker cleanup"
+            else
+                echo "   Docker not available - skipping container cleanup"
+            fi
+
+            # Clean up any local files that might conflict
+            echo "2. 🧹 Cleaning up local NeuroInsight files..."
+            # Remove any lingering PID files, logs, or databases
+            rm -f *.pid *.log neuroinsight*.db 2>/dev/null || true
+            rm -rf __pycache__/ 2>/dev/null || true
+
+            echo ""
+            echo "✅ Automated cleanup completed!"
+            echo ""
+
+            # Manual steps
+            echo "📋 MANUAL STEPS (Complete these now):"
+            echo ""
+            echo "3. 📁 Navigate to the parent directory (where neuroinsight_local is located):"
             echo "   cd .."
             echo ""
-            echo "2. 🗑️  Remove the entire NeuroInsight directory:"
+            echo "4. 🗑️  Remove the entire NeuroInsight directory:"
             echo "   rm -rf neuroinsight_local/"
             echo ""
-            echo "3. 📥 Re-clone the repository:"
+            echo "5. 📥 Re-clone the repository:"
             echo "   git clone https://github.com/phindagijimana/neuroinsight_local.git"
             echo "   cd neuroinsight_local"
             echo ""
-            echo "4. 🔧 Run fresh installation:"
+            echo "6. 🔧 Run fresh installation:"
             echo "   ./neuroinsight install"
             echo ""
-            echo "5. 📄 Set up FreeSurfer license:"
+            echo "7. 📄 Set up FreeSurfer license:"
             echo "   ./neuroinsight license"
             echo ""
-            echo "6. 🚀 Start NeuroInsight:"
+            echo "8. 🚀 Start NeuroInsight:"
             echo "   ./neuroinsight start"
             echo ""
             echo "⚠️  WARNING: This will delete ALL data, jobs, and configurations!"
             echo "   Make sure to backup any important data before proceeding."
             echo ""
+            echo "💡 TIP: Automated cleanup handled containers and temporary files."
             echo "💡 TIP: This is useful if you encounter persistent issues or want a completely clean setup."
             ;;
         install)

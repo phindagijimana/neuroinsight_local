@@ -84,6 +84,87 @@ docker run --rm hello-world
 sudo systemctl status docker
 ```
 
+### WSL/Docker Desktop Issues
+
+**"There was a problem with WSL" or "wsl.exe --unmount docker_data.vhdx" errors:**
+```bash
+# Error symptoms:
+# - Docker Desktop shows WSL integration errors
+# - wsl.exe --unmount docker_data.vhdx: exit status 0xffffffff
+# - Docker becomes unresponsive during processing
+# - NeuroInsight jobs fail mid-processing
+```
+
+**Causes:**
+- Docker Desktop WSL integration becomes unstable
+- Virtual hard disk (VHDX) unmount failures
+- Resource conflicts during heavy processing
+- Windows/WSL updates interrupting Docker
+
+**Solutions:**
+
+**Option 1: Automated Fix Scripts (Recommended)**
+```bash
+# Get latest fixes
+git pull origin master
+
+# Windows PowerShell (run as Administrator):
+.\fix_wsl_docker.ps1
+
+# Then in WSL terminal:
+./fix_docker_wsl.sh
+
+# Restart NeuroInsight
+./neuroinsight start
+```
+
+**Option 2: Windows PowerShell Reset**
+```powershell
+# Run in PowerShell as Administrator
+Stop-Process -Name "*docker*" -Force
+wsl --shutdown
+Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+```
+
+**Option 3: Complete WSL Reset**
+```bash
+# On Windows - PowerShell as Administrator
+wsl --shutdown
+wsl --unregister docker-desktop  # Removes Docker data - use carefully!
+
+# Restart Docker Desktop
+# Re-enable WSL integration in Docker Desktop settings
+```
+
+**Option 4: Factory Reset (Last Resort)**
+- Docker Desktop → Settings → Reset to Factory Defaults
+- Restart Docker Desktop completely
+- Re-enable WSL integration
+
+**Prevention:**
+```bash
+# Regular maintenance
+docker system prune -a --volumes
+
+# Monitor WSL resources
+wsl --list --verbose
+
+# Keep Docker Desktop updated
+# Avoid Windows updates during processing
+```
+
+**Verification:**
+```bash
+# Test Docker in WSL
+docker run --rm hello-world
+
+# Check WSL integration
+wsl --list --verbose
+
+# Restart NeuroInsight
+./neuroinsight status
+```
+
 ### Memory Limitations
 
 **"LIMITED MEMORY DETECTED" warning during installation:**

@@ -3,11 +3,127 @@
 ## Quick Diagnosis
 
 ```bash
-./neuroinsight status  # Check all services
-docker-compose logs    # View container logs
+# Basic system check
+./neuroinsight status        # Check all services
+./neuroinsight health        # Quick health overview
+
+# Docker diagnostics
+./fix_docker.sh             # Comprehensive Docker check
+./quick_docker_fix.sh       # Quick Docker fix
+
+# Detailed logs
+docker-compose logs          # View container logs
+tail -f neuroinsight.log     # Follow application logs
 ```
 
 ## Common Issues
+
+### Docker Installation Issues
+
+**"Input/output error" during installation:**
+```bash
+# Error: /usr/bin/docker: Input/output error
+# Error: Docker test failed. Please check Docker installation.
+```
+
+**Causes:**
+- Docker daemon not running
+- Docker daemon crashed or unresponsive
+- User not in docker group
+- Permission issues with Docker socket
+
+**Solutions:**
+
+**Option 1: Quick Fix Script (Recommended)**
+```bash
+# Get latest fixes
+git pull origin master
+
+# Run comprehensive diagnostic
+./fix_docker.sh
+
+# Or use quick fix
+./quick_docker_fix.sh
+
+# Then retry installation
+./neuroinsight install
+```
+
+**Option 2: Manual Fix**
+```bash
+# 1. Restart Docker daemon
+sudo systemctl restart docker
+sudo systemctl enable docker
+
+# 2. Add user to docker group
+sudo usermod -aG docker $USER
+
+# 3. Apply group changes (or logout/login)
+newgrp docker
+
+# 4. Test Docker
+docker run --rm hello-world
+
+# 5. Retry installation
+./neuroinsight install
+```
+
+**Option 3: Temporary Bypass (if Docker works manually)**
+```bash
+# If Docker works but install check fails
+sed -i '473,477s/^/# /' install.sh  # Comment out Docker test
+./neuroinsight install              # Run installation
+git checkout install.sh             # Restore original file
+```
+
+**Verification:**
+```bash
+# Test Docker is working
+docker --version
+docker run --rm hello-world
+sudo systemctl status docker
+```
+
+### Memory Limitations
+
+**"LIMITED MEMORY DETECTED" warning during installation:**
+```
+[WARNING] LIMITED MEMORY DETECTED: 7GB
+[WARNING] MRI processing requires 16GB+ RAM
+```
+
+**Impact:**
+- Web interface works with 8GB+ RAM
+- MRI processing requires 16GB+ minimum
+- Large datasets need 32GB+ RAM
+- Processing may fail or crash with insufficient memory
+
+**Solutions:**
+
+**For Evaluation/Testing (8GB+ RAM):**
+```bash
+# Continue with installation despite warnings
+# Web interface and basic features work
+./neuroinsight install  # Answer 'y' to continue
+```
+
+**For Production MRI Processing (16GB+ RAM):**
+```bash
+# Upgrade system RAM
+# Or use cloud instance with adequate memory
+# AWS: t3.large (16GB), c5.xlarge (32GB)
+# GCP: n1-standard-4 (15GB), n1-standard-8 (30GB)
+```
+
+**Memory Monitoring:**
+```bash
+# Check current usage
+free -h
+docker stats  # Container memory usage
+
+# Monitor during processing
+./neuroinsight monitor
+```
 
 ### Application Won't Start
 
@@ -116,7 +232,9 @@ docker system prune -a  # Careful: removes all unused containers
 ## Support
 
 - Check logs: `tail -f neuroinsight.log`
-- GitHub Issues: Report bugs
+- Docker issues: Run `./fix_docker.sh` or `./quick_docker_fix.sh`
+- System diagnostics: `./neuroinsight health` and `./neuroinsight status`
+- GitHub Issues: Report bugs with diagnostic output
 - FreeSurfer Support: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
 
 ---

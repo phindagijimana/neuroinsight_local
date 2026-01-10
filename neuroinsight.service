@@ -1,5 +1,5 @@
 [Unit]
-Description=NeuroInsight MRI Processing Platform
+Description=NeuroInsight MRI Processing System
 After=docker.service network.target
 Requires=docker.service
 
@@ -7,24 +7,23 @@ Requires=docker.service
 Type=simple
 User=ubuntu
 WorkingDirectory=/home/ubuntu/src/desktop_alone_web_1
-ExecStart=/home/ubuntu/src/desktop_alone_web_1/start.sh
-ExecStop=/home/ubuntu/src/desktop_alone_web_1/stop.sh
+ExecStart=/home/ubuntu/src/desktop_alone_web_1/neuroinsight start
+ExecStop=/home/ubuntu/src/desktop_alone_web_1/neuroinsight stop
 Restart=always
 RestartSec=10
+
+# Environment variables
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=DOCKER_HOST=unix:///var/run/docker.sock
+
+# Resource limits
+MemoryLimit=4G
+CPUQuota=200%
+
+# Logging
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=neuroinsight
-
-# Security settings
-NoNewPrivileges=yes
-ProtectHome=yes
-ProtectSystem=strict
-ReadWritePaths=/home/ubuntu/src/desktop_alone_web_1
-PrivateTmp=yes
-
-# Resource limits
-MemoryLimit=8G
-CPUQuota=200%
 
 [Install]
 WantedBy=multi-user.target

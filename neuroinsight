@@ -23,11 +23,23 @@ else
     case "$1" in
         start)
             echo "Starting NeuroInsight..."
-            exec python3 start.py
+            # Check if virtual environment exists
+            if [ -f "venv/bin/activate" ]; then
+                echo "Activating Python virtual environment..."
+                exec venv/bin/python start.py
+            else
+                echo "Warning: Python virtual environment not found. Running with system Python..."
+                exec python3 start.py
+            fi
             ;;
         stop)
             echo "Stopping NeuroInsight..."
-            exec python3 stop.py "${@:2}"
+            # Check if virtual environment exists
+            if [ -f "venv/bin/activate" ]; then
+                exec venv/bin/python stop.py "${@:2}"
+            else
+                exec python3 stop.py "${@:2}"
+            fi
             ;;
         status)
             echo "NeuroInsight Status..."

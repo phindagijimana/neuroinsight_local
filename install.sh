@@ -507,6 +507,59 @@ else
 fi
 
 # Final verification
+log_info "Setting up Python environment..."
+
+# Create Python virtual environment
+if [ ! -d "venv" ]; then
+    log_info "Creating Python virtual environment..."
+    python3 -m venv venv
+    if [ $? -ne 0 ]; then
+        log_error "Failed to create Python virtual environment"
+        log_info "Trying alternative: python3 -m venv venv --system-site-packages"
+        python3 -m venv venv --system-site-packages
+        if [ $? -ne 0 ]; then
+            log_error "Failed to create Python virtual environment. Please install python3-venv:"
+            log_error "sudo apt-get install python3-venv"
+            exit 1
+        fi
+    fi
+    log_success "Python virtual environment created"
+else
+    log_warning "Python virtual environment already exists"
+fi
+
+# Activate virtual environment and install dependencies
+log_info "Installing Python dependencies..."
+source venv/bin/activate
+
+# Upgrade pip first
+pip install --upgrade pip
+
+# Install requirements
+if [ -f "requirements.txt" ]; then
+    pip install -r requirements.txt
+    if [ $? -ne 0 ]; then
+        log_error "Failed to install Python dependencies"
+        exit 1
+    fi
+    log_success "Python dependencies installed"
+else
+    log_error "requirements.txt not found"
+    exit 1
+fi
+
+# Install additional packages that might be missing
+log_info "Installing additional required packages..."
+pip install psutil requests python-multipart
+if [ $? -ne 0 ]; then
+    log_warning "Some additional packages failed to install, but core functionality should work"
+fi
+
+# Deactivate virtual environment
+deactivate
+
+log_success "Python environment setup completed"
+
 log_info "Running final verification..."
 
 # Check if key components can be imported

@@ -21,6 +21,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
   const [overlayOpacity, setOverlayOpacity] = useState(0.6);  // Overlay opacity: 0.0 = only anatomical, 1.0 = full overlay
   const [imageLoadError, setImageLoadError] = useState(false);  // Track if current slice image failed to load
   const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
+  const [axialRotation, setAxialRotation] = useState(0); // Axial rotation: 0, 90, 180, 270 degrees
   const FLIP_VERTICAL = false; // No flip needed; backend overlays saved with correct orientation
 
   // Zoom handlers
@@ -30,6 +31,19 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
 
   const handleZoomReset = () => {
     setZoomLevel(1.0);
+  };
+
+  // Rotation handlers for axial views
+  const handleRotateClockwise = () => {
+    setAxialRotation(prev => (prev + 90) % 360);
+  };
+
+  const handleRotateCounterClockwise = () => {
+    setAxialRotation(prev => (prev - 90 + 360) % 360);
+  };
+
+  const handleRotateReset = () => {
+    setAxialRotation(0);
   };
 
   // Load available completed jobs
@@ -263,7 +277,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                   <div
                     className="relative max-w-none"
                     style={{
-                      transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}`,
+                      transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}${orientation === 'axial' && axialRotation !== 0 ? ` rotate(${axialRotation}deg)` : ''}`,
                       transformOrigin: 'center center',
                       transition: 'transform 0.2s ease-out',
                       cursor: zoomLevel > 1 ? 'move' : 'default'

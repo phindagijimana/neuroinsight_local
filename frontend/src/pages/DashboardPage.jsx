@@ -25,8 +25,8 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
       console.log('Dashboard: API base URL:', API_BASE_URL);
 
       const [jobResponse, metricsResponse] = await Promise.allSettled([
-        fetch(`${API_BASE_URL}/jobs/${selectedJobId}`),
-        fetch(`${API_BASE_URL}/metrics/?job_id=${selectedJobId}`)
+        fetch(`${API_BASE_URL}/api/jobs/${selectedJobId}`),
+        fetch(`${API_BASE_URL}/api/metrics/?job_id=${selectedJobId}`)
       ]);
 
       console.log('Dashboard: Job response status:', jobResponse);
@@ -276,7 +276,7 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
         <div className="flex justify-end mb-8">
           <button
             onClick={() => {
-              const response = fetch(`${API_BASE_URL}/reports/${selectedJobId}/pdf`);
+              const response = fetch(`${API_BASE_URL}/api/reports/${selectedJobId}/pdf`);
               response.then(res => {
                 if (res.ok) {
                   res.blob().then(blob => {

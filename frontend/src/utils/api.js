@@ -24,8 +24,8 @@ export const API_BASE_URL = (() => {
 export const apiService = {
   async getJobs() {
     try {
-      console.log('Fetching jobs from:', `${API_BASE_URL}/jobs/`);
-      const response = await fetch(`${API_BASE_URL}/jobs/`);
+      console.log('Fetching jobs from:', `${API_BASE_URL}/api/jobs/`);
+      const response = await fetch(`${API_BASE_URL}/api/jobs/`);
       console.log('Response status:', response.status, response.statusText);
       if (!response.ok) {
         const errorText = await response.text();
@@ -33,9 +33,11 @@ export const apiService = {
         throw new Error(`Failed to fetch jobs: ${response.status} ${response.statusText}`);
       }
       const data = await response.json();
-      console.log('API returned jobs:', data);
-      console.log('Number of jobs:', data?.length || 0);
-      return data;
+      console.log('API returned data:', data);
+      console.log('Jobs array:', data.jobs);
+      console.log('Number of jobs:', data.jobs?.length || 0);
+      // Extract jobs array from the response wrapper
+      return data.jobs || [];
     } catch (error) {
       console.error('Failed to load jobs:', error);
       console.error('Error details:', error.message);
@@ -46,7 +48,7 @@ export const apiService = {
 
   async getJob(jobId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`);
+      const response = await fetch(`${API_BASE_URL}/api/jobs/${jobId}`);
       if (!response.ok) throw new Error('Failed to fetch job');
       return await response.json();
     } catch (error) {

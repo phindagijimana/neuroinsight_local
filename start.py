@@ -219,22 +219,11 @@ def start_celery():
         env = os.environ.copy()
         env['PYTHONPATH'] = str(Path.cwd())
 
-        # Determine optimal concurrency based on CPU cores
-        cpu_count = os.cpu_count() or 4  # Fallback to 4 if detection fails
-        if cpu_count > 14:
-            concurrency = 6
-        elif cpu_count > 8:
-            concurrency = 5
-        else:
-            concurrency = 4
-
-        log_info(f"Detected {cpu_count} CPU cores, setting Celery concurrency to {concurrency}")
-
         # Start celery
         proc = subprocess.Popen([
             sys.executable, '-m', 'celery',
             '-A', 'workers.tasks.processing_web',
-            'worker', '--loglevel=info', f'--concurrency={concurrency}'
+            'worker', '--loglevel=info', '--concurrency=4'
         ], env=env, stdout=open('celery_worker.log', 'w'),
            stderr=subprocess.STDOUT)
 

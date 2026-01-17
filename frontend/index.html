@@ -9,7 +9,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>NeuroInsight - Hippocampal Analysis Platform (v20251217170200)</title>
+  <title>NeuroInsight - Hippocampal Analysis Platform (v20251217170200) - ROTATION ENABLED</title>
   <script src="/static/js/react.development.js"></script>
   <script src="/static/js/react-dom.development.js"></script>
   <script src="/static/js/babel.min.js"></script>
@@ -2144,6 +2144,7 @@
       const [overlayOpacity, setOverlayOpacity] = useState(0.6);  // Overlay opacity: 0.0 = only anatomical, 1.0 = full overlay
       const [imageLoadError, setImageLoadError] = useState(false);  // Track if current slice image failed to load
       const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
+      const [axialRotation, setAxialRotation] = useState(0); // Axial rotation: 0, 90, 180, 270 degrees
       // No flip needed; backend overlays saved with correct orientation
       const FLIP_VERTICAL = false;
       
@@ -2158,6 +2159,31 @@
       
       const handleZoomReset = () => {
         setZoomLevel(1.0);
+      };
+
+      // Rotation handlers for axial views
+      const handleRotateClockwise = () => {
+        console.log('🔄 ROTATION: Clockwise clicked');
+        setAxialRotation(prev => {
+          const newRotation = (prev + 90) % 360;
+          console.log(`🔄 ROTATION: ${prev}° → ${newRotation}°`);
+          return newRotation;
+        });
+      };
+
+      const handleRotateCounterClockwise = () => {
+        console.log('🔄 ROTATION: Counterclockwise clicked');
+        setAxialRotation(prev => {
+          const newRotation = (prev - 90 + 360) % 360;
+          console.log(`🔄 ROTATION: ${prev}° → ${newRotation}°`);
+          return newRotation;
+        });
+      };
+
+      const handleRotateReset = () => {
+        console.log('🔄 ROTATION: Reset clicked');
+        setAxialRotation(0);
+        console.log('🔄 ROTATION: Reset to 0°');
       };
       
       // Load available completed jobs
@@ -2444,7 +2470,35 @@
                       <ZoomIn className="w-5 h-5" />
                     </button>
                   </div>
-                  
+
+                  {orientation === 'axial' && (
+                    <div className="flex items-center gap-1 bg-white border border-green-200 rounded-lg p-1" style={{border: '2px solid red'}}>
+                      <span className="text-xs font-medium text-gray-600 px-2">Rotate:</span>
+                      <button
+                        onClick={handleRotateCounterClockwise}
+                        className="p-2 hover:bg-green-100 rounded-md transition text-green-600"
+                        title="Rotate Counterclockwise 90°"
+                      >
+                        ↺
+                      </button>
+                      <button
+                        onClick={handleRotateReset}
+                        className="px-3 py-2 hover:bg-green-100 rounded-md transition text-sm font-semibold text-green-700 min-w-[60px]"
+                        title="Reset Rotation"
+                        onClick={() => console.log(`🔄 ROTATION RESET: Current=${axialRotation}° → 0°`)}
+                      >
+                        {axialRotation}°
+                      </button>
+                      <button
+                        onClick={handleRotateClockwise}
+                        className="p-2 hover:bg-green-100 rounded-md transition text-green-600"
+                        title="Rotate Clockwise 90°"
+                      >
+                        ↻
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-3 bg-white border border-blue-200 rounded-lg px-4 py-2">
                     <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
                       Overlay Opacity:
@@ -2478,7 +2532,7 @@
                     <div 
                       className="relative max-w-none"
                       style={{
-                        transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}`,
+                        transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}${orientation === 'axial' && axialRotation !== 0 ? ` rotate(${axialRotation}deg)` : ''}`,
                         transformOrigin: 'center center',
                         transition: 'transform 0.2s ease-out',
                         cursor: zoomLevel > 1 ? 'move' : 'default'
@@ -2586,7 +2640,10 @@
                             src={sliceUrls.anatomical}
                             alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Anatomical`}
                             className="w-full h-full object-cover"
-                            style={FLIP_VERTICAL ? { transform: 'scaleY(-1)' } : {}}
+                            style={{
+                              ...FLIP_VERTICAL && { transform: 'scaleY(-1)' },
+                              ...(orientation === 'axial' && axialRotation !== 0) && { transform: `${FLIP_VERTICAL ? 'scaleY(-1)' : ''} rotate(${axialRotation}deg)` }
+                            }}
                             onError={(e) => {
                               e.target.style.display = 'none';
                             }}
@@ -2599,7 +2656,7 @@
                             style={{
                               opacity: overlayOpacity,
                               pointerEvents: 'none',
-                              transform: FLIP_VERTICAL ? 'scaleY(-1)' : 'none'
+                              transform: `${FLIP_VERTICAL ? 'scaleY(-1)' : ''}${orientation === 'axial' && axialRotation !== 0 ? ` rotate(${axialRotation}deg)` : ''}`.trim() || 'none'
                             }}
                             onError={(e) => {
                               e.target.style.display = 'none';

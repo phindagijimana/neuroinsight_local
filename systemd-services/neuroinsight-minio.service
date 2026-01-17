@@ -1,0 +1,36 @@
+[Unit]
+Description=NeuroInsight MinIO Object Storage
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=neuroinsight
+Group=neuroinsight
+Environment=MINIO_ROOT_USER=neuroinsight_minio
+Environment=MINIO_ROOT_PASSWORD=CHANGE_THIS_TO_A_SECURE_MINIO_SECRET_IN_PRODUCTION
+ExecStart=/usr/local/bin/minio server /mnt/nfs/home/urmc-sh.rochester.edu/pndagiji/hippo/desktop_alone_web/data/minio --address ":9000" --console-address ":9001"
+ExecStop=/bin/kill -TERM $MAINPID
+TimeoutSec=300
+
+# Restart on failure
+Restart=on-failure
+RestartSec=5
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/mnt/nfs/home/urmc-sh.rochester.edu/pndagiji/hippo/desktop_alone_web/data
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+
+
+

@@ -1,0 +1,95 @@
+import { render, screen, fireEvent } from '@testing-library/react';
+import { expect, test, vi } from 'vitest';
+import { JobList } from './JobList';
+import type { Job } from '../types';
+
+// Mock the API service
+vi.mock('../services/api');
+
+const mockJobs: Job[] = [
+  {
+    id: 'job-1',
+    status: 'completed',
+    created_at: '2024-01-01T10:00:00Z',
+    updated_at: '2024-01-01T11:00:00Z',
+    input_file: 'test.nii.gz',
+    output_files: ['result1.nii', 'result2.nii'],
+    progress: 100,
+  },
+  {
+    id: 'job-2',
+    status: 'running',
+    created_at: '2024-01-01T12:00:00Z',
+    updated_at: '2024-01-01T12:30:00Z',
+    input_file: 'test2.nii.gz',
+    progress: 50,
+  },
+];
+
+test('renders job list with jobs', () => {
+  const mockOnJobSelect = vi.fn();
+  const mockOnBack = vi.fn();
+
+  render(
+    <JobList
+      jobs={mockJobs}
+      onJobSelect={mockOnJobSelect}
+      onBack={mockOnBack}
+    />
+  );
+
+  // Check if title is rendered
+  expect(screen.getByText('MRI Processing Jobs')).toBeInTheDocument();
+
+  // Check if jobs are rendered
+  expect(screen.getByText('Job job-1')).toBeInTheDocument();
+  expect(screen.getByText('Job job-2')).toBeInTheDocument();
+
+  // Check if status badges are rendered
+  expect(screen.getByText('completed')).toBeInTheDocument();
+  expect(screen.getByText('running')).toBeInTheDocument();
+
+  // Check if progress is shown
+  expect(screen.getByText('Progress: 100%')).toBeInTheDocument();
+  expect(screen.getByText('Progress: 50%')).toBeInTheDocument();
+});
+
+test('renders empty state when no jobs', () => {
+  const mockOnJobSelect = vi.fn();
+  const mockOnBack = vi.fn();
+
+  render(
+    <JobList
+      jobs={[]}
+      onJobSelect={mockOnJobSelect}
+      onBack={mockOnBack}
+    />
+  );
+
+  expect(screen.getByText('No jobs found. Upload an MRI file to get started.')).toBeInTheDocument();
+});
+
+test('calls onJobSelect when job is clicked', () => {
+  const mockOnJobSelect = vi.fn();
+  const mockOnBack = vi.fn();
+
+  render(
+    <JobList
+      jobs={mockJobs}
+      onJobSelect={mockOnJobSelect}
+      onBack={mockOnBack}
+    />
+  );
+
+  // Click on the first job
+  const jobElement = screen.getByText('Job job-1').closest('li');
+  fireEvent.click(jobElement!);
+
+  expect(mockOnJobSelect).toHaveBeenCalledWith(mockJobs[0]);
+});
+
+
+
+
+
+

@@ -1,0 +1,267 @@
+import { useState, useEffect } from 'react'
+import { apiService } from '../utils/api.js'
+import FileText from '../components/icons/FileText.jsx'
+
+function DashboardPage({ selectedJobId, setSelectedJobId }) {
+  const [metrics, setMetrics] = useState(null);
+  const [patientInfo, setPatientInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [availableJobs, setAvailableJobs] = useState([]);
+
+  useEffect(() => {
+    if (selectedJobId) {
+      loadDashboardData();
+    }
+  }, [selectedJobId]);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load metrics
+      try {
+        const metricsResponse = await fetch(`${apiService.baseUrl}/metrics/?job_id=${selectedJobId}`);
+        if (metricsResponse.ok) {
+          const metricsData = await metricsResponse.json();
+          setMetrics(metricsData);
+        }
+      } catch (error) {
+        console.warn('Metrics not available:', error);
+      }
+      
+      // Load job details for patient info
+      try {
+        const jobData = await apiService.getJob(selectedJobId);
+        setPatientInfo(jobData);
+      } catch (error) {
+        console.warn('Job details not available:', error);
+      }
+      
+      // Load available jobs
+      const jobs = await apiService.getJobs();
+      setAvailableJobs(jobs);
+      
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateReport = async () => {
+    try {
+      const response = await fetch(`${apiService.baseUrl}/reports/${selectedJobId}/pdf`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `neuroinsight_report_${selectedJobId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else {
+        alert('Failed to generate report. Please try again.');
+      }
+    } catch (error) {
+      console.error('Report generation failed:', error);
+      alert('Failed to generate report. Please try again.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
+  if (!selectedJobId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Analysis Dashboard</h1>
+            <button
+              onClick={() => setSelectedJobId(null)}
+              className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg"
+            >
+              Back to Jobs
+            </button>
+          </div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">No Job Selected</h2>
+            <p className="text-gray-600 mb-6">Please select a completed job from the Jobs page to view the analysis dashboard.</p>
+            <button
+              onClick={() => window.location.hash = '#/jobs'}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg"
+            >
+              Go to Jobs
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+
+        {/* Generate Report Button - Top right corner */}
+        {patientInfo && (
+        <div className="flex justify-end mb-8">
+          <button
+            onClick={generateReport}
+            className="flex items-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            style={{ backgroundColor: '#3b82f6' }}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Generate PDF Report
+          </button>
+        </div>
+        )}
+
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Analysis Dashboard</h1>
+          <button
+            onClick={() => setSelectedJobId(null)}
+            className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-6 rounded-lg"
+          >
+            Back to Jobs
+          </button>
+        </div>
+
+        {patientInfo && (
+        <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="w-5 h-5 text-blue-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Patient Information</h2>
+          </div>
+          <div className="grid grid-cols-4 gap-6">
+            <div>
+              <p className="text-sm text-gray-500">Patient ID</p>
+              <p className="font-semibold text-gray-900">{patientInfo.id || patientInfo.patient_id || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Age / Sex</p>
+              <p className="font-semibold text-gray-900">{patientInfo.age || patientInfo.patient_age || 'N/A'} / {patientInfo.sex || patientInfo.patient_sex || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Scan Date</p>
+              <p className="font-semibold text-gray-900">{patientInfo.scanDate || patientInfo.created_at || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Scanner</p>
+              <p className="font-semibold text-gray-900">{patientInfo.scanner || 'N/A'}</p>
+            </div>
+          </div>
+        </div>
+        )}
+
+        {/* Metrics Visualization */}
+        {metrics && metrics.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Hippocampal Volume Analysis</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Volume Comparison */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Volume Measurements</h3>
+                <div className="space-y-4">
+                  {metrics.map((metric, index) => (
+                    <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium text-gray-900">{metric.region}</span>
+                        <span className="text-sm text-gray-500">Asymmetry: {(metric.asymmetry_index * 100).toFixed(2)}%</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-600">{metric.left_volume?.toFixed(1)}</div>
+                          <div className="text-sm text-gray-600">Left (mm³)</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-green-600">{metric.right_volume?.toFixed(1)}</div>
+                          <div className="text-sm text-gray-600">Right (mm³)</div>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-sm text-center text-gray-600">
+                        {metric.laterality}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Asymmetry Index Visualization */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Asymmetry Analysis</h3>
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <div className="flex items-center justify-center h-48">
+                    <div className="text-center">
+                      <div className="text-6xl font-bold text-blue-600 mb-2">
+                        {(metrics[0]?.asymmetry_index * 100)?.toFixed(1)}%
+                      </div>
+                      <div className="text-lg text-gray-600">Asymmetry Index</div>
+                      <div className="text-sm text-gray-500 mt-2">
+                        {metrics[0]?.asymmetry_index > 0 ? 'Right-dominant' : 'Left-dominant'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Reference ranges */}
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <div className="text-sm text-gray-600 text-center">
+                      Reference: Balanced (-7.08% to 4.69%)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Processing Information */}
+        {patientInfo && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Processing Details</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="text-sm text-gray-500">File Processed</div>
+                <div className="font-semibold text-gray-900 truncate">{patientInfo.filename}</div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="text-sm text-gray-500">Processing Started</div>
+                <div className="font-semibold text-gray-900">
+                  {new Date(patientInfo.created_at).toLocaleString()}
+                </div>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="text-sm text-gray-500">Status</div>
+                <div className={`font-semibold ${patientInfo.status === 'completed' ? 'text-green-600' : 'text-blue-600'}`}>
+                  {patientInfo.status}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!metrics && !loading && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Analysis Data Not Available</h2>
+            <p className="text-gray-600">
+              The analysis results for this job are not yet available. Please check back later or contact support if the issue persists.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default DashboardPage;

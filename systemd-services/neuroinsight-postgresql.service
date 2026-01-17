@@ -1,0 +1,36 @@
+[Unit]
+Description=NeuroInsight PostgreSQL Database
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=postgres
+Group=postgres
+Environment=PGDATA=/mnt/nfs/home/urmc-sh.rochester.edu/pndagiji/hippo/desktop_alone_web/data/postgresql
+ExecStart=/usr/bin/pg_ctl start -D /mnt/nfs/home/urmc-sh.rochester.edu/pndagiji/hippo/desktop_alone_web/data/postgresql -l /mnt/nfs/home/urmc-sh.rochester.edu/pndagiji/hippo/desktop_alone_web/data/logs/postgresql.log
+ExecStop=/usr/bin/pg_ctl stop -D /mnt/nfs/home/urmc-sh.rochester.edu/pndagiji/hippo/desktop_alone_web/data/postgresql -m fast
+ExecReload=/usr/bin/pg_ctl reload -D /mnt/nfs/home/urmc-sh.rochester.edu/pndagiji/hippo/desktop_alone_web/data/postgresql
+TimeoutSec=300
+
+# Restart on failure
+Restart=on-failure
+RestartSec=5
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/mnt/nfs/home/urmc-sh.rochester.edu/pndagiji/hippo/desktop_alone_web/data
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+
+
+

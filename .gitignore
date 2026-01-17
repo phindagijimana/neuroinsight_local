@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# Logs
+*.log
+logs/
+*.out
+*.pid
+
+# Data directories
+data/uploads/
+data/outputs/
+data/processed/
+freesurfer_subjects/
+singularity_cache/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Docker volumes
+docker-volumes/
+
+# Node modules (if any)
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+frontend/dist/
+*.pyc
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+nohup.out
+
+# Development logs (should be cleaned before commit)
+*.log
+logs/
+
+# Process IDs
+*.pid
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment and secrets
+.env*
+secrets/
+config.local.*
+
+# FreeSurfer License (keep example, ignore real license)
+license.txt
+!license.txt.example
+# Large binary files (added for GitHub push)
+*.nii.gz
+*.raw
+*.pdf
+large_files/
+test_data/

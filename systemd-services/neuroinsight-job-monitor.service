@@ -1,0 +1,27 @@
+[Unit]
+Description=NeuroInsight Job Monitor
+After=network.target
+Wants=neuroinsight-postgresql.service neuroinsight-redis.service
+PartOf=neuroinsight.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/src/desktop_alone_web_1
+ExecStart=/home/ubuntu/src/desktop_alone_web_1/venv/bin/python3 -m backend.services.job_monitor --daemon --interval 60
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=always
+RestartSec=10
+
+# Environment
+Environment=PATH=/home/ubuntu/src/desktop_alone_web_1/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PYTHONPATH=/home/ubuntu/src/desktop_alone_web_1
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=neuroinsight-job-monitor
+
+[Install]
+WantedBy=neuroinsight.target

@@ -1,0 +1,37 @@
+[Unit]
+Description=NeuroInsight Redis Message Broker
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=redis
+Group=redis
+ExecStart=/usr/bin/redis-server /mnt/nfs/home/urmc-sh.rochester.edu/pndagiji/hippo/desktop_alone_web/data/redis/redis.conf
+ExecStop=/usr/bin/redis-cli shutdown
+TimeoutSec=300
+
+# Restart on failure
+Restart=on-failure
+RestartSec=5
+
+# Redis configuration file should be created by startup script
+# with appropriate settings for NeuroInsight usage
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/mnt/nfs/home/urmc-sh.rochester.edu/pndagiji/hippo/desktop_alone_web/data
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+
+
+

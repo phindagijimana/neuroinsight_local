@@ -1,0 +1,239 @@
+#!/bin/bash
+# NeuroInsight Launcher - Terminal-agnostic wrapper
+# Avoids VS Code/Cursor terminal corruption issues
+
+# Detect if we're in a problematic terminal environment
+if [[ "$TERM_PROGRAM" == "vscode" ]] || [[ "$TERM_PROGRAM" == "vscode-insiders" ]] || [[ -n "$VSCODE_PID" ]]; then
+    # Special case for installation - needs regular terminal
+    if [[ "$1" == "install" ]]; then
+        echo "Installation requires a regular terminal (not VS Code terminal)"
+        echo "Please run this command in a regular terminal:"
+        echo "  ./neuroinsight install"
+        exit 1
+    fi
+
+    echo "Detected VS Code terminal environment"
+    echo "Using Python-based startup to avoid corruption issues..."
+    echo ""
+
+    # Use Python directly to avoid terminal issues
+    exec python3 start.py "$@"
+else
+    # Use Python-based scripts for consistency
+    case "$1" in
+        start)
+            echo "Starting NeuroInsight..."
+            # Check if virtual environment exists
+            if [ -f "venv/bin/activate" ]; then
+                echo "Activating Python virtual environment..."
+                exec venv/bin/python start.py
+            else
+                echo "Warning: Python virtual environment not found. Running with system Python..."
+                exec python3 start.py
+            fi
+            ;;
+        stop)
+            echo "Stopping NeuroInsight..."
+            # Check if virtual environment exists
+            if [ -f "venv/bin/activate" ]; then
+                exec venv/bin/python stop.py "${@:2}"
+            else
+                exec python3 stop.py "${@:2}"
+            fi
+            ;;
+        status)
+            echo "NeuroInsight Status..."
+            exec ./status.sh
+            ;;
+        monitor)
+            echo "NeuroInsight Monitoring..."
+            exec ./monitor.sh "${@:2}"
+            ;;
+        health)
+            echo "[HEALTH] NeuroInsight System Health Check"
+            echo "=========================================="
+
+            # Check system resources
+            echo "[HEALTH] System Resources:"
+            echo "  Memory: $(free -h | awk 'NR==2{printf "%.1fGB used / %.1fGB total (%.0f%%)", $3/1024, $2/1024, $3*100/$2}')"
+            echo "  Disk: $(df -h / | awk 'NR==2{print $3 " used / " $2 " total (" $5 " used)"}')"
+            echo "  Load: $(uptime | awk -F'load average:' '{print $2}' | sed 's/^ *//')"
+
+            # Check Docker services
+            echo ""
+            echo "[HEALTH] Docker Services:"
+            if command -v docker &> /dev/null; then
+                containers=$(docker ps --filter "name=neuroinsight" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}")
+                if [ -n "$containers" ]; then
+                    echo "$containers"
+                else
+                    echo "  No NeuroInsight containers running"
+                    echo "  [ACTION] Run './neuroinsight start' to start services"
+                fi
+            else
+                echo "  Docker not available"
+            fi
+
+            # Check web interface
+            echo ""
+            echo "[HEALTH] Web Interface:"
+            if curl -s -f http://localhost:8000/health >/dev/null 2>&1; then
+                echo "  ✅ Backend API responding"
+            else
+                echo "  ❌ Backend API not responding"
+                echo "  [ACTION] Check if services are running with './neuroinsight status'"
+            fi
+
+            # Overall assessment
+            echo ""
+            echo "[HEALTH] Overall Status:"
+            healthy_containers=$(docker ps -q --filter "name=neuroinsight" 2>/dev/null | wc -l)
+            if [ "$healthy_containers" -ge 3 ] && curl -s -f http://localhost:8000/health >/dev/null 2>&1; then
+                echo "  ✅ SYSTEM HEALTHY - All services operational"
+            else
+                echo "  ⚠️  ISSUES DETECTED - Some services may be down"
+                echo "  [ACTION] Run './neuroinsight start' to restart services"
+            fi
+            ;;
+        license)
+            echo "FreeSurfer License Management"
+            if [ -f "license.txt" ]; then
+                echo "License file found: license.txt"
+                # Basic validation - check if it has content
+                if [ $(wc -l < license.txt) -ge 4 ] && ! grep -q "REPLACE THIS EXAMPLE CONTENT" license.txt 2>/dev/null; then
+                    echo "License appears to be valid"
+                    echo ""
+                    echo "To update license:"
+                    echo "1. Replace license.txt with new license file"
+                    echo "2. Restart NeuroInsight: ./neuroinsight stop && ./neuroinsight start"
+                else
+                    echo "Warning: License file exists but may contain example content"
+                    echo ""
+                    echo "To fix:"
+                    echo "1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
+                    echo "2. Download the real license.txt file"
+                    echo "3. Replace the current license.txt file"
+                fi
+            else
+                echo "No license file found"
+                echo ""
+                echo "To set up FreeSurfer license:"
+                echo "1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
+                echo "2. Register with your research email"
+                echo "3. Download the license.txt file"
+                echo "4. Place license.txt in this directory (same folder as NeuroInsight)"
+                echo "5. Restart NeuroInsight: ./neuroinsight stop && ./neuroinsight start"
+                echo ""
+                echo "Note: Without license, NeuroInsight will use mock processing for demonstrations"
+            fi
+            ;;
+        reinstall)
+            echo "[REINSTALL] NeuroInsight Complete Reinstallation Guide"
+            echo ""
+            echo "This will completely remove NeuroInsight and allow a fresh installation."
+            echo ""
+
+            # Automated cleanup section
+            echo "[CLEANUP] AUTOMATED CLEANUP (Running now...):"
+            echo ""
+
+            # Stop any running NeuroInsight services first
+            echo "1. [STOP] Stopping any running NeuroInsight services..."
+            if command -v docker &> /dev/null; then
+                # Stop containers if they exist
+                if docker ps -q --filter "name=neuroinsight" | grep -q .; then
+                    echo "   Stopping running containers..."
+                    docker stop $(docker ps -q --filter "name=neuroinsight") 2>/dev/null || true
+                fi
+
+                # Remove containers if they exist
+                if docker ps -a -q --filter "name=neuroinsight" | grep -q .; then
+                    echo "   Removing containers..."
+                    docker rm $(docker ps -a -q --filter "name=neuroinsight") 2>/dev/null || true
+                fi
+
+                # Clean up volumes (optional, ask user)
+                echo "   [TIP] Run 'docker volume prune' manually if you want to remove old data volumes"
+                echo "   [TIP] Run 'docker system prune' for complete Docker cleanup"
+            else
+                echo "   Docker not available - skipping container cleanup"
+            fi
+
+            # Clean up any local files that might conflict
+            echo "2. [CLEAN] Cleaning up local NeuroInsight files..."
+            # Remove any lingering PID files, logs, or databases
+            rm -f *.pid *.log neuroinsight*.db 2>/dev/null || true
+            rm -rf __pycache__/ 2>/dev/null || true
+
+            echo ""
+            echo "[SUCCESS] Automated cleanup completed!"
+            echo ""
+
+            # Manual steps
+            echo "[MANUAL] MANUAL STEPS (Complete these now):"
+            echo ""
+            echo "3. [DIR] Navigate to the parent directory (where neuroinsight_local is located):"
+            echo "   cd .."
+            echo ""
+            echo "4. [REMOVE] Remove the entire NeuroInsight directory:"
+            echo "   rm -rf neuroinsight_local/"
+            echo ""
+            echo "5. [CLONE] Re-clone the repository:"
+            echo "   git clone https://github.com/phindagijimana/neuroinsight_local.git"
+            echo "   cd neuroinsight_local"
+            echo ""
+            echo "6. [INSTALL] Run fresh installation:"
+            echo "   ./neuroinsight install"
+            echo ""
+            echo "7. [LICENSE] Set up FreeSurfer license:"
+            echo "   ./neuroinsight license"
+            echo ""
+            echo "8. [START] Start NeuroInsight:"
+            echo "   ./neuroinsight start"
+            echo ""
+            echo "[WARNING] WARNING: This will delete ALL data, jobs, and configurations!"
+            echo "   Make sure to backup any important data before proceeding."
+            echo ""
+            echo "[TIP] Automated cleanup handled containers and temporary files."
+            echo "[TIP] This is useful if you encounter persistent issues or want a completely clean setup."
+            ;;
+        install)
+            echo "NeuroInsight Installation"
+            if [ -f "install.sh" ]; then
+                echo "Running installation script..."
+                exec ./install.sh
+            else
+                echo "Error: install.sh not found in current directory"
+                echo "Please ensure you're in the NeuroInsight project directory"
+                exit 1
+            fi
+            ;;
+        *)
+            echo "NeuroInsight Control Script"
+            echo ""
+            echo "Usage: $0 {install|reinstall|start|stop|status|monitor|health|license}"
+            echo ""
+            echo "Commands:"
+            echo "  install   - Run NeuroInsight installation"
+            echo "  reinstall - Complete reinstallation guide (removes everything)"
+            echo "  start     - Start all NeuroInsight services"
+            echo "  stop      - Stop all NeuroInsight services"
+            echo "  status    - Show system status"
+            echo "  monitor   - Advanced monitoring options"
+            echo "  health    - Quick system health check"
+            echo "  license   - FreeSurfer license management"
+            echo ""
+            echo "Examples:"
+            echo "  $0 install         # Install NeuroInsight"
+            echo "  $0 reinstall       # Get complete reinstallation steps"
+            echo "  $0 start           # Start NeuroInsight"
+            echo "  $0 stop            # Stop NeuroInsight"
+            echo "  $0 stop --clear-stuck  # Stop and clear stuck jobs"
+            echo "  $0 status          # Show system status"
+            echo "  $0 health          # Quick health check"
+            echo "  $0 license         # Check/setup FreeSurfer license"
+            echo "  $0 monitor cleanup # Clean up orphaned processes"
+            exit 1
+            ;;
+    esac
+fi

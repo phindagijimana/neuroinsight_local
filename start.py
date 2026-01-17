@@ -223,7 +223,7 @@ def start_celery():
         proc = subprocess.Popen([
             sys.executable, '-m', 'celery',
             '-A', 'workers.tasks.processing_web',
-            'worker', '--loglevel=info', '--concurrency=1'
+            'worker', '--loglevel=info', '--concurrency=4'
         ], env=env, stdout=open('celery_worker.log', 'w'),
            stderr=subprocess.STDOUT)
 

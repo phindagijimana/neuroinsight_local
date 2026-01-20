@@ -1,7 +1,7 @@
 """
 API routes for file upload.
 
-Handles MRI file uploads (DICOM/NIfTI) and triggers
+Handles MRI file uploads (NIfTI) and triggers
 processing pipeline.
 """
 
@@ -38,14 +38,14 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 
 @router.post("/", status_code=201)
 async def upload_mri(
-    file: UploadFile = File(..., description="MRI file (DICOM or NIfTI)"),
+    file: UploadFile = File(..., description="MRI file (NIfTI or ZIP)"),
     patient_data: str = Form("{}", description="Patient information as JSON string"),
     x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     db: Session = Depends(get_db),
 ):
     """Upload an MRI scan for processing (T1-only).
 
-    - Accepts DICOM series or NIfTI files (.nii, .nii.gz)
+    - Accepts NIfTI files (.nii, .nii.gz) or ZIP archives containing NIfTI files
     - Strict pre-validation: size, readability, voxel/header sanity, and T1 markers
     - Creates a new job and enqueues background processing task
 
@@ -78,7 +78,7 @@ async def upload_mri(
         raise HTTPException(status_code=400, detail="File is too large (limit 1 GB)")
     
     # Validate file extension
-    valid_extensions = [".nii", ".nii.gz", ".dcm", ".dicom", ".zip"]
+    valid_extensions = [".nii", ".nii.gz", ".zip"]
     file_path = Path(file.filename)
     
     if not any(file.filename.endswith(ext) for ext in valid_extensions):
@@ -116,8 +116,6 @@ async def upload_mri(
         original_format = "unknown"
         if file.filename.endswith((".nii", ".nii.gz")):
             original_format = "nifti"
-        elif file.filename.endswith((".dcm", ".dicom")):
-            original_format = "dicom"
         elif file.filename.endswith(".zip"):
             original_format = "zip"
         
@@ -242,27 +240,6 @@ async def upload_mri(
                         error_type=type(validation_error).__name__
                     )
                     # Continue without failing - validation is optional
-        elif file.filename.endswith((".dcm", ".dicom")):
-            # Quick DICOM check for T1 using SeriesDescription/ProtocolName if pydicom present
-            try:
-                import pydicom
-                import tempfile
-                # For DICOM files, use the original suffix
-                file_suffix = Path(file.filename).suffix
-                with tempfile.NamedTemporaryFile(suffix=file_suffix, delete=True) as tmp:
-                    tmp.write(file_data)
-                    tmp.flush()
-                    ds = pydicom.dcmread(tmp.name, stop_before_pixels=True, force=True)
-                    series_desc = str(getattr(ds, "SeriesDescription", "")).lower()
-                    protocol = str(getattr(ds, "ProtocolName", "")).lower()
-                    seq_name = str(getattr(ds, "SequenceName", "")).lower()
-                    # Previously enforced T1 markers for DICOM. Per request, allow all DICOM uploads.
-            except ModuleNotFoundError:
-                # Fallback: filename check only
-                nm = file.filename.lower()
-                if not any(k in nm for k in ["t1", "mprage", "spgr", "tfl", "tfe"]):
-                    raise HTTPException(status_code=400, detail="DICOM filename must contain T1 indicators (T1, MPRAGE, SPGR, etc.) for T1-weighted scans")
-
         elif file.filename.endswith(".zip"):
             # Handle ZIP files containing DICOM series
             logger.info("processing_zip_file", filename=file.filename)
@@ -295,91 +272,36 @@ async def upload_mri(
                     except zipfile.BadZipFile:
                         raise HTTPException(status_code=400, detail="Invalid ZIP file")
 
-                    # Find DICOM files in extracted directory
-                    dicom_files = []
+                    # Find NIfTI files in extracted directory
+                    nifti_files = []
                     for root, dirs, files in os.walk(extract_dir):
                         for filename in files:
-                            if filename.lower().endswith(('.dcm', '.dicom')):
-                                dicom_files.append(os.path.join(root, filename))
-
-                    if not dicom_files:
-                        raise HTTPException(status_code=400, detail="No DICOM files found in ZIP archive")
-
-                    logger.info("found_dicom_files_in_zip", count=len(dicom_files), filename=file.filename)
-
-                    # Convert DICOM to NIfTI using dcm2niix
-                    nifti_output_dir = os.path.join(temp_dir, "nifti_output")
-                    os.makedirs(nifti_output_dir)
-
-                    # Run dcm2niix conversion
-                    try:
-                        cmd = [
-                            "dcm2niix",
-                            "-z", "y",  # Compress output
-                            "-f", "converted",  # Output filename
-                            "-o", nifti_output_dir,  # Output directory
-                            "-x", "i",  # Ignore rotation and cropping to preserve original orientation
-                            "-v", "1",  # Verbose output to see what's happening
-                            extract_dir  # Input directory
-                        ]
-
-                        result = subprocess_module.run(cmd, capture_output=True, text=True, timeout=300)
-
-                        if result.returncode != 0:
-                            logger.error("dcm2niix_conversion_failed",
-                                       returncode=result.returncode,
-                                       stdout=result.stdout,
-                                       stderr=result.stderr)
-                            raise HTTPException(status_code=500, detail="DICOM to NIfTI conversion failed")
-
-                        logger.info("dcm2niix_conversion_success", stdout=result.stdout, stderr=result.stderr)
-
-                        # Log conversion details for debugging orientation issues
-                        try:
-                            import nibabel as nib
-                            for root, dirs, files in os.walk(nifti_output_dir):
-                                for filename in files:
-                                    if filename.endswith('.nii.gz'):
-                                        nii_path = os.path.join(root, filename)
-                                        img = nib.load(nii_path)
-                                        logger.info("converted_nifti_info",
-                                                   filename=filename,
-                                                   shape=img.shape,
-                                                   zooms=img.header.get_zooms(),
-                                                   affine=img.affine.tolist()[:3])  # Log first 3 rows of affine
-                        except Exception as e:
-                            logger.warning("could_not_log_nifti_info", error=str(e))
-
-                    except subprocess_module.TimeoutExpired:
-                        raise HTTPException(status_code=500, detail="DICOM conversion timed out")
-                    except FileNotFoundError:
-                        raise HTTPException(status_code=500, detail="dcm2niix not found. Please install dcm2niix to convert DICOM files")
-
-                    # Find the converted NIfTI file
-                    nifti_files = []
-                    for root, dirs, files in os.walk(nifti_output_dir):
-                        for filename in files:
-                            if filename.endswith('.nii.gz'):
+                            if filename.lower().endswith(('.nii', '.nii.gz')):
                                 nifti_files.append(os.path.join(root, filename))
 
                     if not nifti_files:
-                        raise HTTPException(status_code=500, detail="No NIfTI files were created from DICOM conversion")
+                        raise HTTPException(status_code=400, detail="No NIfTI files found in ZIP archive. ZIP must contain .nii or .nii.gz files.")
 
-                    # Use the first NIfTI file (assuming single series)
+                    logger.info("found_nifti_files_in_zip", count=len(nifti_files), filename=file.filename)
+
+                    # Use the first NIfTI file found
+                    if len(nifti_files) > 1:
+                        logger.warning("multiple_nifti_files_in_zip", count=len(nifti_files), using_first=nifti_files[0])
+
                     nifti_path = nifti_files[0]
-                    logger.info("using_converted_nifti", nifti_path=nifti_path)
 
-                    # Read the converted NIfTI file
+                    # Read the NIfTI file
                     with open(nifti_path, 'rb') as f:
                         file_data = f.read()
 
-                    # Update filename to reflect conversion
+                    # Update filename to reflect extraction
                     original_name = Path(file.filename).stem
-                    file.filename = f"{original_name}_converted.nii.gz"
+                    extracted_name = Path(nifti_files[0]).name
+                    file.filename = f"{original_name}_{extracted_name}"
 
-                    logger.info("zip_to_nifti_conversion_complete",
-                              original_filename=file.filename,
-                              dicom_count=len(dicom_files),
+                    logger.info("nifti_extracted_from_zip",
+                              original_zip=file.filename,
+                              extracted_file=extracted_name,
                               nifti_size=len(file_data))
 
         # Generate unique filename
@@ -693,21 +615,21 @@ def _detect_file_corruption(file_data: bytes, filename: str) -> List[str]:
                 if len(zip_file.namelist()) == 0:
                     issues.append("ZIP file contains no files")
 
-                # Check for common DICOM extensions
-                dicom_files = [name for name in zip_file.namelist()
-                             if name.lower().endswith(('.dcm', '.dicom'))]
-                if len(dicom_files) == 0:
-                    issues.append("ZIP file contains no DICOM files (.dcm or .dicom)")
+                # Check for NIfTI extensions
+                nifti_files = [name for name in zip_file.namelist()
+                             if name.lower().endswith(('.nii', '.nii.gz'))]
+                if len(nifti_files) == 0:
+                    issues.append("ZIP file contains no NIfTI files (.nii or .nii.gz)")
 
                 # Test extraction of first file to check for corruption
-                if dicom_files:
+                if nifti_files:
                     try:
-                        with zip_file.open(dicom_files[0]) as first_file:
+                        with zip_file.open(nifti_files[0]) as first_file:
                             test_data = first_file.read(1024)
                             if len(test_data) == 0:
-                                issues.append("First DICOM file in ZIP appears to be empty")
+                                issues.append("First NIfTI file in ZIP appears to be empty")
                     except Exception as e:
-                        issues.append(f"Cannot read first DICOM file in ZIP: {str(e)}")
+                        issues.append(f"Cannot read first NIfTI file in ZIP: {str(e)}")
 
         except (zipfile.BadZipFile, Exception) as e:
             issues.append(f"ZIP file appears to be corrupted: {str(e)}")

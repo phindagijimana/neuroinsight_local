@@ -911,7 +911,7 @@
           errors.file = 'Please select a file to upload';
         } else {
           // Check file extension
-          const allowedExtensions = ['.nii', '.nii.gz', '.dcm', '.dicom', '.zip'];
+          const allowedExtensions = ['.nii', '.nii.gz', '.zip'];
           const fileName = selectedFile.name.toLowerCase();
           const isValidExt = allowedExtensions.some(ext => fileName.endsWith(ext));
           if (!isValidExt) {
@@ -1069,12 +1069,12 @@
       const handleFileSelect = (e) => {
         const file = e.target.files?.[0];
         if (file) {
-          const validFormats = ['.nii', '.nii.gz', '.dcm', '.dicom', '.zip'];
+          const validFormats = ['.nii', '.nii.gz', '.zip'];
           const fileName = file.name.toLowerCase();
           const isValidFormat = validFormats.some(format => fileName.endsWith(format));
 
           if (!isValidFormat) {
-            alert('Invalid file format. Please upload .nii, .nii.gz, .dcm, .dicom, or .zip files.');
+            alert('Invalid file format. Please upload .nii, .nii.gz, or .zip files.');
             return;
           }
 
@@ -1096,7 +1096,7 @@
         setIsDragging(false);
         const file = e.dataTransfer.files[0];
         if (file) {
-          const validFormats = ['.nii', '.nii.gz', '.dcm', '.dicom', '.zip'];
+          const validFormats = ['.nii', '.nii.gz', '.zip'];
           const fileName = file.name.toLowerCase();
           const isValidFormat = validFormats.some(format => fileName.endsWith(format));
 
@@ -1457,7 +1457,7 @@
                   <label className="inline-block">
                     <input
                       type="file"
-                      accept=".nii,.gz,.dcm,.dicom"
+                      accept=".nii,.gz,.zip"
                       onChange={handleFileSelect}
                       className="hidden"
                     />
@@ -1466,7 +1466,7 @@
                     </span>
                   </label>
                   <p className="text-xs text-gray-400 mt-4">
-                    Accepted formats: .dcm, .nii, .nii.gz • Max size: 500MB
+                    Accepted formats: .nii, .nii.gz, .zip • Max size: 500MB
                   </p>
                   {formErrors.file && (
                     <p className="mt-2 text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">

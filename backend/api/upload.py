@@ -272,21 +272,45 @@ async def upload_mri(
                     except zipfile.BadZipFile:
                         raise HTTPException(status_code=400, detail="Invalid ZIP file")
 
-                    # Find DICOM files in extracted directory
+                    # Find DICOM files in extracted directory (handles nested folder structures)
                     dicom_files = []
+                    dicom_dirs = set()  # Track directories containing DICOM files
+
                     for root, dirs, files in os.walk(extract_dir):
                         for filename in files:
                             if filename.lower().endswith(('.dcm', '.dicom')):
                                 dicom_files.append(os.path.join(root, filename))
+                                dicom_dirs.add(root)  # Track the directory
 
                     if not dicom_files:
                         raise HTTPException(status_code=400, detail="No DICOM files found in ZIP archive. ZIP must contain DICOM slices (.dcm or .dicom) for T1 images.")
 
-                    logger.info("found_dicom_files_in_zip", count=len(dicom_files), filename=file.filename)
+                    logger.info("found_dicom_files_in_zip",
+                              count=len(dicom_files),
+                              directories=list(dicom_dirs),
+                              filename=file.filename)
+
+                    # Log some example file paths to help with debugging
+                    if dicom_files:
+                        logger.info("dicom_file_examples",
+                                  first_file=dicom_files[0],
+                                  total_found=len(dicom_files))
 
                     # Convert DICOM to NIfTI using dcm2niix
                     nifti_output_dir = os.path.join(temp_dir, "nifti_output")
                     os.makedirs(nifti_output_dir)
+
+                    # Find the directory with the most DICOM files (likely the main series directory)
+                    dicom_dir_counts = {}
+                    for dicom_file in dicom_files:
+                        dicom_dir = os.path.dirname(dicom_file)
+                        dicom_dir_counts[dicom_dir] = dicom_dir_counts.get(dicom_dir, 0) + 1
+
+                    # Use the directory with the most DICOM files, or the extract_dir if all have similar counts
+                    main_dicom_dir = max(dicom_dir_counts.items(), key=lambda x: x[1])[0]
+                    logger.info("selected_main_dicom_directory",
+                              directory=main_dicom_dir,
+                              dicom_count=dicom_dir_counts[main_dicom_dir])
 
                     # Run dcm2niix conversion
                     try:
@@ -295,20 +319,51 @@ async def upload_mri(
                             "-z", "y",  # Compress output
                             "-f", "converted",  # Output filename
                             "-o", nifti_output_dir,  # Output directory
+                            "-r", "y",  # Recursively search directories
                             "-x", "i",  # Ignore rotation and cropping to preserve original orientation
-                            extract_dir  # Input directory
+                            "-i", "n",  # Ignore derived images (only convert original images)
+                            main_dicom_dir  # Use the main DICOM directory
                         ]
 
                         result = subprocess_module.run(cmd, capture_output=True, text=True, timeout=300)
 
                         if result.returncode != 0:
-                            logger.error("dcm2niix_conversion_failed",
-                                       returncode=result.returncode,
-                                       stdout=result.stdout,
-                                       stderr=result.stderr)
-                            raise HTTPException(status_code=500, detail="DICOM to NIfTI conversion failed")
+                            logger.warning("dcm2niix_main_dir_failed",
+                                         returncode=result.returncode,
+                                         stdout=result.stdout,
+                                         stderr=result.stderr,
+                                         trying_fallback=True)
 
-                        logger.info("dcm2niix_conversion_success", stdout=result.stdout, stderr=result.stderr)
+                            # Fallback: try with the entire extract directory
+                            fallback_cmd = [
+                                "dcm2niix",
+                                "-z", "y",  # Compress output
+                                "-f", "converted_fallback",  # Different filename for fallback
+                                "-o", nifti_output_dir,  # Output directory
+                                "-r", "y",  # Recursively search directories
+                                "-x", "i",  # Ignore rotation and cropping
+                                "-i", "n",  # Ignore derived images
+                                extract_dir  # Use entire extract directory
+                            ]
+
+                            fallback_result = subprocess_module.run(fallback_cmd, capture_output=True, text=True, timeout=300)
+
+                            if fallback_result.returncode != 0:
+                                logger.error("dcm2niix_fallback_also_failed",
+                                           returncode=fallback_result.returncode,
+                                           stdout=fallback_result.stdout,
+                                           stderr=fallback_result.stderr)
+                                raise HTTPException(status_code=500, detail="DICOM to NIfTI conversion failed on both main directory and fallback")
+                            else:
+                                logger.info("dcm2niix_fallback_success",
+                                          stdout=fallback_result.stdout,
+                                          stderr=fallback_result.stderr,
+                                          input_dir=extract_dir)
+                        else:
+                            logger.info("dcm2niix_conversion_success",
+                                      stdout=result.stdout,
+                                      stderr=result.stderr,
+                                      input_dir=main_dicom_dir)
 
                     except subprocess_module.TimeoutExpired:
                         raise HTTPException(status_code=500, detail="DICOM conversion timed out")
@@ -319,15 +374,18 @@ async def upload_mri(
                     nifti_files = []
                     for root, dirs, files in os.walk(nifti_output_dir):
                         for filename in files:
-                            if filename.endswith('.nii.gz'):
+                            if filename.endswith('.nii.gz') and ('converted' in filename):
                                 nifti_files.append(os.path.join(root, filename))
 
                     if not nifti_files:
                         raise HTTPException(status_code=500, detail="No NIfTI files were created from DICOM conversion")
 
-                    # Use the first NIfTI file (assuming single series)
+                    # Use the first NIfTI file (prefer main conversion over fallback)
+                    nifti_files.sort()  # Sort to get consistent ordering
                     nifti_path = nifti_files[0]
-                    logger.info("using_converted_nifti", nifti_path=nifti_path)
+                    logger.info("using_converted_nifti",
+                              nifti_path=nifti_path,
+                              total_converted=len(nifti_files))
 
                     # Read the converted NIfTI file
                     with open(nifti_path, 'rb') as f:

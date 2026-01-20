@@ -1786,8 +1786,20 @@ class MRIProcessor:
             # ENFORCE CONTAINER CONCURRENCY LIMIT
             self._check_container_concurrency_limit()
 
+            # Get current user ID and group ID for universal compatibility
+            import getpass
+            import grp
+            import os
+
+            current_user = getpass.getuser()
+            current_uid = os.getuid()
+            current_gid = os.getgid()
+
+            logger.info("freesurfer_container_user_mapping",
+                       host_user=current_user, uid=current_uid, gid=current_gid)
+
             docker_cmd = [
-                "docker", "run", "--rm", "--user", "root",
+                "docker", "run", "--rm", f"--user={current_uid}:{current_gid}",
                 "--name", container_name,  # Named container for tracking
                 "-v", f"{abs_freesurfer_dir}:/subjects",
                 "-v", f"{abs_input_dir}:/input:ro",
@@ -1873,8 +1885,17 @@ class MRIProcessor:
                 abs_freesurfer_dir = freesurfer_dir.resolve()
                 abs_license_path = license_path.resolve()
                 
+                # Get current user ID and group ID for universal compatibility
+                import getpass
+                import grp
+                import os
+
+                current_user = getpass.getuser()
+                current_uid = os.getuid()
+                current_gid = os.getgid()
+
                 segstats_cmd = [
-                    "docker", "run", "--rm", "--user", "root",
+                    "docker", "run", "--rm", f"--user={current_uid}:{current_gid}",
                     "-v", f"{abs_freesurfer_dir}:/subjects",
                     "-v", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
                     "-e", "FS_LICENSE=/usr/local/freesurfer/license.txt",
@@ -3896,30 +3917,45 @@ class MRIProcessor:
                              note="Will use original input - may have alignment issues")
                 t1_nifti = nifti_path
             
+            # REQUIRE segmentation extraction for hippocampus analysis
+            # Without proper segmentation, we cannot provide meaningful hippocampus visualization
+            if not aseg_nii or not aseg_nii.exists():
+                error_msg = (
+                    "Segmentation extraction failed - cannot generate hippocampus visualizations. "
+                    "FreeSurfer MGZ to NIfTI conversion failed, likely due to permission issues. "
+                    "The system requires proper segmentation data to highlight hippocampus regions."
+                )
+                logger.error("segmentation_extraction_failed",
+                           error=error_msg,
+                           aseg_nii=str(aseg_nii) if aseg_nii else "None")
+                raise ValueError(f"Hippocampus segmentation required but failed: {error_msg}")
+
+            # Segmentation extraction successful - proceed with full visualization
+            logger.info("segmentation_extraction_successful", aseg_path=str(aseg_nii))
+
             # Prepare whole hippocampus for viewer
             # Show whole brain but only highlight hippocampus in legend
-            if aseg_nii and aseg_nii.exists():
-                whole_hippo = visualization.prepare_nifti_for_viewer(
-                    aseg_nii,
-                    viz_dir / "whole_hippocampus",
-                    visualization.ASEG_HIPPOCAMPUS_LABELS,
-                    highlight_labels=[17, 53]  # Only show hippocampus in legend
-                )
-                viz_paths["whole_hippocampus"] = whole_hippo
-                
-                # Generate overlay images for ALL 3 orientations
-                # Use orig.mgz converted T1 to ensure proper spatial alignment with segmentation
-                # FreeSurfer labels: 17 = Left-Hippocampus, 53 = Right-Hippocampus
-                all_overlays = visualization.generate_all_orientation_overlays(
-                    t1_nifti,  # Use orig.mgz converted (in same space as segmentation)
-                    aseg_nii,
-                    viz_dir / "overlays",
-                    prefix="hippocampus",
-                    specific_labels=[17, 53]  # Highlight hippocampus only
-                )
-                viz_paths["overlays"] = all_overlays
-            
-            # Prepare subfields for viewer
+            whole_hippo = visualization.prepare_nifti_for_viewer(
+                aseg_nii,
+                viz_dir / "whole_hippocampus",
+                visualization.ASEG_HIPPOCAMPUS_LABELS,
+                highlight_labels=[17, 53]  # Only show hippocampus in legend
+            )
+            viz_paths["whole_hippocampus"] = whole_hippo
+
+            # Generate overlay images for ALL 3 orientations
+            # Use orig.mgz converted T1 to ensure proper spatial alignment with segmentation
+            # FreeSurfer labels: 17 = Left-Hippocampus, 53 = Right-Hippocampus
+            all_overlays = visualization.generate_all_orientation_overlays(
+                t1_nifti,  # Use orig.mgz converted (in same space as segmentation)
+                aseg_nii,
+                viz_dir / "overlays",
+                prefix="hippocampus",
+                specific_labels=[17, 53]  # Highlight hippocampus only
+            )
+            viz_paths["overlays"] = all_overlays
+
+            # Prepare subfields for viewer (optional - doesn't fail if missing)
             if subfields_nii and subfields_nii.exists():
                 subfields = visualization.prepare_nifti_for_viewer(
                     subfields_nii,
@@ -3927,7 +3963,7 @@ class MRIProcessor:
                     visualization.HIPPOCAMPAL_SUBFIELD_LABELS
                 )
                 viz_paths["subfields"] = subfields
-                
+
                 # Generate subfield overlay images
                 # Use orig.mgz converted T1 to ensure proper spatial alignment
                 subfield_overlays = visualization.generate_segmentation_overlays(

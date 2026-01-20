@@ -25,7 +25,7 @@ settings = get_settings()
 router = APIRouter(prefix="/visualizations", tags=["visualizations"])
 
 
-def _find_optimal_hippocampus_slice(seg_data: np.ndarray, orientation: str, slice_idx: int) -> int:
+def _find_optimal_hippocampus_slice(seg_data: np.ndarray, orientation: str, slice_idx: int, actual_orientation: tuple = None) -> int:
     """
     Find the optimal slice number for hippocampus visualization.
 
@@ -44,22 +44,61 @@ def _find_optimal_hippocampus_slice(seg_data: np.ndarray, orientation: str, slic
     hippocampus_mask = ((seg_data == 17) | (seg_data == 53))
 
     # Analyze hippocampus distribution along the specified orientation
-    # Note: Frontend axial/coronal labels are swapped vs standard medical imaging
-    if orientation == "axial":
-        # Frontend "axial" actually shows coronal slices (y-dimension)
-        hippocampus_density = np.sum(hippocampus_mask, axis=(0, 2))  # Sum over x,z for each y-slice
-        total_slices = seg_data.shape[1]
-    elif orientation == "sagittal":
-        # Sagittal slices (x-dimension)
-        hippocampus_density = np.sum(hippocampus_mask, axis=(1, 2))  # Sum over y,z for each x-slice
-        total_slices = seg_data.shape[0]
-    elif orientation == "coronal":
-        # Frontend "coronal" actually shows axial slices (z-dimension)
-        hippocampus_density = np.sum(hippocampus_mask, axis=(0, 1))  # Sum over x,y for each z-slice
-        total_slices = seg_data.shape[2]
+    # Adapt based on actual file orientation for robust hippocampus detection
+    if actual_orientation == ('L', 'S', 'P'):
+        # FreeSurfer common orientation: Axis 0=L-R (X), Axis 1=S-I (Z), Axis 2=P-A (Y, flipped)
+        if orientation == "axial":
+            # Axial: horizontal cuts, sum over X and Y axes (0,2) for each Z slice (axis 1)
+            hippocampus_density = np.sum(hippocampus_mask, axis=(0, 2))
+            total_slices = seg_data.shape[1]
+        elif orientation == "sagittal":
+            # Sagittal: left-right cuts, sum over Y and Z axes (1,2) for each X slice (axis 0)
+            hippocampus_density = np.sum(hippocampus_mask, axis=(1, 2))
+            total_slices = seg_data.shape[0]
+        elif orientation == "coronal":
+            # Coronal: front-back cuts, sum over X and Z axes (0,1) for each Y slice (axis 2)
+            hippocampus_density = np.sum(hippocampus_mask, axis=(0, 1))
+            total_slices = seg_data.shape[2]
+        else:
+            # Fallback to linear mapping
+            logger.warning("unknown_orientation_density_fallback", orientation=orientation)
+            return slice_idx * (total_slices // 10)
+    elif actual_orientation == ('R', 'A', 'S'):
+        # Standard RAS+ orientation: Axis 0=R-L (X), Axis 1=A-P (Y), Axis 2=S-I (Z)
+        if orientation == "axial":
+            # Axial: horizontal cuts, sum over X and Y axes (0,1) for each Z slice (axis 2)
+            hippocampus_density = np.sum(hippocampus_mask, axis=(0, 1))
+            total_slices = seg_data.shape[2]
+        elif orientation == "sagittal":
+            # Sagittal: left-right cuts, sum over Y and Z axes (1,2) for each X slice (axis 0)
+            hippocampus_density = np.sum(hippocampus_mask, axis=(1, 2))
+            total_slices = seg_data.shape[0]
+        elif orientation == "coronal":
+            # Coronal: front-back cuts, sum over X and Z axes (0,2) for each Y slice (axis 1)
+            hippocampus_density = np.sum(hippocampus_mask, axis=(0, 2))
+            total_slices = seg_data.shape[1]
+        else:
+            # Fallback to linear mapping
+            logger.warning("unknown_orientation_density_fallback", orientation=orientation)
+            return slice_idx * (total_slices // 10)
     else:
-        # Fallback to linear mapping
-        return slice_idx * (total_slices // 10)
+        # Unknown orientation - log warning and use standard assumption
+        logger.warning("unknown_file_orientation_density_calculation",
+                     detected_orientation=actual_orientation,
+                     requested_orientation=orientation,
+                     using_standard_fallback=True)
+        # Assume standard orientation as fallback
+        if orientation == "axial":
+            hippocampus_density = np.sum(hippocampus_mask, axis=(0, 1))
+            total_slices = seg_data.shape[2]
+        elif orientation == "sagittal":
+            hippocampus_density = np.sum(hippocampus_mask, axis=(1, 2))
+            total_slices = seg_data.shape[0]
+        elif orientation == "coronal":
+            hippocampus_density = np.sum(hippocampus_mask, axis=(0, 2))
+            total_slices = seg_data.shape[1]
+        else:
+            return slice_idx * (total_slices // 10)
 
     # Find the region with highest hippocampus concentration
     # Look for contiguous regions with high hippocampus density
@@ -181,6 +220,11 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
     try:
         seg_img = nib.load(str(seg_file))
         seg_data = seg_img.get_fdata()
+
+        # Check file orientation and adapt axis mapping
+        actual_orientation = nib.aff2axcodes(seg_img.affine, labels=(("L", "R"), ("A", "P"), ("S", "I")))
+        logger.info("backend_detected_orientation", orientation=actual_orientation, requested_orientation=orientation)
+
     except Exception as load_error:
         logger.error("segmentation_loading_failed", seg_file=str(seg_file), error=str(load_error))
         return False
@@ -231,20 +275,54 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
 
         # Find optimal hippocampus region for this orientation
         optimal_slice_num = _find_optimal_hippocampus_slice(
-            seg_data, orientation, slice_idx
+            seg_data, orientation, slice_idx, actual_orientation
         )
 
-        if orientation == "axial":
-            # Axial: vary x,z, fix y (what was coronal)
-            slice_data = data[:, optimal_slice_num, :] if layer == "anatomical" else data[:, optimal_slice_num, :]
-        elif orientation == "sagittal":
-            slice_data = data[optimal_slice_num, :, :] if layer == "anatomical" else data[optimal_slice_num, :, :]
-        elif orientation == "coronal":
-            # Coronal: vary x,y, fix z (what was axial)
-            slice_data = data[:, :, optimal_slice_num] if layer == "anatomical" else data[:, :, optimal_slice_num]
+        # Extract slice based on orientation and actual file orientation
+        # Robust handling for different NIfTI orientations
+        if actual_orientation == ('L', 'S', 'P'):
+            # FreeSurfer common: Axis 0=L-R (X), Axis 1=S-I (Z), Axis 2=P-A (Y, flipped)
+            if orientation == "axial":
+                # Axial: horizontal cuts through brain, slice along Z-axis (axis 1)
+                slice_data = data[:, optimal_slice_num, :] if layer == "anatomical" else data[:, optimal_slice_num, :]
+            elif orientation == "sagittal":
+                # Sagittal: left-right cuts, slice along X-axis (axis 0)
+                slice_data = data[optimal_slice_num, :, :] if layer == "anatomical" else data[optimal_slice_num, :, :]
+            elif orientation == "coronal":
+                # Coronal: front-back cuts, slice along Y-axis (axis 2, flipped)
+                slice_data = data[:, :, optimal_slice_num] if layer == "anatomical" else data[:, :, optimal_slice_num]
+            else:
+                logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
+                return False
+        elif actual_orientation == ('R', 'A', 'S'):
+            # Standard RAS+ orientation: Axis 0=R-L (X), Axis 1=A-P (Y), Axis 2=S-I (Z)
+            if orientation == "axial":
+                # Axial: vary x,y, fix z
+                slice_data = data[:, :, optimal_slice_num] if layer == "anatomical" else data[:, :, optimal_slice_num]
+            elif orientation == "sagittal":
+                slice_data = data[optimal_slice_num, :, :] if layer == "anatomical" else data[optimal_slice_num, :, :]
+            elif orientation == "coronal":
+                # Coronal: vary x,z, fix y
+                slice_data = data[:, optimal_slice_num, :] if layer == "anatomical" else data[:, optimal_slice_num, :]
+            else:
+                logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
+                return False
         else:
-            logger.error("unsupported_orientation", orientation=orientation)
-            return False
+            # Fallback for unknown orientations
+            logger.warning("unknown_orientation_backend_fallback",
+                         detected_orientation=actual_orientation,
+                         requested_orientation=orientation,
+                         using_standard_assumption=True)
+            # Assume standard orientation as fallback
+            if orientation == "axial":
+                slice_data = data[:, :, optimal_slice_num] if layer == "anatomical" else data[:, :, optimal_slice_num]
+            elif orientation == "sagittal":
+                slice_data = data[optimal_slice_num, :, :] if layer == "anatomical" else data[optimal_slice_num, :, :]
+            elif orientation == "coronal":
+                slice_data = data[:, optimal_slice_num, :] if layer == "anatomical" else data[:, optimal_slice_num, :]
+            else:
+                logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
+                return False
 
         # Convert to PIL Image
         if layer == "anatomical":

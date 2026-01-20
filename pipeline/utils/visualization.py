@@ -162,18 +162,58 @@ def generate_segmentation_overlays(
         seg_data = seg_img.get_fdata()
         
         # Determine slicing parameters based on orientation
-        # Data format: Standard NIfTI (RAS+)
-        # Axis 0: Left-Right (X), Axis 1: Anterior-Posterior (Y), Axis 2: Superior-Inferior (Z)
-        if orientation == 'axial':
-            slice_axis = 2  # Superior-Inferior (Z-axis) - axial slices
-            display_axes = (0, 1)  # Show Left-Right vs Anterior-Posterior
-            voxel_sizes = (vx, vy)  # L-R and A-P voxel sizes
-            axis_labels = ('Left-Right', 'Anterior-Posterior')
-        elif orientation == 'coronal':
-            slice_axis = 1  # Anterior-Posterior (Y-axis) - coronal slices
-            display_axes = (0, 2)  # Show Left-Right vs Superior-Inferior
-            voxel_sizes = (vx, vz)  # L-R and S-I voxel sizes
-            axis_labels = ('Left-Right', 'Superior-Inferior')
+        # Check actual file orientation and adapt accordingly for robust handling
+        actual_orientation = nib.aff2axcodes(t1_img.affine, labels=(("L", "R"), ("A", "P"), ("S", "I")))
+        logger.info("detected_file_orientation", orientation=actual_orientation, requested_orientation=orientation)
+
+        # Map orientations to correct axis slicing based on actual file orientation
+        # Standard neuroimaging: axial = horizontal (Z), coronal = front-back (Y), sagittal = left-right (X)
+        if actual_orientation == ('L', 'S', 'P'):
+            # FreeSurfer common orientation: Axis 0=L-R (X), Axis 1=S-I (Z), Axis 2=P-A (Y, flipped)
+            orientation_axis_map = {
+                'axial': 1,      # Superior-Inferior (Z-axis) - horizontal brain cuts
+                'coronal': 2,    # Anterior-Posterior (Y-axis, flipped) - front-back brain cuts
+                'sagittal': 0    # Left-Right (X-axis) - left-right brain cuts
+            }
+            if orientation == 'axial':
+                slice_axis = 1
+                display_axes = (0, 2)  # L-R vs A-P (accounting for flip)
+                voxel_sizes = (vx, vz)
+                axis_labels = ('Left-Right', 'Anterior-Posterior')
+            elif orientation == 'coronal':
+                slice_axis = 2
+                display_axes = (0, 1)  # L-R vs S-I
+                voxel_sizes = (vx, vy)
+                axis_labels = ('Left-Right', 'Superior-Inferior')
+        elif actual_orientation == ('R', 'A', 'S'):
+            # Standard RAS+ orientation: Axis 0=R-L (X), Axis 1=A-P (Y), Axis 2=S-I (Z)
+            if orientation == 'axial':
+                slice_axis = 2  # Superior-Inferior (Z-axis)
+                display_axes = (0, 1)  # R-L vs A-P
+                voxel_sizes = (vx, vy)
+                axis_labels = ('Right-Left', 'Anterior-Posterior')
+            elif orientation == 'coronal':
+                slice_axis = 1  # Anterior-Posterior (Y-axis)
+                display_axes = (0, 2)  # R-L vs S-I
+                voxel_sizes = (vx, vz)
+                axis_labels = ('Right-Left', 'Superior-Inferior')
+        else:
+            # Fallback for other orientations - log warning and use reasonable defaults
+            logger.warning("unknown_orientation_fallback",
+                         detected_orientation=actual_orientation,
+                         requested_orientation=orientation,
+                         using_standard_fallback=True)
+            # Assume orientation similar to RAS+ but with unknown axis ordering
+            if orientation == 'axial':
+                slice_axis = 2  # Assume Z-axis for axial (most common)
+                display_axes = (0, 1)
+                voxel_sizes = (vx, vy)
+                axis_labels = ('Axis-0', 'Axis-1')
+            elif orientation == 'coronal':
+                slice_axis = 1  # Assume Y-axis for coronal
+                display_axes = (0, 2)
+                voxel_sizes = (vx, vz)
+                axis_labels = ('Axis-0', 'Axis-2')
         
         # Verify spatial alignment - check affine matrices match
         # This ensures T1 and segmentation are in the same coordinate system
@@ -741,22 +781,85 @@ def extract_hippocampus_segmentation(
 def convert_mgz_to_nifti(mgz_path: Path, output_path: Path) -> Path:
     """
     Convert MGZ file to NIfTI format.
-    
+
     Args:
         mgz_path: Input MGZ file
         output_path: Output NIfTI path
-    
+
     Returns:
         Path to converted file
     """
     try:
         img = nib.load(mgz_path)
+
+        # Try to save to the requested location first
         nib.save(img, output_path)
         logger.info("mgz_converted_to_nifti", input=str(mgz_path), output=str(output_path))
         return output_path
+
+    except PermissionError as e:
+        # If permission denied, try multiple fallback approaches
+        logger.warning("permission_denied_converting_mgz",
+                      path=str(output_path),
+                      error=str(e))
+
+        # Get current user dynamically for universal compatibility
+        import getpass
+        import subprocess
+        import tempfile
+        import shutil
+
+        current_user = getpass.getuser()
+        target_dir = output_path.parent
+
+        # Approach 1: Try to fix ownership with current user
+        try:
+            logger.info("attempting_ownership_fix", user=current_user, directory=str(target_dir))
+            subprocess.run(['sudo', 'chown', '-R', f'{current_user}:{current_user}', str(target_dir)],
+                         check=True, capture_output=True, timeout=30)
+
+            # Retry the save
+            nib.save(img, output_path)
+            logger.info("mgz_converted_after_ownership_fix",
+                       input=str(mgz_path), output=str(output_path), user=current_user)
+            return output_path
+
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as chown_error:
+            logger.warning("sudo_chown_failed",
+                          error=str(chown_error),
+                          user=current_user,
+                          trying_alternative=True)
+
+            # Approach 2: Copy to temporary directory owned by current user
+            try:
+                with tempfile.NamedTemporaryFile(suffix='.nii.gz', delete=False) as temp_file:
+                    temp_path = Path(temp_file.name)
+
+                logger.info("attempting_temp_file_conversion", temp_path=str(temp_path))
+                nib.save(img, temp_path)
+
+                # Try to copy back to original location
+                try:
+                    shutil.copy2(temp_path, output_path)
+                    temp_path.unlink()  # Clean up temp file
+                    logger.info("mgz_converted_via_temp_file",
+                               input=str(mgz_path), output=str(output_path))
+                    return output_path
+                except (PermissionError, OSError) as copy_error:
+                    # If copy back fails, return temp file path
+                    logger.warning("copy_back_failed_using_temp_file",
+                                 temp_path=str(temp_path), copy_error=str(copy_error))
+                    return temp_path
+
+            except Exception as temp_error:
+                logger.error("temp_file_conversion_failed",
+                           error=str(temp_error),
+                           original_error=str(e))
+
     except Exception as e:
         logger.error("mgz_conversion_failed", error=str(e))
-        return None
+
+    return None
 
 
 def combine_hippocampal_subfields(

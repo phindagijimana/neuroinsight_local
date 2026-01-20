@@ -21,7 +21,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
   const [overlayOpacity, setOverlayOpacity] = useState(0.6);  // Overlay opacity: 0.0 = only anatomical, 1.0 = full overlay
   const [imageLoadError, setImageLoadError] = useState(false);  // Track if current slice image failed to load
   const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
-  const [axialRotation, setAxialRotation] = useState(0); // Axial rotation: 0, 90, 180, 270 degrees
+  const [rotation, setRotation] = useState(0); // Rotation: 0, 90, 180, 270 degrees (works for both axial and coronal)
   const FLIP_VERTICAL = false; // No flip needed; backend overlays saved with correct orientation
 
   // Zoom handlers
@@ -33,17 +33,23 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
     setZoomLevel(1.0);
   };
 
-  // Rotation handlers for axial views
+  // Rotation handlers for both axial and coronal views
   const handleRotateClockwise = () => {
-    setAxialRotation(prev => (prev + 90) % 360);
+    setRotation(prev => (prev + 90) % 360);
+    console.log('🔄 ROTATION: Clockwise clicked');
+    console.log(`🔄 ROTATION: ${rotation}° → ${(rotation + 90) % 360}°`);
   };
 
   const handleRotateCounterClockwise = () => {
-    setAxialRotation(prev => (prev - 90 + 360) % 360);
+    setRotation(prev => (prev - 90 + 360) % 360);
+    console.log('🔄 ROTATION: Counter-clockwise clicked');
+    console.log(`🔄 ROTATION: ${rotation}° → ${(rotation - 90 + 360) % 360}°`);
   };
 
   const handleRotateReset = () => {
-    setAxialRotation(0);
+    setRotation(0);
+    console.log('🔄 ROTATION: Reset clicked');
+    console.log('🔄 ROTATION: Reset to 0°');
   };
 
   // Load available completed jobs
@@ -262,6 +268,34 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                     {Math.round(overlayOpacity * 100)}%
                   </span>
                 </div>
+
+                {/* Rotation Controls */}
+                <div className="flex items-center gap-3">
+                  <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                    Rotation:
+                  </label>
+                  <button
+                    onClick={handleRotateCounterClockwise}
+                    className="p-2 hover:bg-blue-100 rounded-md transition text-blue-800"
+                    title="Rotate Counter-Clockwise (-90°)"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleRotateReset}
+                    className="px-3 py-2 hover:bg-blue-100 rounded-md transition text-sm font-semibold text-blue-900 min-w-[60px]"
+                    title="Reset Rotation (0°)"
+                  >
+                    {rotation}°
+                  </button>
+                  <button
+                    onClick={handleRotateClockwise}
+                    className="p-2 hover:bg-blue-100 rounded-md transition text-blue-800"
+                    title="Rotate Clockwise (+90°)"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
             <div className="relative bg-black rounded-xl overflow-auto mb-6" style={{ height: '650px' }}>
@@ -277,7 +311,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                   <div
                     className="relative max-w-none"
                     style={{
-                      transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}${orientation === 'axial' && axialRotation !== 0 ? ` rotate(${axialRotation}deg)` : ''}`,
+                      transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}${rotation !== 0 ? ` rotate(${rotation}deg)` : ''}`,
                       transformOrigin: 'center center',
                       transition: 'transform 0.2s ease-out',
                       cursor: zoomLevel > 1 ? 'move' : 'default'

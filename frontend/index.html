@@ -9,11 +9,11 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>NeuroInsight - Hippocampal Analysis Platform (v20251217170200) - ROTATION ENABLED</title>
-  <script src="/static/js/react.development.js"></script>
-  <script src="/static/js/react-dom.development.js"></script>
+  <title>NeuroInsight-CACHE-BUST-1768940401-CACHE-BUST-1768940397 - Hippocampal Analysis Platform (v20251217170200) - ROTATION ENABLED</title>
+  <script src="/static/js/react.production.min.js"></script>
+  <script src="/static/js/react-dom.production.min.js"></script>
   <script src="/static/js/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/static/js/tailwind.min.js"></script>
   <!-- Apply custom #003d7a theme overrides after Tailwind loads -->
   <script>
     // Wait for Tailwind to load, then apply our custom overrides
@@ -235,10 +235,8 @@
         if (urlParams.get('env')) {
           return urlParams.get('env');
         }
-        // Default to production if accessed via non-localhost
-        return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-          ? 'development'
-          : 'production';
+        // Backend is running in production mode, so frontend should match
+        return 'production';
       })()
     };
     
@@ -2135,19 +2133,33 @@
         console.log(`setActiveView CALLED: ${activeView} -> ${value}`, new Error().stack);
         setActiveView(value);
       };
-      const [orientation, setOrientation] = useState('coronal');  // coronal or axial
+      const [orientation, setOrientation] = useState('axial');  // coronal or axial
       const [loading, setLoading] = useState(false);
       const [slices, setSlices] = useState([]);
       const [availableJobs, setAvailableJobs] = useState([]);
       const [maxSlice, setMaxSlice] = useState(9); // Start with expected 10 slices (0-9)
-      const [zoomLevel, setZoomLevel] = useState(1.0);  // Zoom level: 1.0 = 100%, 2.0 = 200%, etc.
+      const [zoomLevel, setZoomLevel] = useState(0.75);  // Zoom level: 1.0 = 100%, 0.75 = 75%, etc.
       const [overlayOpacity, setOverlayOpacity] = useState(0.6);  // Overlay opacity: 0.0 = only anatomical, 1.0 = full overlay
       const [imageLoadError, setImageLoadError] = useState(false);  // Track if current slice image failed to load
       const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
-      const [axialRotation, setAxialRotation] = useState(0); // Axial rotation: 0, 90, 180, 270 degrees
+      const [rotation, setRotation] = useState(90); // Rotation: 0, 90, 180, 270 degrees (works for both axial and coronal)
       // No flip needed; backend overlays saved with correct orientation
       const FLIP_VERTICAL = false;
-      
+
+      // Helper function to get display label (anatomically correct)
+      const getDisplayOrientation = (orientation) => {
+        return orientation.charAt(0).toUpperCase() + orientation.slice(1);
+      };
+
+      // Set default rotation based on orientation (user-specified angles)
+      useEffect(() => {
+        if (orientation === 'axial') {
+          setRotation(0);   // Axial: 0° rotation as requested
+        } else if (orientation === 'coronal') {
+          setRotation(180); // Coronal: 180° rotation as requested
+        }
+      }, [orientation]); // Update rotation when orientation changes
+
       // Zoom handlers
       const handleZoomIn = () => {
         setZoomLevel(prev => Math.min(prev + 0.25, 3.0)); // Max 300%
@@ -2163,26 +2175,20 @@
 
       // Rotation handlers for axial views
       const handleRotateClockwise = () => {
+        setRotation(prev => (prev + 90) % 360);
         console.log('🔄 ROTATION: Clockwise clicked');
-        setAxialRotation(prev => {
-          const newRotation = (prev + 90) % 360;
-          console.log(`🔄 ROTATION: ${prev}° → ${newRotation}°`);
-          return newRotation;
-        });
+        console.log(`🔄 ROTATION: ${rotation}° → ${(rotation + 90) % 360}°`);
       };
 
       const handleRotateCounterClockwise = () => {
-        console.log('🔄 ROTATION: Counterclockwise clicked');
-        setAxialRotation(prev => {
-          const newRotation = (prev - 90 + 360) % 360;
-          console.log(`🔄 ROTATION: ${prev}° → ${newRotation}°`);
-          return newRotation;
-        });
+        setRotation(prev => (prev - 90 + 360) % 360);
+        console.log('🔄 ROTATION: Counter-clockwise clicked');
+        console.log(`🔄 ROTATION: ${rotation}° → ${(rotation - 90 + 360) % 360}°`);
       };
 
       const handleRotateReset = () => {
+        setRotation(0);
         console.log('🔄 ROTATION: Reset clicked');
-        setAxialRotation(0);
         console.log('🔄 ROTATION: Reset to 0°');
       };
       
@@ -2331,15 +2337,15 @@
         const sliceId = sliceIndex < 100
           ? `slice_${String(sliceIndex).padStart(2, '0')}`
           : `slice_${sliceIndex}`;
-        // Add cache-busting query to avoid stale cached PNGs
-        const ts = Date.now();
+        // Add aggressive cache-busting to avoid stale cached PNGs
+        const ts = Date.now() + Math.random();
 
         const urls = {
         anatomical: `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=anatomical&v=${ts}`,
         overlay: `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=overlay&v=${ts}`
         };
 
-        console.log(`GENERATED URLS for slice ${sliceIndex}:`, urls);
+        console.log(`🔄 GENERATED URLS for slice ${sliceIndex} (${orientation}):`, urls);
         return urls;
       };
 
@@ -2416,8 +2422,8 @@
                             backgroundColor: '#f8fafc'
                           }}
                         >
+                        <option value="axial">Axial (Horizontal View)</option>
                         <option value="coronal">Coronal (Front View)</option>
-                        <option value="axial">Axial (View from Below)</option>
                       </select>
                       </div>
                     </>
@@ -2439,7 +2445,7 @@
                       activeView === slice ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                     }`}
                   >
-                    {orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}
+                    {getDisplayOrientation(orientation)} {slice}
                   </button>
                 ))}
                 </div>
@@ -2471,33 +2477,6 @@
                     </button>
                   </div>
 
-                  {orientation === 'axial' && (
-                    <div className="flex items-center gap-1 bg-white border border-green-200 rounded-lg p-1" style={{border: '2px solid red'}}>
-                      <span className="text-xs font-medium text-gray-600 px-2">Rotate:</span>
-                      <button
-                        onClick={handleRotateCounterClockwise}
-                        className="p-2 hover:bg-green-100 rounded-md transition text-green-600"
-                        title="Rotate Counterclockwise 90°"
-                      >
-                        ↺
-                      </button>
-                      <button
-                        onClick={handleRotateReset}
-                        className="px-3 py-2 hover:bg-green-100 rounded-md transition text-sm font-semibold text-green-700 min-w-[60px]"
-                        title="Reset Rotation"
-                        onClick={() => console.log(`🔄 ROTATION RESET: Current=${axialRotation}° → 0°`)}
-                      >
-                        {axialRotation}°
-                      </button>
-                      <button
-                        onClick={handleRotateClockwise}
-                        className="p-2 hover:bg-green-100 rounded-md transition text-green-600"
-                        title="Rotate Clockwise 90°"
-                      >
-                        ↻
-                      </button>
-                    </div>
-                  )}
 
                   <div className="flex items-center gap-3 bg-white border border-blue-200 rounded-lg px-4 py-2">
                     <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
@@ -2516,6 +2495,38 @@
                       {Math.round(overlayOpacity * 100)}%
                     </span>
                   </div>
+
+                  {/* Rotation Controls */}
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                      Rotation:
+                    </label>
+                    <button
+                      onClick={handleRotateCounterClockwise}
+                      className="p-2 hover:bg-blue-100 rounded-md transition text-blue-800"
+                      title="Rotate Counter-Clockwise (-90°)"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={handleRotateReset}
+                      className="px-3 py-2 hover:bg-blue-100 rounded-md transition text-sm font-semibold text-blue-900 min-w-[60px]"
+                      title="Reset Rotation (0°)"
+                    >
+                      {rotation}°
+                    </button>
+                    <button
+                      onClick={handleRotateClockwise}
+                      className="p-2 hover:bg-blue-100 rounded-md transition text-blue-800"
+                      title="Rotate Clockwise (+90°)"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -2532,7 +2543,7 @@
                     <div 
                       className="relative max-w-none"
                       style={{
-                        transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}${orientation === 'axial' && axialRotation !== 0 ? ` rotate(${axialRotation}deg)` : ''}`,
+                        transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}${rotation !== 0 ? ` rotate(${rotation}deg)` : ''}`,
                         transformOrigin: 'center center',
                         transition: 'transform 0.2s ease-out',
                         cursor: zoomLevel > 1 ? 'move' : 'default'
@@ -2540,8 +2551,9 @@
                     >
                       {/* Base layer: Anatomical T1 (grayscale) */}
                       <img
+                        key={`anatomical-${selectedJobId}-${orientation}-${activeView}`}
                         src={getSliceUrls(activeView).anatomical}
-                        alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${activeView} - Anatomical`}
+                        alt={`${getDisplayOrientation(orientation)} Slice ${activeView} - Anatomical`}
                         onLoad={() => console.log(`ANATOMICAL IMAGE LOADED: ${getSliceUrls(activeView).anatomical}`)}
                         className="block"
                         style={{
@@ -2557,8 +2569,9 @@
                       />
                       {/* Overlay layer: Hippocampus segmentation (colored, transparent PNG) */}
                       <img
+                        key={`overlay-${selectedJobId}-${orientation}-${activeView}`}
                         src={getSliceUrls(activeView).overlay}
-                        alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${activeView} - Overlay`}
+                        alt={`${getDisplayOrientation(orientation)} Slice ${activeView} - Overlay`}
                         onLoad={() => console.log(`OVERLAY IMAGE LOADED: ${getSliceUrls(activeView).overlay}`)}
                         className="block absolute top-0 left-0"
                         style={{
@@ -2582,13 +2595,13 @@
                   <div className="absolute inset-0 flex items-center justify-center bg-black pointer-events-none">
                     <div className="text-center text-white">
                       <AlertCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-gray-300">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice {activeView} not available</p>
+                      <p className="text-gray-300">{getDisplayOrientation(orientation)} Slice {activeView} not available</p>
                     </div>
                   </div>
                 )}
 
                 <div className="absolute top-6 right-6 bg-black/80 px-4 py-3 rounded-lg">
-                  <span className="text-white text-sm font-semibold">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice: {activeView} / {maxSlice}</span>
+                  <span className="text-white text-sm font-semibold">{getDisplayOrientation(orientation)} Slice: {activeView} / {maxSlice}</span>
                 </div>
               </div>
 
@@ -2622,7 +2635,7 @@
               </div>
 
               <div className="border-t border-blue-100 pt-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Multi-Slice Overview (All 10 {orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slices)</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Multi-Slice Overview (All 10 {getDisplayOrientation(orientation)} Slices)</h3>
                 <div className="grid grid-cols-5 gap-3">
                   {previewSlices.map((slice, idx) => {
                     const sliceUrls = getSliceUrls(slice);
@@ -2638,11 +2651,11 @@
                           {/* Base anatomical layer */}
                           <img
                             src={sliceUrls.anatomical}
-                            alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Anatomical`}
+                            alt={`${getDisplayOrientation(orientation)} Slice ${slice} - Anatomical`}
                             className="w-full h-full object-cover"
                             style={{
                               ...FLIP_VERTICAL && { transform: 'scaleY(-1)' },
-                              ...(orientation === 'axial' && axialRotation !== 0) && { transform: `${FLIP_VERTICAL ? 'scaleY(-1)' : ''} rotate(${axialRotation}deg)` }
+                              ...(rotation !== 0) && { transform: `${FLIP_VERTICAL ? 'scaleY(-1)' : ''}${rotation !== 0 ? ` rotate(${rotation}deg)` : ''}` }
                             }}
                             onError={(e) => {
                               e.target.style.display = 'none';
@@ -2651,23 +2664,23 @@
                           {/* Overlay layer with opacity */}
                           <img
                             src={sliceUrls.overlay}
-                            alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Overlay`}
+                            alt={`${getDisplayOrientation(orientation)} Slice ${slice} - Overlay`}
                             className="absolute top-0 left-0 w-full h-full object-cover"
                             style={{
                               opacity: overlayOpacity,
                               pointerEvents: 'none',
-                              transform: `${FLIP_VERTICAL ? 'scaleY(-1)' : ''}${orientation === 'axial' && axialRotation !== 0 ? ` rotate(${axialRotation}deg)` : ''}`.trim() || 'none'
+                              transform: `${FLIP_VERTICAL ? 'scaleY(-1)' : ''}${rotation !== 0 ? ` rotate(${rotation}deg)` : ''}`.trim() || 'none'
                             }}
                             onError={(e) => {
                               e.target.style.display = 'none';
                             }}
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/50" style={{ display: 'none' }}>
-                            <p className="text-white text-xs">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}</p>
+                            <p className="text-white text-xs">{getDisplayOrientation(orientation)} {slice}</p>
                           </div>
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-2">
-                        <p className="text-white text-xs font-semibold text-center">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}</p>
+                        <p className="text-white text-xs font-semibold text-center">{getDisplayOrientation(orientation)} {slice}</p>
                       </div>
                     </div>
                     );

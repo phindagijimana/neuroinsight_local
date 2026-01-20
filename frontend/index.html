@@ -1074,7 +1074,7 @@
           const isValidFormat = validFormats.some(format => fileName.endsWith(format));
 
           if (!isValidFormat) {
-            alert('Invalid file format. Please upload .nii, .nii.gz, or .zip files.');
+            alert('Invalid file format. Please upload .nii, .nii.gz, or .zip files (ZIP must contain DICOM slices for T1 images).');
             return;
           }
 
@@ -1466,7 +1466,7 @@
                     </span>
                   </label>
                   <p className="text-xs text-gray-400 mt-4">
-                    Accepted formats: .nii, .nii.gz, .zip • Max size: 500MB
+                    Accepted formats: .nii, .nii.gz, .zip (containing DICOM slices) • Max size: 500MB
                   </p>
                   {formErrors.file && (
                     <p className="mt-2 text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">

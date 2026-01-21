@@ -325,7 +325,17 @@ async def upload_mri(
                             main_dicom_dir  # Use the main DICOM directory
                         ]
 
+                        logger.info("running_dcm2niix_command",
+                                  command=cmd,
+                                  input_dir=main_dicom_dir,
+                                  output_dir=nifti_output_dir)
+
                         result = subprocess_module.run(cmd, capture_output=True, text=True, timeout=300)
+
+                        logger.info("dcm2niix_command_result",
+                                  returncode=result.returncode,
+                                  stdout_preview=result.stdout[:500] if result.stdout else "No stdout",
+                                  stderr_preview=result.stderr[:500] if result.stderr else "No stderr")
 
                         if result.returncode != 0:
                             logger.warning("dcm2niix_main_dir_failed",
@@ -346,7 +356,17 @@ async def upload_mri(
                                 extract_dir  # Use entire extract directory
                             ]
 
+                            logger.info("running_dcm2niix_fallback_command",
+                                      command=fallback_cmd,
+                                      input_dir=extract_dir,
+                                      output_dir=nifti_output_dir)
+
                             fallback_result = subprocess_module.run(fallback_cmd, capture_output=True, text=True, timeout=300)
+
+                            logger.info("dcm2niix_fallback_result",
+                                      returncode=fallback_result.returncode,
+                                      stdout_preview=fallback_result.stdout[:500] if fallback_result.stdout else "No stdout",
+                                      stderr_preview=fallback_result.stderr[:500] if fallback_result.stderr else "No stderr")
 
                             if fallback_result.returncode != 0:
                                 logger.error("dcm2niix_fallback_also_failed",

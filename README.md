@@ -12,29 +12,6 @@ Automated hippocampal segmentation and analysis from T1-weighted MRI scans using
 
 ## Docker Installation
 
-### Option 1: Quick Install (Recommended for beginners)
-
-Download and install Docker using the official convenience script:
-
-```bash
-# Download and run Docker installation script
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-
-# Start Docker service
-sudo systemctl start docker
-sudo systemctl enable docker
-
-# Optional: Add your user to docker group
-sudo usermod -aG docker $USER
-
-# Test installation
-docker --version
-docker run hello-world
-```
-
-### Option 2: Manual Installation (Advanced users)
-
 If Docker is not installed, install it manually on Ubuntu/Debian:
 
 ```bash
@@ -69,18 +46,6 @@ docker run hello-world
 ```
 
 **Note:** After adding yourself to the docker group, log out and back in, or run `newgrp docker` for the changes to take effect.
-
-### Option 3: Docker Desktop (GUI Installation)
-
-For a graphical installation experience:
-
-1. Visit: https://docs.docker.com/desktop/install/ubuntu/
-2. Download the `.deb` package for Ubuntu
-3. Install using: `sudo dpkg -i docker-desktop-*-amd64.deb`
-4. Launch Docker Desktop from your applications menu
-5. Follow the setup wizard
-
-**Note:** Docker Desktop includes Docker Compose and provides a user-friendly GUI for managing containers.
 
 ## FreeSurfer Setup
 

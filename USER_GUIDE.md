@@ -148,9 +148,6 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 
 **Warning:** Jobs interrupted by sleep/hibernation cannot be resumed and must be restarted from the beginning.
 
-### Mock Data Warning
-Jobs show "(Mock Data)" when FreeSurfer license is missing. **Never use for clinical decisions.**
-
 ## FAQ
 
 ### What is NeuroInsight?

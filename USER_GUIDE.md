@@ -249,44 +249,6 @@ NeuroInsight processes one MRI scan at a time to ensure system stability and pre
    - Compare multiple scans in the job history
    - Re-upload or reprocess if needed
 
-### Pipeline Logic Overview
-
-NeuroInsight uses FreeSurfer's comprehensive neuroimaging pipeline to analyze T1-weighted MRI scans:
-
-#### Stage 1: Input Validation
-- **File Format Check**: Ensures NIfTI format (.nii/.nii.gz)
-- **T1 Sequence Verification**: Validates filename contains T1 indicators
-- **File Integrity**: Checks for corrupted or incomplete files
-
-#### Stage 2: Preprocessing
-- **Image Orientation**: Standardizes scan orientation using nibabel
-- **Brain Extraction**: Isolates brain tissue from skull and background
-- **Intensity Normalization**: Standardizes image contrast across scans
-
-#### Stage 3: FreeSurfer Processing
-- **Recon-All Pipeline**: Complete cortical reconstruction and volumetric segmentation
-- **Tissue Classification**: Identifies gray matter, white matter, and CSF
-- **Surface Generation**: Creates 3D cortical surface models
-- **Subcortical Segmentation**: Labels thalamus, caudate, putamen, etc.
-
-#### Stage 4: Hippocampus Analysis
-- **Hippocampus Segmentation**: Automated labeling of left/right hippocampus
-- **Volume Calculation**: Measures hippocampal volumes in mm³
-- **Shape Analysis**: Extracts morphometric features
-- **Asymmetry Assessment**: Compares left vs right hippocampus
-
-#### Stage 5: Visualization
-- **Slice Generation**: Creates anatomical slices in all three planes
-- **Overlay Creation**: Combines anatomical with segmentation data
-- **Interactive Viewer**: Web-based interface with zoom, rotation, opacity controls
-
-#### Quality Assurance:
-- **Error Detection**: Identifies processing failures at each stage
-- **Fallback Prevention**: No mock data generation - failures are reported
-- **Cleanup**: Automatic removal of intermediate files and orphaned containers
-
-**Processing Time**: 2-4 hours per scan depending on hardware and scan complexity.
-
 ## Usage
 
 ### File Requirements

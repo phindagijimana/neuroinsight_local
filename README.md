@@ -2,6 +2,14 @@
 
 Automated hippocampal segmentation and analysis from T1-weighted MRI scans using FreeSurfer.
 
+## Requirements
+
+- Ubuntu 20.04+ Linux
+- Docker and Docker Compose
+- 16GB+ RAM (32GB recommended)
+- 4+ CPU cores, 50GB storage
+- FreeSurfer license (free for research)
+
 ## Quick Start
 
 ```bash
@@ -22,14 +30,6 @@ cd neuroinsight_local
 ```
 
 **Need to reinstall?** Run `./neuroinsight reinstall` to get detailed step-by-step instructions for completely removing the NeuroInsight directory and performing a fresh installation when troubleshooting persistent issues.
-
-## Requirements
-
-- Ubuntu 20.04+ Linux
-- Docker and Docker Compose
-- 16GB+ RAM (32GB recommended)
-- 4+ CPU cores, 50GB storage
-- FreeSurfer license (free for research)
 
 ## File Requirements
 

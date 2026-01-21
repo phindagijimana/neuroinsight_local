@@ -49,6 +49,36 @@ sudo usermod -aG docker $USER
 docker --version
 docker run hello-world
 
+### WSL (Windows Subsystem for Linux) Users
+
+If you're using WSL on Windows, Docker installation is different:
+
+#### Install Docker Desktop on Windows:
+1. **Download Docker Desktop for Windows**: Visit https://www.docker.com/products/docker-desktop
+2. **Install the .exe file** and follow the installation wizard
+3. **Enable WSL Integration**:
+   - Open Docker Desktop
+   - Go to Settings → Resources → WSL Integration
+   - Enable integration with your WSL distribution
+   - Click "Apply & Restart"
+
+#### Verify WSL Docker Access:
+```bash
+# In your WSL terminal, verify Docker works:
+docker --version
+docker run hello-world
+
+# If you get connection errors, restart WSL:
+exit
+# Then reopen WSL terminal
+```
+
+#### Important Notes for WSL:
+- **File permissions**: WSL files are accessible at `/mnt/c/` from Windows
+- **Performance**: Docker volumes work better when files are inside WSL, not `/mnt/c/`
+- **Memory**: Docker Desktop may need memory allocation in Windows settings
+- **Updates**: Keep both Windows Docker Desktop and WSL distribution updated
+
 # Install and start
 ./neuroinsight install  # One-time installation
 ./neuroinsight license  # Verify license

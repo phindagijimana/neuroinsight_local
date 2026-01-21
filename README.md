@@ -10,6 +10,43 @@ Automated hippocampal segmentation and analysis from T1-weighted MRI scans using
 - 4+ CPU cores, 50GB storage
 - FreeSurfer license (free for research)
 
+## Docker Installation
+
+If Docker is not installed, install it on Ubuntu/Debian:
+
+```bash
+# Update package index
+sudo apt update
+
+# Install required packages
+sudo apt install apt-transport-https ca-certificates curl gnupg lsb-release
+
+# Add Docker's official GPG key
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Set up the stable repository
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Update package index again
+sudo apt update
+
+# Install Docker Engine
+sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Start Docker service
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Optional: Add your user to docker group (avoids using sudo)
+sudo usermod -aG docker $USER
+
+# Verify installation
+docker --version
+docker run hello-world
+```
+
+**Note:** After adding yourself to the docker group, log out and back in, or run `newgrp docker` for the changes to take effect.
+
 ## Quick Start
 
 ```bash

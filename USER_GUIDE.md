@@ -201,7 +201,6 @@ exit
 ```
 
 **Access NeuroInsight at:** http://localhost:8000
-```
 
 ## Understanding NeuroInsight
 

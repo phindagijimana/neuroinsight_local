@@ -166,16 +166,23 @@ exit
 - **Memory**: Docker Desktop may need memory allocation in Windows settings
 - **Updates**: Keep both Windows Docker Desktop and WSL distribution updated
 
-# Install and start
-./neuroinsight install  # One-time installation
-./neuroinsight license  # Verify license
+### 6. Install and Start NeuroInsight
+
+```bash
+# Install NeuroInsight (one-time setup)
+./neuroinsight install
+
+# Verify FreeSurfer license
+./neuroinsight license
 
 # IMPORTANT: Configure system sleep settings to prevent processing interruptions
 # System Settings → Power → Set sleep timeout to 2-4 hours when inactive
 
-./neuroinsight start    # Start NeuroInsight
+# Start NeuroInsight
+./neuroinsight start
+```
 
-# Access at http://localhost:8000
+**Access NeuroInsight at:** http://localhost:8000
 ```
 
 ## Usage

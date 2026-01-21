@@ -94,8 +94,6 @@ Once WSL is set up, continue with the Docker installation instructions below.
 
 ## Installation
 
-## Installation
-
 ### 1. Clone Repository
 
 ```bash

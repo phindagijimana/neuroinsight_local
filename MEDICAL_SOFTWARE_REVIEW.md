@@ -24,7 +24,7 @@
 
 ## Production Readiness Checklist
 
-### ❌ Not Ready
+### Not Ready
 - Multi-user authentication and authorization
 - Comprehensive audit logging
 - Automated backups and disaster recovery
@@ -33,7 +33,7 @@
 - Formal validation protocols
 - Regulatory compliance framework
 
-### ✅ Ready
+### Ready
 - Basic containerized deployment
 - Single-user research workflows
 - FreeSurfer neuroimaging pipeline

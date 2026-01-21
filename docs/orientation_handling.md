@@ -34,11 +34,11 @@ Unknown orientations use intelligent fallback logic with appropriate logging.
 - `backend/api/visualizations.py`: On-demand API serving
 
 ### Key Features
-- ✅ Automatic orientation detection
-- ✅ Robust axis mapping for all orientations  
-- ✅ Anatomically correct hippocampus density calculations
-- ✅ Comprehensive logging for debugging
-- ✅ Fallback handling for unknown orientations
+- ✓ Automatic orientation detection
+- ✓ Robust axis mapping for all orientations
+- ✓ Anatomically correct hippocampus density calculations
+- ✓ Comprehensive logging for debugging
+- ✓ Fallback handling for unknown orientations
 
 ### Testing
 Run orientation robustness test:

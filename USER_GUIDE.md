@@ -24,6 +24,10 @@ cd neuroinsight_local
 # Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
 # Save as license.txt in project directory
 
+# Verify Docker installation (REQUIRED)
+docker --version  # Should show Docker version
+docker run hello-world  # Should run successfully
+
 # Install and start
 ./neuroinsight install  # One-time installation
 ./neuroinsight license  # Verify license

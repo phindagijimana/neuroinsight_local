@@ -28,6 +28,27 @@ cd neuroinsight_local
 docker --version  # Should show Docker version
 docker run hello-world  # Should run successfully
 
+# If Docker is not installed, install it:
+# Ubuntu/Debian:
+sudo apt update
+sudo apt install apt-transport-https ca-certificates curl gnupg lsb-release
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt update
+sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Start and enable Docker service:
+sudo systemctl start docker
+sudo systemctl enable docker
+
+# Add your user to docker group (optional, avoids using sudo):
+sudo usermod -aG docker $USER
+# Log out and back in, or run: newgrp docker
+
+# Verify Docker works:
+docker --version
+docker run hello-world
+
 # Install and start
 ./neuroinsight install  # One-time installation
 ./neuroinsight license  # Verify license

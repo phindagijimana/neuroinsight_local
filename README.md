@@ -26,6 +26,7 @@ cd neuroinsight_local
 ## Requirements
 
 - Ubuntu 20.04+ Linux
+- Docker and Docker Compose
 - 16GB+ RAM (32GB recommended)
 - 4+ CPU cores, 50GB storage
 - FreeSurfer license (free for research)

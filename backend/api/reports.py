@@ -278,7 +278,7 @@ async def generate_pdf_report(
 
         viz_note = Paragraph(
             "The following images show coronal slices with anatomical T1-weighted background and hippocampal segmentation overlays "
-            "(15% opacity, identical to the interactive viewer) combined, providing the same visualization as the interactive viewer. Slices 3, 4, 5, and 6 are displayed "
+            "(30% opacity) combined. Images are rotated 180 degrees for optimal report viewing. Slices 3, 4, 5, and 6 are displayed "
             "in a 2x2 grid to provide comprehensive visualization of the hippocampal regions.",
             styles['Normal']
         )
@@ -337,13 +337,22 @@ async def generate_pdf_report(
                     anatomical_array = np.array(anatomical_img)
                     overlay_array = np.array(overlay_img)
 
-                    logger.info(f"Before compositing - anatomical shape: {anatomical_array.shape}, overlay shape: {overlay_array.shape}")
+                    # Apply 180-degree rotation to coronal slices for report display
+                    anatomical_img = anatomical_img.rotate(180)
+                    overlay_img = overlay_img.rotate(180)
+                    logger.info(f"Applied 180-degree rotation to coronal slice {slice_idx} for report")
+
+                    # Convert back to arrays after rotation
+                    anatomical_array = np.array(anatomical_img)
+                    overlay_array = np.array(overlay_img)
+
+                    logger.info(f"After rotation - anatomical shape: {anatomical_array.shape}, overlay shape: {overlay_array.shape}")
                     logger.info(f"Anatomical alpha range: {anatomical_array[:,:,3].min()}-{anatomical_array[:,:,3].max()}")
                     logger.info(f"Overlay alpha range: {overlay_array[:,:,3].min()}-{overlay_array[:,:,3].max()}")
 
-                    # Apply 40% opacity to overlay pixels (where alpha > 0)
+                    # Apply 30% opacity to overlay pixels (where alpha > 0)
                     # This provides clear hippocampal visualization in reports
-                    opacity = 0.40
+                    opacity = 0.30
 
                     # Create composite: anatomical + (overlay * opacity)
                     composite_array = anatomical_array.copy()
@@ -354,7 +363,7 @@ async def generate_pdf_report(
 
                     logger.info(f"Compositing {overlay_pixels} overlay pixels with {opacity*100}% opacity")
 
-                    # Blend overlay with anatomical using 15% opacity
+                    # Blend overlay with anatomical using 30% opacity
                     composite_array[overlay_mask] = (
                         opacity * overlay_array[overlay_mask] +
                         (1 - opacity) * anatomical_array[overlay_mask]
@@ -468,7 +477,7 @@ async def generate_pdf_report(
 
             # Add caption for the entire grid
             grid_caption = Paragraph(
-                "Figure: Coronal slices 3, 4 (top row) and 5, 6 (bottom row) showing T1-weighted anatomical images with hippocampal segmentation overlays at 40% opacity.",
+                "Figure: Coronal slices 3, 4 (top row) and 5, 6 (bottom row) showing T1-weighted anatomical images with hippocampal segmentation overlays at 30% opacity (rotated 180° for optimal viewing).",
                 ParagraphStyle('GridCaption', parent=styles['Normal'], fontSize=9, textColor=colors.gray, alignment=1)
             )
             story.append(grid_caption)

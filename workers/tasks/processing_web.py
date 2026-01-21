@@ -269,28 +269,6 @@ def process_mri_task(self, job_id: str):
 
         update_job_progress(db, job_id, 95, "Finalizing results")
 
-        # Check if mock data was used and update filename accordingly
-        print(f"DEBUG: Checking mock data - results: {bool(results)}, keys: {list(results.keys()) if results else None}")
-        if results:
-            print(f"DEBUG: mock_processing value: {results.get('mock_processing')}")
-        logger.info("checking_for_mock_data_filename_update", job_id=job_id, has_results=bool(results), mock_processing=results.get("mock_processing") if results else None)
-        if results and results.get("mock_processing"):
-            try:
-                job = db.query(Job).filter(Job.id == job_id).first()
-                print(f"DEBUG: Found job: {job.filename if job else None}")
-                logger.info("updating_filename_for_mock_data", job_id=job_id, current_filename=job.filename if job else None)
-                if job and not job.filename.endswith(" (Mock Data)"):
-                    original_filename = job.filename
-                    job.filename = f"{job.filename} (Mock Data)"
-                    db.commit()
-                    print(f"DEBUG: Updated filename from '{original_filename}' to '{job.filename}'")
-                    logger.info("job_filename_updated_for_mock_data", job_id=job_id, new_filename=job.filename)
-                else:
-                    print(f"DEBUG: Filename already updated or job not found - job: {bool(job)}, filename: {job.filename if job else None}")
-                    logger.info("filename_already_updated_or_job_not_found", job_id=job_id, job_found=bool(job))
-            except Exception as e:
-                print(f"DEBUG: Exception updating filename: {str(e)}")
-                logger.warning("failed_to_update_job_filename_for_mock_data", job_id=job_id, error=str(e))
 
         # Update job with results
         JobService.complete_job(db, job_id, results.get("output_dir"))
@@ -324,6 +302,17 @@ def process_mri_task(self, job_id: str):
         raise
 
     finally:
+        # Ensure container cleanup happens regardless of failure point
+        try:
+            from pipeline.processors import MRIProcessor
+            cleanup_processor = MRIProcessor(job_id=job_id, db_session=None, progress_callback=None)
+            cleanup_processor._cleanup_job_containers()
+            logger.info("container_cleanup_attempted_in_finally", job_id=job_id)
+        except Exception as cleanup_error:
+            logger.warning("container_cleanup_failed_in_finally",
+                          job_id=job_id,
+                          error=str(cleanup_error))
+
         db.close()
 
 

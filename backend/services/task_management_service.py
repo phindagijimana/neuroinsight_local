@@ -448,6 +448,10 @@ class TaskManagementService:
             # Clean up old jobs (keep for 90 days in desktop mode)
             cleaned_count = TaskManagementService.cleanup_old_jobs(db_session, retention_days=90)
 
+            # Clean up orphaned containers (containers without corresponding jobs)
+            from backend.services.job_service import JobService
+            orphaned_containers_cleaned = JobService.cleanup_orphaned_containers(db_session, logger)
+
             # Log system stats
             stats = TaskManagementService.get_system_stats()
             logger.info("maintenance_completed",
@@ -460,6 +464,7 @@ class TaskManagementService:
                 "container_mismatches": container_mismatches,
                 "stuck_jobs": stuck_jobs,
                 "cleaned_jobs": cleaned_count,
+                "orphaned_containers_cleaned": orphaned_containers_cleaned,
                 "system_stats": stats
             }
 

@@ -191,7 +191,7 @@
      */
 
 
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect, useRef, useMemo } = React;
     
     // ============================================================================
     // MODULE: Configuration
@@ -465,7 +465,8 @@
      */
     const toUiJob = (job) => {
       const normalizedStatus = normalizeStatus(job.status);
-      return {
+      // Create a more stable representation by ensuring consistent object shape
+      const uiJob = {
         id: job.id || job.job_id,
         filename: job.filename || job.file_path?.split('/').pop() || 'unknown',
         status: normalizedStatus,
@@ -476,6 +477,11 @@
         currentStep: job.current_step ?? (normalizedStatus === 'processing' ? 'Processing...' : normalizedStatus === 'pending' ? 'Queued for processing' : ''),
         errorMessage: job.error_message || null,
       };
+
+      // Add a computed stable key for React reconciliation
+      uiJob.stableKey = `${uiJob.id}-${uiJob.status}-${uiJob.progress}`;
+
+      return uiJob;
     };
     
     // ============================================================================
@@ -863,6 +869,33 @@
       const [uploadProgress, setUploadProgress] = useState(null);
       const [loading, setLoading] = useState(true);
       const [pollingJobId, setPollingJobId] = useState(null);
+      const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+
+      // Cache for stable job objects to prevent bouncing
+      const jobCache = useRef(new Map());
+
+      // Memoize jobs list with stable object references
+      const stableJobs = useMemo(() => {
+        // Clean up old cache entries periodically (keep last 50)
+        if (jobCache.current.size > 50) {
+          const keys = Array.from(jobCache.current.keys());
+          keys.slice(0, 20).forEach(key => jobCache.current.delete(key));
+        }
+
+        return jobs.map(job => {
+          const cacheKey = `${job.id}-${job.status}-${job.progress}-${job.current_step || ''}-${job.error_message || ''}`;
+
+          if (jobCache.current.has(cacheKey)) {
+            console.log(`🔄 Using cached job: ${job.id}`);
+            return jobCache.current.get(cacheKey);
+          }
+
+          console.log(`🆕 Creating new job object: ${job.id}`);
+          const uiJob = toUiJob(job);
+          jobCache.current.set(cacheKey, uiJob);
+          return uiJob;
+        });
+      }, [jobs]);
       const [patientInfo, setPatientInfo] = useState({
         patient_name: '',
         age: '',
@@ -955,8 +988,10 @@
         console.log('JobsPage mounted, loading jobs...');
         loadJobs();
         const interval = setInterval(() => {
-          loadJobs();
-        }, 10000); // Auto-refresh every 10 seconds
+          // Add small random delay to prevent synchronized polling across multiple clients
+          const delay = Math.random() * 2000; // 0-2 second random delay
+          setTimeout(() => loadJobs(), delay);
+        }, 15000); // Auto-refresh every 15 seconds (reduced frequency to minimize bouncing)
         return () => clearInterval(interval);
       }, []);
       
@@ -970,9 +1005,16 @@
       }, [jobs]);
       
       const loadJobs = async () => {
+        // Prevent concurrent job loads to reduce bouncing
+        if (isLoadingJobs) {
+          console.log('loadJobs: Already loading, skipping...');
+          return;
+        }
+
         try {
           console.log('=== Starting loadJobs ===');
           setLoading(true);
+          setIsLoadingJobs(true);
           console.log('Loading state set to true');
           console.log('API Base URL:', CONFIG.api.baseUrl);
           console.log('Current jobs state:', jobs.length);
@@ -1064,6 +1106,7 @@
         } finally {
           console.log('Setting loading to false...');
           setLoading(false);
+          setIsLoadingJobs(false);
           console.log('=== Loading Complete ===');
         }
       };
@@ -1548,7 +1591,7 @@
                 {/* Job filtering and status info */}
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-500">
-                    Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+                    Showing {stableJobs.length} job{stableJobs.length !== 1 ? 's' : ''}
                     {(stats?.completed > 0) && ` (${stats.completed} completed)`}
                     {pollingJobId ? ` • monitoring ${pollingJobId}` : ''}
                   </div>
@@ -1583,12 +1626,12 @@
               </div>
 
 
-              {loading && jobs.length === 0 ? (
+              {loading && stableJobs.length === 0 ? (
                 <div className="p-12 text-center">
                   <Clock className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
                   <p className="text-gray-600">Loading jobs...</p>
                 </div>
-              ) : jobs.length === 0 ? (
+              ) : stableJobs.length === 0 ? (
                 <div className="p-12 text-center text-gray-500">
                   <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-semibold mb-2">No jobs found</p>
@@ -1596,7 +1639,7 @@
                 </div>
               ) : (
               <div className="divide-y divide-blue-100">
-                {jobs.map((job) => (
+                {stableJobs.map((job) => (
                   <div key={job.id} className="p-6 hover:bg-blue-50 transition">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">

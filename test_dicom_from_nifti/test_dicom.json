@@ -1,0 +1,14 @@
+{
+	"Manufacturer": "Siemens",
+	"ManufacturersModelName": "961",
+	"ProcedureStepDescription": "FDG",
+	"SeriesDescription": "ain_Mode)_4_ite",
+	"ProtocolName": "B10_297___4",
+	"SeriesNumber": 1,
+	"ImageComments": "F-18",
+	"IsotopeHalfLife": 6586.2,
+	"FrameDuration": [
+		300	],
+	"ConversionSoftware": "dcm2niix",
+	"ConversionSoftwareVersion": "v1.0.20211006"
+}

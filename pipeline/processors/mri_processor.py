@@ -546,16 +546,8 @@ class MRIProcessor:
         logger.info("processing_pipeline_started", job_id=str(self.job_id))
         print(f"DEBUG: MRI Processor process() called for job {self.job_id} - NEW CODE VERSION")
 
-        # PRODUCTION MODE: Always use real FreeSurfer processing by default
-        # Only use mock processing if explicitly requested via environment variable
-        use_mock = os.getenv("USE_MOCK_PROCESSING", "false").lower() == "true"
-
-        logger.info("production_processing_mode", use_mock=use_mock, default_to_docker=True)
-        print(f"DEBUG: PRODUCTION MODE - use_mock={use_mock}, defaulting to Docker FreeSurfer processing")
-
-        if use_mock:
-            logger.info("explicit_mock_processing_requested")
-            return self._mock_process(input_path)
+        # PRODUCTION MODE: Always use real FreeSurfer processing - no mock fallbacks allowed
+        logger.info("production_processing_mode", mock_fallbacks_disabled=True, real_processing_only=True)
 
         # For real FreeSurfer processing (default), continue with Docker-based processing
         # Validate system requirements
@@ -583,23 +575,11 @@ class MRIProcessor:
                         "FreeSurfer processing may have failed or produced incomplete results. "
                         f"Check FreeSurfer logs in {freesurfer_output}")
 
-            # Check if mock data fallback is allowed (development/testing only)
-            allow_mock_fallback = os.getenv("NEUROINSIGHT_ALLOW_MOCK_FALLBACK", "false").lower() == "true"
-
-            if allow_mock_fallback:
-                logger.warning("no_hippocampal_data_extracted_creating_mock_fallback",
-                             error=error_msg,
-                             freesurfer_output=str(freesurfer_output))
-                # Create mock data for development/testing only
-                self._create_mock_freesurfer_output(freesurfer_output)
-                hippocampal_stats = self._extract_hippocampal_data(freesurfer_output)
-                logger.info("mock_hippocampal_data_created_for_development", stats=hippocampal_stats)
-            else:
-                # Production: Fail with clear error message
-                logger.error("hippocampal_extraction_failed_no_fallback",
-                           error=error_msg,
-                           freesurfer_output=str(freesurfer_output))
-                raise RuntimeError(f"Hippocampal segmentation failed: {error_msg}")
+            # Production: Always fail with clear error message - no mock data fallback
+            logger.error("hippocampal_extraction_failed_no_fallback",
+                       error=error_msg,
+                       freesurfer_output=str(freesurfer_output))
+            raise RuntimeError(f"Hippocampal segmentation failed: {error_msg}")
 
         # Step 4: Calculate asymmetry indices
         self._update_progress(70, "Calculating asymmetry indices...")
@@ -2333,12 +2313,7 @@ class MRIProcessor:
         freesurfer_dir = self.output_dir / "freesurfer"
         freesurfer_dir.mkdir(exist_ok=True)
 
-        # Smoke test mode: Skip processing and create mock output immediately
-        if self.smoke_test_mode:
-            logger.info("smoke_test_mode_enabled", message="Using mock FreeSurfer data for CI testing")
-            # For FreeSurfer-only, we'll create FreeSurfer-compatible mock data
-            self._create_mock_freesurfer_output(freesurfer_dir)
-            return freesurfer_dir
+        # Production mode only - no smoke test or mock data fallbacks
 
         # Check FreeSurfer availability and license before processing
         logger.info("checking_freesurfer_requirements")
@@ -2410,54 +2385,9 @@ class MRIProcessor:
                         error=str(freesurfer_error),
                         error_type=type(freesurfer_error).__name__)
 
-            # Single fallback: mock data
-            logger.warning("freesurfer_failed_using_mock_data")
-            self._create_mock_freesurfer_output(freesurfer_dir)
-            return freesurfer_dir
+            # Production: Fail with clear error message - no mock data fallback
+            raise RuntimeError(f"FreeSurfer processing failed: {str(freesurfer_error)}")
 
-    def _create_mock_freesurfer_output(self, output_dir: Path) -> None:
-        """
-        Create mock FreeSurfer output for development/testing (FreeSurfer-only mode).
-
-        Generates FreeSurfer directory structure and stats files.
-        """
-        logger.info("creating_mock_freesurfer_output", output_dir=str(output_dir))
-        # Mark that mock processing was used
-        self.mock_processing = True
-
-        subject_id = f"mock_freesurfer_{self.job_id}"
-
-        # Create FreeSurfer directory structure
-        subject_dir = output_dir / subject_id
-        subject_dir.mkdir(exist_ok=True)
-
-        stats_dir = subject_dir / "stats"
-        stats_dir.mkdir(exist_ok=True)
-
-        # Create mock aseg.stats with realistic hippocampal volumes
-        aseg_stats_path = stats_dir / "aseg.stats"
-
-        mock_stats = """# Title Segmentation Statistics
-#
-# subjectname mock_freesurfer
-# subjectsdir /output
-# txtime 2024-01-01 12:00:00
-# etime 90.2
-# nc 2
-# nv 1000000
-# atlas_icv 1500000.0
-# possible_wm 800000.0
-# cmdargs -i input.nii -s mock_freesurfer -autorecon1 -autorecon2-volonly
-
-# ColHeaders Index SegId NVoxels Volume_mm3 StructName normMean normStdDev normMin normMax normRange
-  1     17     2800   2800.0  Left-Hippocampus    45.6   12.3    20.1    89.2    69.1
-  2     53     2750   2750.0  Right-Hippocampus   47.2   11.8    21.5    91.1    69.6
-"""
-
-        with open(aseg_stats_path, 'w') as f:
-            f.write(mock_stats)
-
-        logger.info("mock_freesurfer_output_created", subject_id=subject_id, stats_file=str(aseg_stats_path))
 
     def _find_freesurfer_singularity_image(self) -> Path:
         """Find the FreeSurfer Singularity image."""
@@ -2588,10 +2518,7 @@ class MRIProcessor:
         freesurfer_dir.mkdir(exist_ok=True)
 
         # Smoke test mode: Skip Docker and create mock output immediately
-        if self.smoke_test_mode:
-            logger.info("smoke_test_mode_enabled", message="Using mock FreeSurfer data for CI testing")
-            self._create_mock_fastsurfer_output(freesurfer_dir)
-            return freesurfer_dir
+        # Production mode only - no smoke test or mock data fallbacks
 
         # Smart Container Runtime Selection with Automatic Fallback
         # Strategy: Try preferred runtime first, fallback to alternatives if available
@@ -3347,76 +3274,6 @@ class MRIProcessor:
             self._clear_process_pid()
             raise
     
-    def _create_mock_fastsurfer_output(self, output_dir: Path) -> None:
-        """
-        Create mock FreeSurfer output for development/testing.
-
-        Args:
-            output_dir: Output directory for mock data
-        """
-        print("DEBUG: _create_mock_fastsurfer_output method called")
-        print(f"DEBUG: creating_mock_fastsurfer_output: {output_dir}")
-        try:
-            print("DEBUG: try_block_started")
-            # Create directory structure for output
-            subject_dir = output_dir / str(self.job_id)
-            print(f"DEBUG: subject_dir_created: {subject_dir}")
-            stats_dir = subject_dir / "stats"
-            mri_dir = subject_dir / "mri"
-            print("DEBUG: about_to_mkdir")
-            stats_dir.mkdir(parents=True, exist_ok=True)
-            mri_dir.mkdir(parents=True, exist_ok=True)
-            print(f"DEBUG: directories_created: {stats_dir}")
-
-            # Create mock hippocampal subfields stats file
-            mock_data = {
-                "CA1": {"left": 1250.5, "right": 1198.2},
-                "CA3": {"left": 450.3, "right": 465.1},
-                "subiculum": {"left": 580.7, "right": 555.9},
-                "dentate_gyrus": {"left": 380.2, "right": 395.6},
-            }
-
-            # Write left hemisphere stats
-            left_stats = stats_dir / "lh.hippoSfVolumes-T1.v21.txt"
-            with open(left_stats, "w") as f:
-                f.write("# Hippocampal subfield volumes (left hemisphere)\n")
-                f.write("# Region Volume\n")
-                for region, volumes in mock_data.items():
-                    f.write(f"{region} {volumes['left']:.2f}\n")
-
-            # Write right hemisphere stats
-            right_stats = stats_dir / "rh.hippoSfVolumes-T1.v21.txt"
-            with open(right_stats, "w") as f:
-                f.write("# Hippocampal subfield volumes (right hemisphere)\n")
-                f.write("# Region Volume\n")
-                for region, volumes in mock_data.items():
-                    f.write(f"{region} {volumes['right']:.2f}\n")
-            logger.info("hippo_stats_created")
-
-            # Create mock aseg stats file
-            aseg_stats = stats_dir / "aseg+DKT.stats"
-            logger.info(f"creating_aseg_stats: {aseg_stats}")
-            try:
-                with open(aseg_stats, "w") as f:
-                    f.write("# aseg+DKT.stats\n")
-                    f.write("# Index SegId NVoxels Volume_mm3 StructName normMean normStdDev normMin normMax normRange\n")
-                    f.write("17 17 31262 1250.5 Left-Hippocampus 110.5 15.2 85.3 145.6 60.3\n")
-                    f.write("53 53 29845 1198.2 Right-Hippocampus 108.7 14.8 82.1 142.3 60.2\n")
-                logger.info(f"aseg_stats_created: {aseg_stats}")
-            except Exception as e:
-                logger.error(f"aseg_stats_creation_failed: {e} at {aseg_stats}")
-
-            # Create mock segmentation files for visualization
-            try:
-                self._create_mock_segmentation_files(mri_dir)
-                logger.info("mock_segmentation_files_created")
-            except Exception as e:
-                logger.error(f"mock_segmentation_files_failed: {e}")
-
-            logger.info(f"mock_output_created: {output_dir}")
-        except Exception as e:
-            logger.error(f"create_mock_fastsurfer_output_failed: {e}")
-            raise
 
     def _create_mock_segmentation_files(self, mri_dir: Path) -> None:
         """
@@ -4342,103 +4199,4 @@ class MRIProcessor:
             logger.error("api_bridge_processing_failed", job_id=str(self.job_id), error=str(e))
             raise Exception(f"API bridge processing failed: {str(e)}")
 
-    def _mock_process(self, input_path: str) -> Dict:
-        """
-        Mock MRI processing for testing without FreeSurfer license.
-
-        Creates simulated processing results and output files to test
-        the complete pipeline workflow.
-        """
-        import time
-        logger.info("mock_processing_started", job_id=str(self.job_id), input_path=input_path)
-
-        # Create output directory
-        output_dir = Path(settings.output_dir) / str(self.job_id)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Simulate processing steps with progress updates
-        steps = [
-            (10, "Initializing mock processor"),
-            (20, "Loading input file"),
-            (40, "Running mock segmentation"),
-            (60, "Extracting mock metrics"),
-            (80, "Generating visualizations"),
-            (95, "Finalizing results")
-        ]
-
-        for progress, step in steps:
-            if self.progress_callback:
-                self.progress_callback(progress, step)
-            time.sleep(0.5)  # Simulate processing time
-
-        # Create mock output files
-        mock_files = [
-            "aseg.stats",
-            "lh.hippoSfVolumes-T1.v21.txt",
-            "rh.hippoSfVolumes-T1.v21.txt",
-            "brain.nii.gz",
-            "aseg.nii.gz"
-        ]
-
-        for filename in mock_files:
-            file_path = output_dir / filename
-            if filename.endswith('.txt'):
-                # Create mock stats file
-                with open(file_path, 'w') as f:
-                    f.write("# Mock FreeSurfer Statistics\n")
-                    f.write("# Generated for testing purposes\n")
-                    f.write(f"# Job ID: {self.job_id}\n")
-                    f.write("# Left Hippocampus: 4200 mm³\n")
-                    f.write("# Right Hippocampus: 4100 mm³\n")
-            elif filename.endswith('.nii.gz'):
-                # Create a minimal mock NIfTI file (just header, no actual data)
-                import nibabel as nib
-                import numpy as np
-                data = np.zeros((64, 64, 32), dtype=np.uint8)  # Minimal 3D volume
-                affine = np.eye(4)  # Identity matrix
-                img = nib.Nifti1Image(data, affine)
-                nib.save(img, str(file_path))
-            else:
-                # Create empty file for other types
-                file_path.touch()
-
-        # Generate mock hippocampal data (structured as expected by _calculate_asymmetry)
-        hippocampal_data = {
-            "CA1": {"left": 850.2, "right": 840.5},
-            "CA2": {"left": 720.8, "right": 710.2},
-            "CA3": {"left": 680.5, "right": 670.8},
-            "DG": {"left": 450.1, "right": 440.3},
-            "SUB": {"left": 320.4, "right": 310.6},
-            "ERC": {"left": 890.6, "right": 880.9},
-            "PRC": {"left": 950.2, "right": 940.5},
-            "PHC": {"left": 850.1, "right": 840.4}
-        }
-
-        # Calculate mock asymmetry
-        asymmetry_metrics = self._calculate_asymmetry(hippocampal_data)
-
-        # Generate mock visualizations
-        visualizations = {
-            "hippocampal_volumes": "/api/visualizations/mock/hippocampal_volumes.png",
-            "asymmetry_plot": "/api/visualizations/mock/asymmetry_plot.png",
-            "segmentation_overlay": "/api/visualizations/mock/segmentation_overlay.png"
-        }
-
-        # Create results summary
-        results = {
-            "output_dir": str(output_dir),
-            "hippocampal_data": hippocampal_data,
-            "asymmetry_metrics": asymmetry_metrics,
-            "visualizations": visualizations,
-            "processing_time_seconds": 45.2,
-            "mock_processing": True,
-            "note": "This is mock data generated for testing without FreeSurfer license"
-        }
-
-        logger.info("mock_processing_completed", job_id=str(self.job_id), output_dir=str(output_dir))
-
-        # Ensure any orphaned containers for this job are cleaned up
-        self._cleanup_job_containers()
-
-        return results
 

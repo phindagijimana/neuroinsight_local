@@ -169,7 +169,7 @@ class JobService:
         if status:
             query = query.filter(Job.status == status)
         
-        return query.order_by(Job.created_at.desc()).offset(skip).limit(limit).all()
+        return query.order_by(Job.created_at.desc(), Job.id.desc()).offset(skip).limit(limit).all()
 
     @staticmethod
     def count_jobs_by_status(db: Session, statuses: List[JobStatus]) -> int:
@@ -356,6 +356,89 @@ class JobService:
                 logger.warning("failed_to_auto_start_next_job_after_deletion", error=str(e))
         
         return True
+
+    @staticmethod
+    def cleanup_orphaned_containers(db: Session, logger) -> int:
+        """
+        Clean up Docker containers that don't have corresponding database jobs.
+
+        This maintenance function identifies and removes containers that may have been
+        left running after jobs were deleted or system interruptions occurred.
+
+        Args:
+            db: Database session
+            logger: Logger instance
+
+        Returns:
+            Number of orphaned containers cleaned up
+        """
+        try:
+            import subprocess
+
+            # Get all running FreeSurfer containers
+            result = subprocess.run(
+                ["docker", "ps", "--filter", "name=freesurfer-job-", "--format", "{{.Names}}"],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            if result.returncode != 0:
+                logger.warning("failed_to_list_containers", error=result.stderr.strip())
+                return 0
+
+            running_containers = result.stdout.strip().split('\n') if result.stdout.strip() else []
+            cleaned_count = 0
+
+            for container_name in running_containers:
+                if not container_name.strip():
+                    continue
+
+                # Extract job ID from container name (format: freesurfer-job-{job_id})
+                try:
+                    job_id_part = container_name.replace('freesurfer-job-', '')
+                    job = JobService.get_job(db, job_id_part)
+
+                    if not job:
+                        # Job doesn't exist in database - orphaned container
+                        logger.warning("found_orphaned_container",
+                                     container_name=container_name,
+                                     job_id=job_id_part)
+
+                        # Stop the orphaned container
+                        stop_result = subprocess.run(
+                            ["docker", "stop", container_name],
+                            capture_output=True,
+                            timeout=30
+                        )
+
+                        if stop_result.returncode == 0:
+                            logger.info("stopped_orphaned_container",
+                                       container_name=container_name,
+                                       job_id=job_id_part)
+                            cleaned_count += 1
+                        else:
+                            logger.error("failed_to_stop_orphaned_container",
+                                       container_name=container_name,
+                                       error=stop_result.stderr.decode())
+                    else:
+                        logger.debug("container_has_valid_job",
+                                   container_name=container_name,
+                                   job_id=str(job.id),
+                                   job_status=job.status.value)
+                except Exception as e:
+                    logger.error("error_processing_container",
+                               container_name=container_name,
+                               error=str(e))
+
+            if cleaned_count > 0:
+                logger.info("orphaned_container_cleanup_completed", cleaned_count=cleaned_count)
+
+            return cleaned_count
+
+        except Exception as e:
+            logger.error("orphaned_container_cleanup_failed", error=str(e))
+            return 0
     
     @staticmethod
     def start_job(db: Session, job_id) -> Optional[Job]:

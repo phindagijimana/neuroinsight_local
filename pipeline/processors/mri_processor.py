@@ -368,7 +368,7 @@ class MRIProcessor:
 
             elif total_gb < RECOMMENDED_GB:
                 info_msg = (
-                    f"ℹ️  MEMORY INFO\n"
+                    f"[INFO] MEMORY INFO\n"
                     f"System has {total_gb:.1f} GB RAM - sufficient for basic processing.\n"
                     f"For optimal performance with multiple jobs, consider 32GB+ RAM."
                 )
@@ -1122,7 +1122,7 @@ class MRIProcessor:
                 if self.progress_callback:
                     self.progress_callback(
                         self._get_current_progress(),
-                        f"🐳 Downloading {display_name} ({size_gb}GB, one-time - 10-15 min)..."
+                        f"[DOWNLOAD] Downloading {display_name} ({size_gb}GB, one-time - 10-15 min)..."
                     )
 
                 # Download with timeout - disable TTY requirements
@@ -1305,7 +1305,7 @@ class MRIProcessor:
         if self.progress_callback:
             self.progress_callback(
                 self._get_current_progress(),
-                f"⬇️ Downloading FreeSurfer Singularity container (~4GB, one-time - 10-15 min)..."
+                f"[DOWNLOAD] Downloading FreeSurfer Singularity container (~4GB, one-time - 10-15 min)..."
             )
 
         try:

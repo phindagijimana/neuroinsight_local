@@ -188,7 +188,7 @@ cleanup_processes() {
                 local cleanup_action=$(should_cleanup_item "process" "$pid")
 
                 if [ "$cleanup_action" = "cleanup" ]; then
-                    log_cleanup "🧹 AUTO-CLEANUP: Orphaned process PID $pid (tracked for >${CLEANUP_GRACE_PERIOD_MINUTES}min = 3 hours)"
+                    log_cleanup "[CLEANUP] AUTO-CLEANUP: Orphaned process PID $pid (tracked for >${CLEANUP_GRACE_PERIOD_MINUTES}min = 3 hours)"
 
                     # Kill the process
                     if kill -15 $pid 2>/dev/null; then
@@ -215,7 +215,7 @@ cleanup_processes() {
     done
 
     if [ $cleaned -gt 0 ]; then
-        log_success "🧹 Auto-cleaned up $cleaned orphaned process(es) after ${CLEANUP_GRACE_PERIOD_MINUTES}min (3 hours) grace period"
+        log_success "[CLEANUP] Auto-cleaned up $cleaned orphaned process(es) after ${CLEANUP_GRACE_PERIOD_MINUTES}min (3 hours) grace period"
     fi
 
     if [ $tracked -gt 0 ]; then
@@ -340,7 +340,7 @@ for job in stuck_jobs:
 " 2>/dev/null | while read -r line; do
                     if [[ "$line" == AUTO_CLEANUP_JOB:* ]]; then
                         local job_id=$(echo "$line" | cut -d: -f2)
-                        log_cleanup "🧹 AUTO-CLEANUP: Stuck job $job_id"
+                        log_cleanup "[CLEANUP] AUTO-CLEANUP: Stuck job $job_id"
 
                         # Track the job for cleanup
                         local cleanup_action=$(should_cleanup_item "job" "$job_id")
@@ -429,7 +429,7 @@ print(f'{ready_cleanup},{waiting}')
     local waiting=$(echo "$tracked_processes" | cut -d, -f2)
 
     if [ "$ready_cleanup" -gt 0 ]; then
-        log_cleanup "🧹 $ready_cleanup item(s) ready for auto-cleanup (> ${CLEANUP_GRACE_PERIOD_MINUTES}min old)"
+        log_cleanup "[CLEANUP] $ready_cleanup item(s) ready for auto-cleanup (> ${CLEANUP_GRACE_PERIOD_MINUTES}min old)"
     fi
 
     if [ "$waiting" -gt 0 ]; then

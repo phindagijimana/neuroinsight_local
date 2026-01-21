@@ -78,9 +78,9 @@ else
             echo ""
             echo "[HEALTH] Web Interface:"
             if curl -s -f http://localhost:8000/health >/dev/null 2>&1; then
-                echo "  ✅ Backend API responding"
+                echo "  [OK] Backend API responding"
             else
-                echo "  ❌ Backend API not responding"
+                echo "  [FAIL] Backend API not responding"
                 echo "  [ACTION] Check if services are running with './neuroinsight status'"
             fi
 
@@ -89,9 +89,9 @@ else
             echo "[HEALTH] Overall Status:"
             healthy_containers=$(docker ps -q --filter "name=neuroinsight" 2>/dev/null | wc -l)
             if [ "$healthy_containers" -ge 3 ] && curl -s -f http://localhost:8000/health >/dev/null 2>&1; then
-                echo "  ✅ SYSTEM HEALTHY - All services operational"
+                echo "  [OK] SYSTEM HEALTHY - All services operational"
             else
-                echo "  ⚠️  ISSUES DETECTED - Some services may be down"
+                echo "  [WARN] ISSUES DETECTED - Some services may be down"
                 echo "  [ACTION] Run './neuroinsight start' to restart services"
             fi
             ;;

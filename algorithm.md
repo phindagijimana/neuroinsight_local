@@ -7,7 +7,7 @@ NeuroInsight implements automated hippocampal volumetry and asymmetry analysis f
 ## Pipeline Stages
 
 ### 1. File Validation
-- **Input**: T1-weighted MRI files (NIfTI, DICOM, ZIP)
+- **Input**: T1-weighted MRI files (NIfTI .nii, .nii.gz only)
 - **Validation**: Filename T1 indicators, file integrity, format compatibility
 - **Output**: Validated scan ready for processing
 

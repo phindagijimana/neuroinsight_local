@@ -35,7 +35,7 @@ cd neuroinsight_local
 NeuroInsight processes T1-weighted MRI scans only. Filenames must contain:
 `t1`, `t1w`, `t1-weighted`, `mprage`, `spgr`, `tfl`, `tfe`, `fspgr`
 
-Supported formats: NIfTI (.nii, .nii.gz), DICOM (.dcm), ZIP archives
+Supported formats: NIfTI (.nii, .nii.gz) only
 
 ## Management Commands
 

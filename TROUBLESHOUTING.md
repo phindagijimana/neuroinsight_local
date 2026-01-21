@@ -267,7 +267,7 @@ docker-compose up -d db
 **Upload fails:**
 - Verify file size < 1GB
 - Check T1 indicators in filename
-- Ensure supported format (.nii, .dcm, .zip)
+- Ensure supported format (.nii, .nii.gz only)
 
 ### Performance Issues
 

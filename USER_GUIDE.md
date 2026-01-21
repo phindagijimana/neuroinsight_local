@@ -9,6 +9,7 @@ Complete guide for deploying and using NeuroInsight for hippocampal MRI analysis
 - 4+ CPU cores, 50GB storage
 - Docker and Docker Compose
 - FreeSurfer license (free for research)
+- **System sleep timeout set to 2-4 hours** (critical for long-running processing)
 
 ## Installation
 
@@ -26,6 +27,10 @@ cd neuroinsight_local
 # Install and start
 ./neuroinsight install  # One-time installation
 ./neuroinsight license  # Verify license
+
+# IMPORTANT: Configure system sleep settings to prevent processing interruptions
+# System Settings → Power → Set sleep timeout to 2-4 hours when inactive
+
 ./neuroinsight start    # Start NeuroInsight
 
 # Access at http://localhost:8000
@@ -36,7 +41,7 @@ cd neuroinsight_local
 ### File Requirements
 
 #### Supported File Formats
-NeuroInsight accepts two file formats for T1-weighted MRI scans:
+NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 
 1. **NIfTI Uncompressed** (`.nii`) - Direct processing
 2. **NIfTI Compressed** (`.nii.gz`) - Direct processing
@@ -61,8 +66,6 @@ NeuroInsight accepts two file formats for T1-weighted MRI scans:
 ✅ patient_mprage.nii
 ✅ brain_t1_mprage.nii
 ✅ t1w_mprage.nii.gz
-✅ scan_t1_spgr.zip
-✅ mprage_series.zip
 ```
 
 #### Invalid Examples
@@ -70,8 +73,8 @@ NeuroInsight accepts two file formats for T1-weighted MRI scans:
 ❌ brain_scan.nii      (missing T1 indicator)
 ❌ t2_image.nii        (T2, not T1)
 ❌ flair.nii          (FLAIR sequence)
-❌ scan.dcm           (individual DICOM not supported)
-❌ invalid_scan.zip   (missing T1 indicator)
+❌ scan.dcm           (DICOM not supported - convert to NIfTI first)
+❌ scan.zip           (ZIP archives not supported)
 ```
 
 ### Detailed File Format Guide
@@ -82,17 +85,10 @@ NeuroInsight accepts two file formats for T1-weighted MRI scans:
 - Must contain T1-weighted MRI data
 - Filename must include T1 indicators
 
-#### ZIP Archives (.zip)
-- Must contain **DICOM slices** for T1 images
-- DICOM files should be in `.dcm` or `.dicom` format
-- Supports nested folder structures (e.g., `resources/DICOM/files/*.dcm`)
-- ZIP filename must include T1 indicators
-- Automatic DICOM-to-NIfTI conversion using `dcm2niix`
 
 #### Processing Pipeline
 1. **NIfTI files**: Direct FreeSurfer processing
-2. **ZIP files**: Extract DICOM → Convert to NIfTI → FreeSurfer processing
-3. **Output**: Hippocampal volumes, asymmetry analysis, visualizations
+2. **Output**: Hippocampal volumes, asymmetry analysis, visualizations
 
 ### Web Interface
 1. **Upload**: Select T1-weighted MRI files
@@ -121,15 +117,36 @@ NeuroInsight accepts two file formats for T1-weighted MRI scans:
 
 **Processing fails:**
 - **T1 Validation**: Ensure filename contains T1 indicators (t1, mprage, spgr, etc.)
-- **File Format**: Only .nii, .nii.gz, or .zip (with DICOM slices) accepted
+- **File Format**: Only .nii and .nii.gz files accepted
 - **File Size**: Must be under 500MB limit
 - Check RAM (16GB+ required)
 - Ensure license.txt is present
+- **Failed jobs display detailed error messages** explaining exactly what went wrong (FreeSurfer issues, validation failures, etc.)
 
 **Web interface won't load:**
 - Confirm services are running (`./neuroinsight status`)
 - Check port 8000 availability
 - Clear browser cache
+
+**Jobs interrupted or fail unexpectedly:**
+- **System Sleep/Hibernation**: FreeSurfer processing takes 30-60+ minutes and should complete within 2-4 hours. **Set sleep timeout to 2-4 hours** during processing to prevent interruptions.
+- **Power Settings**: Set power management to 2-4 hours sleep when plugged in
+- **Screen Lock**: Disable automatic screen lock during long processing jobs
+- **Virtual Machines**: Ensure host system won't sleep while VM is running
+- **Docker Containers**: Containerized processing may be interrupted by system sleep
+
+### Important System Configuration
+
+#### Sleep/Hibernation Prevention
+**Critical for successful processing:** FreeSurfer jobs run for extended periods (30-120 minutes) and should complete within 2-4 hours. System sleep or hibernation will interrupt processing and cause job failures.
+
+**Recommended Settings:**
+- **Ubuntu**: System Settings → Power → Set to 2-4 hours sleep when inactive
+- **VMWare/VirtualBox**: Host power settings to 2-4 hours sleep
+- **Laptop Users**: Keep system plugged in and prevent lid close actions
+- **Server Environments**: Configure power management policies for 2-4 hour timeouts
+
+**Warning:** Jobs interrupted by sleep/hibernation cannot be resumed and must be restarted from the beginning.
 
 ### Mock Data Warning
 Jobs show "(Mock Data)" when FreeSurfer license is missing. **Never use for clinical decisions.**
@@ -143,7 +160,7 @@ Automated platform for hippocampal segmentation and analysis from T1-weighted MR
 Ubuntu 20.04+, 16GB+ RAM, 4+ CPU cores, 50GB storage, Docker, FreeSurfer license.
 
 ### How long does processing take?
-30-60 minutes per scan, depending on hardware and scan quality.
+30-60 minutes per scan, depending on hardware and scan quality. **Important:** Set system sleep timeout to 2-4 hours to prevent interruptions during processing.
 
 ### Is it free?
 Yes, MIT licensed. FreeSurfer license is free for research use.
@@ -155,7 +172,7 @@ Yes, supports queuing system with configurable concurrency limits.
 Hippocampal volume measurements, shape analysis, asymmetry calculations, quality metrics.
 
 ### File formats supported?
-NIfTI (.nii, .nii.gz) recommended, ZIP archives containing DICOM slices for T1 images. Individual DICOM files (.dcm) are not supported.
+NIfTI (.nii, .nii.gz) only. DICOM files must be converted to NIfTI format before upload using tools like `dcm2niix`.
 
 ### Can I export results?
 Yes: PDF reports, CSV data, PNG/PDF images.

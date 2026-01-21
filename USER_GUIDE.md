@@ -11,6 +11,24 @@ Complete guide for deploying and using NeuroInsight for hippocampal MRI analysis
 - FreeSurfer license (free for research)
 - **System sleep timeout set to 2-4 hours** (critical for long-running processing)
 
+### System Verification Commands
+
+Check if your system meets the requirements:
+
+```bash
+# Check CPU cores
+nproc
+
+# Check available RAM (in GB)
+free -h
+
+# Check available storage (in GB)
+df -h /
+
+# Check Ubuntu version
+lsb_release -a
+```
+
 ## WSL Setup (Windows Users)
 
 If you're using Windows, you can run NeuroInsight using Windows Subsystem for Linux (WSL). Here's how to set it up:

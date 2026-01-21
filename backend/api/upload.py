@@ -89,7 +89,7 @@ async def upload_mri(
 
     # Validate T1 requirement in filename (strict validation)
     filename_lower = file.filename.lower()
-    t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr']
+    t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr', 't1_mprage', 't1_spgr', 't1_tfe', 'mpr', 'fspgr_t1', 't1w_mprage']
     has_t1_indicator = any(indicator in filename_lower for indicator in t1_indicators)
 
     if not has_t1_indicator:

@@ -919,7 +919,7 @@
           }
 
           // Check for T1 indicators in filename
-          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr'];
+          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr', 't1_mprage', 't1_spgr', 't1_tfe', 'mpr', 'fspgr_t1', 't1w_mprage'];
           const has_t1_indicator = t1_indicators.some(indicator => fileName.includes(indicator));
           if (!has_t1_indicator) {
             errors.file = `Filename must contain T1 indicators. Expected one of: ${t1_indicators.join(', ')}`;
@@ -1079,7 +1079,7 @@
           }
 
           // Check for T1 indicators in filename
-          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr'];
+          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr', 't1_mprage', 't1_spgr', 't1_tfe', 'mpr', 'fspgr_t1', 't1w_mprage'];
           const has_t1_indicator = t1_indicators.some(indicator => fileName.includes(indicator));
 
           if (!has_t1_indicator) {
@@ -1105,7 +1105,7 @@
           }
 
           // Check for T1 indicators in filename
-          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr'];
+          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr', 't1_mprage', 't1_spgr', 't1_tfe', 'mpr', 'fspgr_t1', 't1w_mprage'];
           const has_t1_indicator = t1_indicators.some(indicator => fileName.includes(indicator));
 
           if (!has_t1_indicator) {

@@ -114,7 +114,7 @@ Supported formats: NIfTI (.nii, .nii.gz) only
 ./neuroinsight license   # FreeSurfer license setup
 ```
 
-## Documentation
+## Further Documentation
 
 - [User Guide](USER_GUIDE.md) - Complete usage instructions
 - [Troubleshooting](TROUBLESHOUTING.md) - Common issues

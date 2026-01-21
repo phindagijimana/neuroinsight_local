@@ -33,7 +33,7 @@ docker --version
 docker run hello-world
 ```
 
-### Option 3: Docker Desktop (GUI Installation)
+### Option 2: Docker Desktop (GUI Installation)
 
 For a graphical installation experience:
 

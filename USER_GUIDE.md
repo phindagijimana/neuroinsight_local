@@ -311,13 +311,56 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 
 ## Management Commands
 
+### Start Services
 ```bash
-./neuroinsight start     # Start all services
-./neuroinsight stop      # Stop all services
-./neuroinsight status    # Check service status
-./neuroinsight license   # Verify FreeSurfer license
-./neuroinsight monitor   # Advanced monitoring
+./neuroinsight start
 ```
+**What it does:** Launches all NeuroInsight services including the web interface, Celery workers, Redis cache, and database. The system will be accessible at http://localhost:8000 once fully started.
+
+### Stop Services
+```bash
+./neuroinsight stop
+```
+**What it does:** Gracefully shuts down all NeuroInsight services. This ensures proper cleanup of running processes and prevents data corruption. Wait for confirmation that all services have stopped.
+
+### Check Status
+```bash
+./neuroinsight status
+```
+**What it does:** Displays the current state of all services including:
+- Web server (FastAPI) status
+- Celery worker processes
+- Redis cache connectivity
+- Database availability
+- Docker containers status
+- Current job queue information
+
+### Verify License
+```bash
+./neuroinsight license
+```
+**What it does:** Validates your FreeSurfer license file. Checks that `license.txt` exists in the project directory and contains valid FreeSurfer credentials. Required before processing any MRI scans.
+
+### Advanced Monitoring
+```bash
+./neuroinsight monitor
+```
+**What it does:** Provides detailed system monitoring including:
+- Real-time resource usage (CPU, memory, disk)
+- Active job progress and queue status
+- Docker container health
+- System logs and error tracking
+- Performance metrics and alerts
+
+### Additional Commands
+
+#### Reinstall (for troubleshooting)
+```bash
+./neuroinsight reinstall
+```
+**Use when:** Persistent issues with services or corrupted installations. This command provides step-by-step guidance to completely remove and reinstall NeuroInsight, including backup of user data when possible.
+
+**Note:** All management commands should be run from the NeuroInsight project root directory where the `neuroinsight` script is located.
 
 ## Troubleshooting
 

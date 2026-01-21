@@ -82,6 +82,35 @@ For a graphical installation experience:
 
 **Note:** Docker Desktop includes Docker Compose and provides a user-friendly GUI for managing containers.
 
+## FreeSurfer Setup
+
+NeuroInsight requires a FreeSurfer license for MRI processing. FreeSurfer is free for research use.
+
+### Get FreeSurfer License
+
+1. **Visit the registration page**: https://surfer.nmr.mgh.harvard.edu/registration.html
+2. **Complete the registration form** with your research details
+3. **Save the license file** as `license.txt` in your NeuroInsight project directory
+
+### License File Location
+
+The license file must be named `license.txt` and placed in the root directory of the NeuroInsight project (same directory as `neuroinsight` script).
+
+**Example structure:**
+```
+neuroinsight_local/
+├── neuroinsight          # Main script
+├── license.txt          # FreeSurfer license file (YOU ADD THIS)
+├── data/                # Data directory
+└── ...                  # Other files
+```
+
+### License Validation
+
+During installation, NeuroInsight will automatically verify your license. If the license is missing or invalid, you'll see an error message with instructions.
+
+**Note:** FreeSurfer licenses are free for academic and research use. Commercial use requires a paid license from Martinos Center.
+
 ## Quick Start for Linux Machine
 
 ```bash

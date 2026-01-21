@@ -15,26 +15,49 @@ Complete guide for deploying and using NeuroInsight for hippocampal MRI analysis
 
 ## Installation
 
+### 1. Clone Repository
+
 ```bash
-# Clone repository
 git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local
+```
 
-# Get FreeSurfer license first
-# Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
-# Save as license.txt in project directory
+### 2. Get FreeSurfer License
 
-# Verify Docker installation (REQUIRED)
+**REQUIRED:** FreeSurfer requires a free license for research use.
+
+1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
+2. Complete the registration form
+3. Save the license file as `license.txt` in the project directory
+
+### 3. Verify Docker Installation (REQUIRED)
+
+```bash
 docker --version  # Should show Docker version
 docker run hello-world  # Should run successfully
+```
 
-# If Docker is not installed, install it:
-# Ubuntu/Debian:
+### 4. Install Docker (if not already installed)
+
+#### Ubuntu/Debian Installation:
+
+```bash
+# Update package index
 sudo apt update
+
+# Install required packages
 sudo apt install apt-transport-https ca-certificates curl gnupg lsb-release
+
+# Add Docker's official GPG key
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+# Set up the stable repository
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Update package index again
 sudo apt update
+
+# Install Docker Engine
 sudo apt install docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 # Start and enable Docker service:
@@ -48,8 +71,9 @@ sudo usermod -aG docker $USER
 # Verify Docker works:
 docker --version
 docker run hello-world
+```
 
-### WSL (Windows Subsystem for Linux) Users
+### 5. WSL (Windows Subsystem for Linux) Users
 
 If you're using WSL on Windows, Docker installation is different:
 

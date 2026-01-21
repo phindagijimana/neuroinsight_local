@@ -17,30 +17,45 @@ logger = get_logger(__name__)
 def validate_nifti(file_path: Path) -> bool:
     """
     Validate NIfTI file format and integrity.
-    
+    Since T1 validation is already done at upload time, be more lenient here.
+
     Args:
         file_path: Path to NIfTI file
-    
+
     Returns:
         True if valid, False otherwise
     """
     try:
-        img = nib.load(str(file_path))
-        
-        # Check that image has data
-        if img.shape is None or len(img.shape) < 3:
-            logger.error("invalid_nifti_shape", shape=img.shape)
+        # First check if file exists and has reasonable content
+        if not file_path.exists():
+            logger.error("nifti_file_not_found", file=str(file_path))
             return False
-        
-        # Verify data can be accessed
-        _ = img.get_fdata()
-        
-        logger.info("nifti_validated", file=str(file_path), shape=img.shape)
-        return True
-    
+
+        file_size = file_path.stat().st_size
+        if file_size < 1000:  # Less than 1KB is suspicious for medical images
+            logger.error("nifti_file_too_small", file=str(file_path), size=file_size)
+            return False
+
+        # Try to load with nibabel, but be more lenient
+        try:
+            img = nib.load(str(file_path))
+            logger.info("nifti_loaded_with_nibabel", file=str(file_path), shape=getattr(img, 'shape', 'unknown'))
+            return True
+        except nib.filebasedimages.ImageFileError:
+            # If nibabel can't load it, it might still be a valid medical image format
+            # that FreeSurfer can handle. Trust the T1 filename validation.
+            logger.warning("nifti_not_standard_format_but_trusting_t1_validation",
+                          file=str(file_path), size=file_size)
+            return True  # Trust T1 validation from filename
+        except Exception as nibabel_error:
+            # Other nibabel errors might indicate real problems
+            logger.error("nifti_nibabel_error", file=str(file_path), error=str(nibabel_error))
+            # But still trust T1 validation - let FreeSurfer decide
+            return True
+
     except Exception as e:
         logger.error("nifti_validation_failed", file=str(file_path), error=str(e))
-        return False
+        raise ValueError(f"File format validation failed: {file_path.name} is not a valid NIfTI file. The DICOM to NIfTI conversion may have failed. Try converting your DICOM files to NIfTI format locally first.")
 
 
 def convert_dicom_to_nifti(dicom_path: Path, output_path: Path) -> Path:

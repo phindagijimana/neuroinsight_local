@@ -13,7 +13,9 @@
   <script src="/static/js/react.production.min.js"></script>
   <script src="/static/js/react-dom.production.min.js"></script>
   <script src="/static/js/babel.min.js"></script>
-  <script src="/static/js/tailwind.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  
   <!-- Apply custom #003d7a theme overrides after Tailwind loads -->
   <script>
     // Wait for Tailwind to load, then apply our custom overrides
@@ -911,7 +913,7 @@
           errors.file = 'Please select a file to upload';
         } else {
           // Check file extension
-          const allowedExtensions = ['.nii', '.nii.gz', '.zip'];
+          const allowedExtensions = ['.nii', '.nii.gz'];
           const fileName = selectedFile.name.toLowerCase();
           const isValidExt = allowedExtensions.some(ext => fileName.endsWith(ext));
           if (!isValidExt) {
@@ -1074,7 +1076,7 @@
           const isValidFormat = validFormats.some(format => fileName.endsWith(format));
 
           if (!isValidFormat) {
-            alert('Invalid file format. Please upload .nii, .nii.gz, or .zip files (ZIP must contain DICOM slices for T1 images).');
+            alert('Invalid file format. Please upload .nii or .nii.gz files only.');
             return;
           }
 
@@ -1299,7 +1301,7 @@
           <div className="max-w-7xl mx-auto px-6 py-8">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload New MRI Scan</h2>
-              <p className="text-gray-600 mb-6">Upload T1-weighted MRI scans in DICOM or NIfTI format</p>
+              <p className="text-gray-600 mb-6">Upload T1-weighted MRI scans in NIfTI format (.nii or .nii.gz)</p>
               
               {/* Patient Information Section */}
               <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-6">
@@ -1466,7 +1468,7 @@
                     </span>
                   </label>
                   <p className="text-xs text-gray-400 mt-4">
-                    Accepted formats: .nii, .nii.gz, .zip (containing DICOM slices) • Max size: 500MB
+                    Accepted formats: .nii, .nii.gz • Max size: 500MB
                   </p>
                   {formErrors.file && (
                     <p className="mt-2 text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
@@ -1650,12 +1652,14 @@
                                     const isFilenameError = errMsg.includes('filename') && 
                                                            (errMsg.includes('does not contain') || 
                                                             errMsg.includes('rename'));
-                                    const isT1wError = (errMsg.includes('t1') || 
+                                    const isFormatError = errMsg.includes('File format validation failed') ||
+                                                          errMsg.includes('not a valid NIfTI file');
+                                    const isT1wError = (errMsg.includes('t1') ||
                                                        errMsg.includes('t2') ||
                                                        errMsg.includes('flair') ||
                                                        errMsg.includes('dwi') ||
                                                        errMsg.includes('image type') ||
-                                                       errMsg.includes('sequence')) && !isFilenameError;
+                                                       errMsg.includes('sequence')) && !isFilenameError && !isFormatError;
                                     
                                     if (isDockerError) {
                                       return (

@@ -36,11 +36,12 @@ cd neuroinsight_local
 ### File Requirements
 
 #### Supported File Formats
-NeuroInsight accepts three file formats for T1-weighted MRI scans:
+NeuroInsight accepts two file formats for T1-weighted MRI scans:
 
 1. **NIfTI Uncompressed** (`.nii`) - Direct processing
 2. **NIfTI Compressed** (`.nii.gz`) - Direct processing
-3. **ZIP Archive** (`.zip`) - Must contain DICOM slices for T1 images
+
+**Note:** DICOM files must be converted to NIfTI format before upload using tools like `dcm2niix`.
 
 #### T1 Filename Requirements
 **All uploaded files must have T1-related keywords in their filenames.** This ensures only appropriate T1-weighted images are processed for accurate hippocampus analysis.

@@ -172,6 +172,30 @@ def process_mri_task(self, job_id: str):
         # Update job status to running
         JobService.start_job(db, job_id)
 
+        # Check container concurrency limits BEFORE starting processing
+        # This prevents jobs from starting when FreeSurfer containers are already at capacity
+        try:
+            from pipeline.processors import MRIProcessor
+            processor = MRIProcessor(job_id=job_id, db_session=db, progress_callback=lambda p, s: None)
+            processor._check_container_concurrency_limit()
+            logger.info("container_concurrency_check_passed", job_id=job_id)
+        except RuntimeError as concurrency_error:
+            # Concurrency limit exceeded - fail the job with clear error message
+            error_msg = str(concurrency_error)
+            logger.warning("job_failed_concurrency_limit",
+                          job_id=job_id,
+                          error=error_msg)
+
+            # Update job status to failed
+            JobService.fail_job(db, job_id, error_msg)
+
+            # Don't start processing - exit early
+            return {
+                "status": "failed",
+                "job_id": job_id,
+                "error": error_msg
+            }
+
         # Update progress
         update_job_progress(db, job_id, 5, "Initializing MRI processor")
 

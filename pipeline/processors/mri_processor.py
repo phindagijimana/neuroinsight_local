@@ -141,6 +141,10 @@ class MRIProcessor:
             progress_callback: Optional callback function(progress: int, step: str) for progress updates
             db_session: Optional database session for progress persistence
         """
+        # DEBUG: Log constructor call with environment info
+        import os
+        print(f"MRI_PROCESSOR_CONSTRUCTOR_STARTED job_id={job_id} wd={os.getcwd()} uid={os.getuid()} gid={os.getgid()}")
+
         print(f"DEBUG: MRIProcessor.__init__ called with job_id={job_id}")
         self.job_id = job_id
         self.db_session = db_session
@@ -535,6 +539,10 @@ class MRIProcessor:
         Returns:
             Dictionary containing processing results and metrics
         """
+        # DEBUG: Log environment information for troubleshooting
+        import os
+        print(f"MRI_PROCESSOR_ENV job_id={self.job_id} wd={os.getcwd()} input={input_path} exists={os.path.exists(input_path)}")
+
         logger.info("processing_pipeline_started", job_id=str(self.job_id))
         print(f"DEBUG: MRI Processor process() called for job {self.job_id} - NEW CODE VERSION")
 
@@ -1394,10 +1402,14 @@ class MRIProcessor:
                         subject_id=subject_id,
                         error=str(e),
                         error_type=type(e).__name__)
-            # Fall back to mock data on failure
-            logger.warning("freesurfer_nipype_failed_using_mock_data")
-            self._create_mock_freesurfer_output(freesurfer_dir)
-            return freesurfer_dir
+            # Fail with clear error message instead of mock data
+            error_msg = (
+                "FreeSurfer processing failed: nipype execution error. "
+                "FreeSurfer could not process the input file. "
+                "Please ensure the NIfTI file is valid and compatible with FreeSurfer."
+            )
+            logger.error("freesurfer_nipype_failed", error=error_msg)
+            raise RuntimeError(error_msg)
 
     def _run_freesurfer_nipype_system(self, nifti_path: Path, freesurfer_dir: Path, license_path: Path) -> Path:
         """Run FreeSurfer using nipype with system installation."""
@@ -1511,12 +1523,14 @@ class MRIProcessor:
                              subject_id=subject_id,
                              expected_dir=str(subject_output_dir))
 
-            # If we get here, FreeSurfer didn't produce usable results
-            logger.info("freesurfer_incomplete_falling_back_to_mock",
-                       subject_id=subject_id,
-                       message="FreeSurfer processing incomplete, using mock data")
-            self._create_mock_freesurfer_output(freesurfer_dir)
-            return freesurfer_dir
+            # FreeSurfer didn't produce usable results - fail with clear error
+            error_msg = (
+                "FreeSurfer processing failed: No usable output produced. "
+                "FreeSurfer completed but did not generate expected segmentation files. "
+                "This may indicate issues with the input file or FreeSurfer installation."
+            )
+            logger.error("freesurfer_no_usable_output", error=error_msg, subject_id=subject_id)
+            raise RuntimeError(error_msg)
 
         except Exception as e:
             logger.warning("freesurfer_nipype_system_failed",
@@ -1535,18 +1549,24 @@ class MRIProcessor:
                            message="FreeSurfer failed but produced usable hippocampus data")
                 return freesurfer_dir
             else:
-                logger.warning("freesurfer_failed_no_usable_data",
-                             subject_id=subject_id,
-                             error=str(e),
-                             message="FreeSurfer failed and no usable data found, using mock data")
-                self._create_mock_freesurfer_output(freesurfer_dir)
-                return freesurfer_dir
+                # FreeSurfer failed completely - fail with clear error
+                error_msg = (
+                    f"FreeSurfer processing failed: {str(e)}. "
+                    "FreeSurfer encountered an error and could not complete segmentation. "
+                    "Please check the input file and try again."
+                )
+                logger.error("freesurfer_failed_completely", error=error_msg, subject_id=subject_id)
+                raise RuntimeError(error_msg)
 
         except ImportError:
-            logger.warning("nipype_not_available", message="Falling back to mock data")
-            # Fall back to mock data if nipype isn't available
-            self._create_mock_freesurfer_output(freesurfer_dir)
-            return freesurfer_dir
+            # Nipype not available - fail with clear error
+            error_msg = (
+                "FreeSurfer processing failed: nipype library not available. "
+                "The system requires nipype for FreeSurfer execution. "
+                "Please install nipype: pip install nipype"
+            )
+            logger.error("nipype_not_available", error=error_msg)
+            raise RuntimeError(error_msg)
 
     def _run_freesurfer_singularity_local(self, nifti_path: Path, freesurfer_dir: Path, license_path: Path, sif_path: Path) -> Path:
         """Run FreeSurfer using local Singularity container."""
@@ -1795,11 +1815,11 @@ class MRIProcessor:
             current_uid = os.getuid()
             current_gid = os.getgid()
 
-            logger.info("freesurfer_container_user_mapping",
-                       host_user=current_user, uid=current_uid, gid=current_gid)
+            logger.info("freesurfer_container_running_as_root",
+                       note="FreeSurfer container runs as root for compatibility, ownership fixed by post-processing")
 
             docker_cmd = [
-                "docker", "run", "--rm", f"--user={current_uid}:{current_gid}",
+                "docker", "run", "--rm",  # Removed user mapping - FreeSurfer needs to run as root
                 "--name", container_name,  # Named container for tracking
                 "-v", f"{abs_freesurfer_dir}:/subjects",
                 "-v", f"{abs_input_dir}:/input:ro",
@@ -1832,12 +1852,19 @@ class MRIProcessor:
             logger.info("freesurfer_docker_starting_combined_autorecon",
                        command=" ".join(docker_cmd))
 
+            print(f"DEBUG: About to run Docker command for job {self.job_id}")
+            print(f"DEBUG: Full command: {' '.join(docker_cmd)}")
+
             result = subprocess_module.run(
                 docker_cmd,
                 capture_output=True,
                 timeout=FREESURFER_PROCESSING_TIMEOUT_MINUTES*60,
                 env=self._get_extended_env()
             )
+
+            print(f"DEBUG: Docker command completed with exit code: {result.returncode}")
+            print(f"DEBUG: STDOUT preview: {result.stdout.decode()[:200] if result.stdout else 'No stdout'}")
+            print(f"DEBUG: STDERR preview: {result.stderr.decode()[:200] if result.stderr else 'No stderr'}")
 
             if result.returncode != 0:
                 stderr_output = result.stderr.decode() if result.stderr else ""
@@ -1895,7 +1922,7 @@ class MRIProcessor:
                 current_gid = os.getgid()
 
                 segstats_cmd = [
-                    "docker", "run", "--rm", f"--user={current_uid}:{current_gid}",
+                    "docker", "run", "--rm",  # Removed user mapping - FreeSurfer needs to run as root
                     "-v", f"{abs_freesurfer_dir}:/subjects",
                     "-v", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
                     "-e", "FS_LICENSE=/usr/local/freesurfer/license.txt",
@@ -1929,6 +1956,36 @@ class MRIProcessor:
 
             if result.returncode == 0:
                 logger.info("freesurfer_docker_processing_completed", subject_id=subject_id)
+
+                # Fix permissions for post-processing access (FreeSurfer runs as root)
+                try:
+                    import getpass
+                    current_user = getpass.getuser()
+                    logger.info("fixing_freesurfer_output_permissions",
+                              freesurfer_dir=str(freesurfer_dir),
+                              user=current_user)
+
+                    # Use sudo chown to fix ownership recursively
+                    chown_result = subprocess_module.run(
+                        ['sudo', 'chown', '-R', f'{current_user}:{current_user}', str(freesurfer_dir)],
+                        capture_output=True,
+                        timeout=60,
+                        env=self._get_extended_env()
+                    )
+
+                    if chown_result.returncode == 0:
+                        logger.info("freesurfer_permissions_fixed_successfully",
+                                  freesurfer_dir=str(freesurfer_dir))
+                    else:
+                        logger.warning("freesurfer_chown_failed",
+                                     returncode=chown_result.returncode,
+                                     error=chown_result.stderr.decode()[:200])
+
+                except Exception as perm_error:
+                    logger.warning("freesurfer_permission_fix_failed",
+                                 error=str(perm_error),
+                                 freesurfer_dir=str(freesurfer_dir))
+
                 return freesurfer_dir
 
             else:
@@ -2324,10 +2381,14 @@ class MRIProcessor:
                 logger.error("freesurfer_apptainer_traceback",
                            traceback=traceback.format_exc())
 
-        # No container runtimes available - use mock data
-        logger.warning("no_freesurfer_containers_available_using_mock_data")
-        self._create_mock_freesurfer_output(freesurfer_dir)
-        return freesurfer_dir
+        # No container runtimes available - fail with clear error
+        error_msg = (
+            "FreeSurfer processing failed: No container runtimes available. "
+            "Please ensure Docker is installed and running, or install Apptainer/Singularity. "
+            "FreeSurfer requires containerized execution for reliable processing."
+        )
+        logger.error("freesurfer_no_containers_available", error=error_msg)
+        raise RuntimeError(error_msg)
 
         logger.info("freesurfer_requirements_met", license_path=str(license_path))
 
@@ -2595,11 +2656,14 @@ class MRIProcessor:
                            fastsurfer_error=str(freesurfer_error),
                            freesurfer_error=str(freesurfer_error))
 
-        # Final fallback: mock data
-        logger.warning("all_segmentation_methods_failed_using_mock_data",
-                      attempted_runtimes=attempted_runtimes)
-        self._create_mock_fastsurfer_output(freesurfer_dir)
-        return freesurfer_dir
+        # All segmentation methods failed - fail with clear error
+        error_msg = (
+            f"All segmentation methods failed: {attempted_runtimes}. "
+            "Neither FastSurfer nor FreeSurfer could process the input file. "
+            "Please ensure the NIfTI file is valid and compatible with brain segmentation tools."
+        )
+        logger.error("all_segmentation_methods_failed", error=error_msg, attempted_runtimes=attempted_runtimes)
+        raise RuntimeError(error_msg)
 
     def _run_fastsurfer_docker(self, nifti_path: Path, freesurfer_dir: Path) -> Path:
         """
@@ -2863,12 +2927,14 @@ class MRIProcessor:
             )
             
         except subprocess_module.TimeoutExpired:
-            logger.error("fastsurfer_timeout")
-            logger.warning(
-                "using_mock_data",
-                reason="Processing timeout - using mock data"
+            # FastSurfer timed out - fail with clear error
+            error_msg = (
+                "FastSurfer processing timed out. "
+                "The segmentation process took too long to complete. "
+                "This may indicate issues with the input file or system resources."
             )
-            self._create_mock_fastsurfer_output(freesurfer_dir)
+            logger.error("fastsurfer_timeout", error=error_msg)
+            raise RuntimeError(error_msg)
         
         except subprocess_module.CalledProcessError as e:
             # Docker command failed - comprehensive error checking for Singularity fallback
@@ -2901,14 +2967,14 @@ class MRIProcessor:
                 try:
                     return self._run_fastsurfer_singularity(nifti_path, freesurfer_dir)
                 except Exception as sing_error:
-                    logger.warning(
-                        "singularity_fallback_failed",
-                        docker_error=str(e),
-                        singularity_error=str(sing_error),
-                        note="Using mock data as final fallback"
+                    # Both Docker and Singularity failed - fail with clear error
+                    error_msg = (
+                        f"FastSurfer processing failed: Docker error: {str(e)}, "
+                        f"Singularity error: {str(sing_error)}. "
+                        "Both container runtimes failed to execute FastSurfer."
                     )
-                    self._create_mock_fastsurfer_output(freesurfer_dir)
-                    return freesurfer_dir
+                    logger.error("both_container_runtimes_failed", error=error_msg)
+                    raise RuntimeError(error_msg)
 
             # Docker command succeeded but returned error - log and try Singularity anyway
             logger.error(
@@ -2924,12 +2990,13 @@ class MRIProcessor:
             try:
                 return self._run_fastsurfer_singularity(nifti_path, freesurfer_dir)
             except Exception as sing_error:
-                logger.warning(
-                    "singularity_fallback_failed",
-                    error=str(sing_error),
-                    note="Using mock data as final fallback"
+                # Singularity fallback failed - fail with clear error
+                error_msg = (
+                    f"FastSurfer processing failed: Singularity fallback error: {str(sing_error)}. "
+                    "Both Docker and Singularity failed to execute FastSurfer."
                 )
-                self._create_mock_fastsurfer_output(freesurfer_dir)
+                logger.error("singularity_fallback_failed", error=error_msg)
+                raise RuntimeError(error_msg)
         
         except Exception as e:
             logger.error(
@@ -2937,8 +3004,10 @@ class MRIProcessor:
                 error=str(e),
                 error_type=type(e).__name__
             )
-            logger.warning("using_mock_data", reason=f"Unexpected error: {str(e)}")
-            self._create_mock_fastsurfer_output(freesurfer_dir)
+            # Unexpected error - fail with clear error message
+            error_msg = f"FastSurfer processing failed with unexpected error: {str(e)}"
+            logger.error("fastsurfer_unexpected_error", error=error_msg, error_type=type(e).__name__)
+            raise RuntimeError(error_msg)
         
         return freesurfer_dir
     
@@ -3521,11 +3590,7 @@ class MRIProcessor:
                 freesurfer_stats_dir = fastsurfer_stats_dir
                 logger.info("found_fastsurfer_stats_directory", stats_dir=str(freesurfer_stats_dir))
 
-        # Fall back to mock data
-        mock_stats_dir = freesurfer_dir / f"mock_freesurfer_{self.job_id}" / "stats"
-        if not freesurfer_stats_dir and mock_stats_dir.exists():
-            freesurfer_stats_dir = mock_stats_dir
-            logger.info("using_mock_freesurfer_stats_directory", stats_dir=str(freesurfer_stats_dir))
+        # No mock data fallback - fail if no real stats directory found
 
         if not freesurfer_stats_dir:
             logger.warning("no_stats_directory_found")
@@ -3540,17 +3605,15 @@ class MRIProcessor:
         # Check if the current stats directory has valid files
         stats_files_exist = aseg_file.exists() or (freesurfer_stats_dir / "aseg+DKT.stats").exists()
 
-        # If no stats files in current directory, try mock data as fallback
+        # If no stats files exist, fail with clear error message
         if not stats_files_exist:
-            logger.warning("no_stats_files_in_selected_directory", stats_dir=str(freesurfer_stats_dir))
-            mock_stats_dir = freesurfer_dir / f"mock_freesurfer_{self.job_id}" / "stats"
-            if mock_stats_dir.exists():
-                freesurfer_stats_dir = mock_stats_dir
-                aseg_file = freesurfer_stats_dir / "aseg.stats"
-                logger.info("falling_back_to_mock_freesurfer_stats", stats_dir=str(freesurfer_stats_dir))
-                stats_files_exist = True
-            else:
-                logger.warning("no_mock_stats_directory_available")
+            error_msg = (
+                "No segmentation statistics files found. "
+                f"Expected aseg.stats or aseg+DKT.stats in {freesurfer_stats_dir}. "
+                "FreeSurfer/FastSurfer processing may have failed or produced incomplete results."
+            )
+            logger.error("no_segmentation_stats_files", error=error_msg, stats_dir=str(freesurfer_stats_dir))
+            raise RuntimeError(error_msg)
 
         if stats_files_exist and aseg_file.exists():
             logger.info("using_freesurfer_aseg_data", file=str(aseg_file))

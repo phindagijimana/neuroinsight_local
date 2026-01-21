@@ -82,7 +82,7 @@ For a graphical installation experience:
 
 **Note:** Docker Desktop includes Docker Compose and provides a user-friendly GUI for managing containers.
 
-## Quick Start
+## Quick Start for Linux Machine
 
 ```bash
 # Clone repository

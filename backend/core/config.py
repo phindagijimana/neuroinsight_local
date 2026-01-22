@@ -53,6 +53,13 @@ class Settings(BaseSettings):
         super().__init__(**kwargs)
         # Ensure storage directories exist
         self._ensure_storage_directories()
+        # Update CORS origins to include the current API port
+        if hasattr(self, 'api_port') and self.api_port != 8000:
+            dynamic_origins = f"http://localhost:{self.api_port},http://127.0.0.1:{self.api_port}"
+            if self.cors_origins:
+                self.cors_origins = f"{self.cors_origins},{dynamic_origins}"
+            else:
+                self.cors_origins = dynamic_origins
 
     # Application Metadata
     app_name: str = "NeuroInsight"
@@ -71,16 +78,6 @@ class Settings(BaseSettings):
     # API Bridge Configuration (for real FreeSurfer processing)
     api_bridge_url: str = Field(default="http://localhost:8080", env="API_BRIDGE_URL")
     use_real_freesurfer: bool = Field(default=False, env="USE_REAL_FREESURFER")
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        # Update CORS origins to include the current API port
-        if hasattr(self, 'api_port') and self.api_port != 8000:
-            dynamic_origins = f"http://localhost:{self.api_port},http://127.0.0.1:{self.api_port}"
-            if self.cors_origins:
-                self.cors_origins = f"{self.cors_origins},{dynamic_origins}"
-            else:
-                self.cors_origins = dynamic_origins
 
     # File Storage - Platform-aware defaults (no manual setup required)
     upload_dir: str = Field(default_factory=lambda: get_platform_defaults()["upload_dir"], env="UPLOAD_DIR")

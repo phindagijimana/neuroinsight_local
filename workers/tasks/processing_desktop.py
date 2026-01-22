@@ -90,7 +90,7 @@ def process_mri_direct(job_id: str):
 
     try:
         logger.info("desktop_task_started", job_id=job_id, timeout_seconds=timeout_seconds)
-        
+
         # Parse job ID - CRITICAL: Ensure UUID string format with dashes
         # SQLite stores UUID as VARCHAR(36) with dashes like: 'd6615863-f581-467f-b6b2-3e20dcf86a01'
         # If we pass UUID object to SQLAlchemy, it converts to hex WITHOUT dashes: 'd6615863f581467fb6b23e20dcf86a01'
@@ -132,21 +132,24 @@ def process_mri_direct(job_id: str):
             }
 
         # Update progress: Job started (5%)
+        print(f"DEBUG: Updating progress to 5%")
         update_job_progress(db, job_uuid_canonical, 5, "Job started - preparing file...")
+        print(f"DEBUG: Progress updated to 5%")
         
         # Get file path from storage
         storage_service = StorageService()
         file_path = storage_service.get_file_path(job.file_path)
-        
+
         logger.info("processing_started", job_id=job_id, file_path=file_path)
-        
+
         # Update progress: File retrieved (10%)
         update_job_progress(db, job_uuid_canonical, 10, "File retrieved - initializing processor...")
         
         # Define progress callback for detailed tracking (5% increments)
         last_reported_progress = 10
-        
+
         def progress_callback(progress: int, step: str):
+            logger.info("desktop_progress_callback", progress=progress, step=step)
             """Callback for processor to update job progress in 5% increments."""
             nonlocal last_reported_progress
             
@@ -161,9 +164,9 @@ def process_mri_direct(job_id: str):
                     step=step
                 )
         
-        # Initialize processor with progress callback (needs UUID object)
-        processor = MRIProcessor(job_uuid_obj, progress_callback=progress_callback)
-        
+        # Initialize processor with progress callback and database session (needs UUID object)
+        processor = MRIProcessor(job_uuid_obj, progress_callback=progress_callback, db_session=db)
+
         # Update progress: Starting brain segmentation (15%)
         update_job_progress(db, job_uuid_canonical, 15, "Starting brain segmentation (FreeSurfer)...")
         last_reported_progress = 15

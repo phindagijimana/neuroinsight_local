@@ -13,7 +13,7 @@ import shutil
 import subprocess as subprocess_module
 import time
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 from uuid import UUID
 
 import nibabel as nib
@@ -118,7 +118,6 @@ class DockerNotAvailableError(Exception):
         self.instructions = error_info['instructions']
 
 
-print("DEBUG: MRIProcessor class definition loaded")
 
 class MRIProcessor:
     """
@@ -141,11 +140,6 @@ class MRIProcessor:
             progress_callback: Optional callback function(progress: int, step: str) for progress updates
             db_session: Optional database session for progress persistence
         """
-        # DEBUG: Log constructor call with environment info
-        import os
-        print(f"MRI_PROCESSOR_CONSTRUCTOR_STARTED job_id={job_id} wd={os.getcwd()} uid={os.getuid()} gid={os.getgid()}")
-
-        print(f"DEBUG: MRIProcessor.__init__ called with job_id={job_id}")
         self.job_id = job_id
         self.db_session = db_session
         self.app_dir = Path(__file__).parent.parent.parent.absolute()  # Path to project root
@@ -157,10 +151,8 @@ class MRIProcessor:
         # Check if smoke test mode is enabled (for CI/testing)
         self.smoke_test_mode = os.getenv("FASTSURFER_SMOKE_TEST") == "1"
 
-        print(f"DEBUG: About to set mock_processing = False")
         # Track if mock data was used during processing
         self.mock_processing = False
-        print(f"DEBUG: Set mock_processing = {self.mock_processing}")
 
         # Initialize progress tracking
         self._current_progress = 0
@@ -539,12 +531,7 @@ class MRIProcessor:
         Returns:
             Dictionary containing processing results and metrics
         """
-        # DEBUG: Log environment information for troubleshooting
-        import os
-        print(f"MRI_PROCESSOR_ENV job_id={self.job_id} wd={os.getcwd()} input={input_path} exists={os.path.exists(input_path)}")
-
         logger.info("processing_pipeline_started", job_id=str(self.job_id))
-        print(f"DEBUG: MRI Processor process() called for job {self.job_id} - NEW CODE VERSION")
 
         # PRODUCTION MODE: Always use real FreeSurfer processing - no mock fallbacks allowed
         logger.info("production_processing_mode", mock_fallbacks_disabled=True, real_processing_only=True)

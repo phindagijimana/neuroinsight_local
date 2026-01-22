@@ -1872,22 +1872,30 @@
                               </button>
                             </>
                           )}
-                          <button
-                            onClick={async () => {
-                              if (confirm('Delete this job?')) {
-                                try {
-                                  await ApiService.deleteJob(job.id);
-                                  setJobs(jobs.filter(j => j.id !== job.id));
-                                } catch (error) {
-                                  console.error('Delete failed:', error);
-                                  alert('Failed to delete job');
-                                }
-                              }
-                            }}
+                          {/* Delete button for all jobs */}
+                          {(() => {
+                            console.log(`Rendering delete button for job ${job.id} with status: ${job.status}`);
+                            return (
+                              <button
+                                onClick={async () => {
+                                  console.log(`Delete button clicked for job ${job.id}`);
+                                  if (confirm(`Delete job ${job.id}? Status: ${job.status}`)) {
+                                    try {
+                                      await ApiService.deleteJob(job.id);
+                                      setJobs(jobs.filter(j => j.id !== job.id));
+                                    } catch (error) {
+                                      console.error('Delete failed:', error);
+                                      alert('Failed to delete job');
+                                    }
+                                  }
+                                }}
                             className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
-                          >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                            title={`Delete job (Status: ${job.status})`}
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            );
+                          })()}
                       </div>
                     </div>
                   </div>

@@ -109,6 +109,7 @@ class Settings(BaseSettings):
     )
     processing_timeout: int = Field(default=36000, env="PROCESSING_TIMEOUT")  # 10 hours
     max_concurrent_jobs: int = Field(default=1, env="MAX_CONCURRENT_JOBS")  # Only 1 job running at a time
+    docker_cleanup_wait_timeout: int = Field(default=30, env="DOCKER_CLEANUP_WAIT_TIMEOUT")  # seconds to wait for Docker cleanup
 
     # Security
     secret_key: str = Field(default="dev-secret-key-change-me", env="SECRET_KEY")

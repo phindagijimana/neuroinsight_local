@@ -18,6 +18,114 @@ tail -f neuroinsight.log     # Follow application logs
 
 ## Common Issues
 
+### Jobs Stuck in "Pending" Status
+
+#### Symptom
+- Jobs remain in "pending" status indefinitely
+- Upload completes successfully but processing never starts
+- Frontend continuously polls but status never changes from "pending"
+- Jobs appear in queue but never transition to "running"
+
+#### Diagnosis Steps
+
+1. **Check if Celery worker is running:**
+   ```bash
+   ps aux | grep celery
+   # Should show celery worker processes
+   ```
+
+2. **Check Redis connection:**
+   ```bash
+   redis-cli ping
+   # Should respond with "PONG"
+   ```
+
+3. **Check Celery worker logs:**
+   ```bash
+   tail -f celery_worker.log
+   # Look for connection errors or task pickup messages
+   ```
+
+4. **Test Celery connectivity:**
+   ```bash
+   # Activate virtual environment first
+   source venv/bin/activate
+
+   # Test task submission
+   python -c "
+   from workers.tasks.processing_web import celery_app
+   result = celery_app.send_task('process_mri_task', args=['test-job-id'])
+   print('Task sent successfully - check worker logs')
+   "
+   ```
+
+#### Common Solutions
+
+**Solution 1: Start Celery Worker**
+If Celery worker is not running:
+```bash
+# Navigate to NeuroInsight directory
+cd neuroinsight_local
+
+# Activate virtual environment
+source venv/bin/activate
+
+# Start Celery worker (run in background or separate terminal)
+celery -A workers.tasks.processing_web worker --loglevel=info --concurrency=1
+
+# Or use the NeuroInsight management script
+./neuroinsight start
+```
+
+**Solution 2: Redis Connection Issues**
+If Redis is not running or accessible:
+```bash
+# Check if Redis is installed and running
+sudo systemctl status redis-server
+
+# If not running, start it
+sudo systemctl start redis-server
+sudo systemctl enable redis-server
+
+# Or install Redis if missing
+sudo apt update && sudo apt install redis-server
+sudo systemctl start redis-server
+sudo systemctl enable redis-server
+
+# Test connection
+redis-cli ping
+```
+
+**Solution 3: Environment Variables**
+Ensure proper environment variables are set:
+```bash
+# Check current settings
+echo $REDIS_URL
+echo $REDIS_PASSWORD
+
+# Set defaults if needed
+export REDIS_URL="redis://:redis_secure_password@localhost:6379/0"
+export REDIS_PASSWORD="redis_secure_password"
+
+# Restart services after changing environment
+./neuroinsight stop
+./neuroinsight start
+```
+
+**Solution 4: Restart All Services**
+If nothing else works, restart the entire NeuroInsight stack:
+```bash
+./neuroinsight stop
+sleep 5
+./neuroinsight start
+```
+
+#### Prevention
+- Always check `./neuroinsight status` after installation
+- Ensure Redis is running before starting NeuroInsight
+- Monitor Celery worker logs during initial testing
+- Keep Celery worker running continuously
+
 ### Docker Installation Issues
 
 **"Input/output error" during installation:**
@@ -243,19 +351,27 @@ docker-compose up -d db
 ### MRI Processing Issues
 
 **Jobs stuck in pending:**
-- Check worker status: `docker-compose ps celery-worker`
-- Verify Redis running: `docker-compose ps redis`
-- Restart workers: `docker-compose restart celery-worker`
+- See "Jobs Stuck in 'Pending' Status" section above
+- Check worker status: `./neuroinsight status`
+- Verify Redis running: `redis-cli ping`
+- Restart workers: `./neuroinsight stop && ./neuroinsight start`
 
 **Processing fails:**
-- Verify T1 indicators in filename
-- Check RAM (16GB+ required)
-- Ensure file format supported (NIfTI preferred)
+- Verify T1 indicators in filename (t1, mprage, etc.)
+- Check RAM (16GB+ required, 32GB+ recommended)
+- Ensure file format supported (.nii, .nii.gz only)
+- Check FreeSurfer license: `./neuroinsight license`
 
 **Out of memory errors:**
-- Increase system RAM to 32GB+
+- Increase system RAM to 32GB+ for large datasets
 - Process one job at a time
-- Close other applications
+- Close other applications during processing
+- Monitor memory usage: `free -h`
+
+**File format issues:**
+- Only NIfTI files (.nii, .nii.gz) are supported
+- DICOM files must be converted locally first
+- Verify T1 sequence indicators in filename
 
 ### Web Interface Issues
 

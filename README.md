@@ -6,6 +6,7 @@ Automated hippocampal segmentation and analysis from T1-weighted MRI scans using
 
 - Ubuntu 20.04+ Linux
 - Docker and Docker Compose
+- Redis (message broker for job processing)
 - 16GB+ RAM (32GB recommended)
 - 4+ CPU cores, 50GB storage
 - FreeSurfer license (free for research)
@@ -91,9 +92,14 @@ cd neuroinsight_local
 ./neuroinsight start
 
 # Access at http://localhost:8000
+
+# Verify installation
+./neuroinsight status
 ```
 
 **Need to reinstall?** Run `./neuroinsight reinstall` to get detailed step-by-step instructions for completely removing the NeuroInsight directory and performing a fresh installation when troubleshooting persistent issues.
+
+**Jobs stuck in pending?** Check `./neuroinsight status` to ensure all services are running. If jobs remain pending, see the [troubleshooting guide](TROUBLESHOUTING.md#jobs-stuck-in-pending-status).
 
 ## File Requirements
 

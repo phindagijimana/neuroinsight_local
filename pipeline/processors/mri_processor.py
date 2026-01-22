@@ -648,18 +648,34 @@ class MRIProcessor:
     
     def _is_docker_available(self) -> bool:
         """
-        Quick check if Docker is available (for fallback logic).
+        Quick but robust check if Docker is available (for fallback logic).
+
+        Uses retry logic to handle transient Docker daemon issues.
         """
-        try:
-            result = subprocess_module.run(
-                ["docker", "version"],
-                capture_output=True,
-                timeout=5,
-                env=self._get_extended_env()
-            )
-            return result.returncode == 0
-        except:
-            return False
+        import time
+
+        max_retries = 2
+        for attempt in range(max_retries):
+            try:
+                result = subprocess_module.run(
+                    ["docker", "version"],
+                    capture_output=True,
+                    timeout=5,
+                    env=self._get_extended_env()
+                )
+                if result.returncode == 0:
+                    return True
+
+                # If failed and not last attempt, wait briefly
+                if attempt < max_retries - 1:
+                    time.sleep(0.5)
+
+            except:
+                # If failed and not last attempt, wait briefly
+                if attempt < max_retries - 1:
+                    time.sleep(0.5)
+
+        return False
 
     def _is_singularity_available(self) -> bool:
         """
@@ -1019,29 +1035,204 @@ class MRIProcessor:
                           message="Failed to check FreeSurfer availability due to unexpected error.")
             return False
 
-    def _check_docker_available(self) -> bool:
-        """Check if Docker is available and functioning."""
+    def _is_docker_performing_cleanup(self) -> bool:
+        """
+        Check if Docker daemon appears to be performing cleanup operations.
+
+        This is a heuristic check that looks for signs of cleanup activity.
+        """
         try:
-            import subprocess
+            # Check for running containers that might be in cleanup
             result = subprocess.run(
-                ["docker", "info"],
+                ["docker", "ps", "-a", "--filter", "status=exited", "--format", "{{.Names}}"],
                 capture_output=True,
-                timeout=10
+                timeout=5,
+                env=self._get_extended_env()
             )
+
             if result.returncode == 0:
-                logger.debug("docker_available")
-                return True
-            else:
-                logger.warning("docker_unavailable",
-                             stderr=result.stderr.decode()[:200] if result.stderr else "Unknown error")
-                return False
-        except FileNotFoundError:
-            logger.warning("docker_not_installed",
-                          message="Docker is not installed. Install Docker to enable FreeSurfer processing.")
-            return False
+                exited_containers = result.stdout.decode().strip().split('\n')
+                exited_containers = [c for c in exited_containers if c.strip()]
+
+                # If there are recently exited FreeSurfer containers, cleanup might be happening
+                freesurfer_exited = [c for c in exited_containers if c.startswith('freesurfer-job-')]
+                if freesurfer_exited:
+                    logger.info("detected_recently_exited_freesurfer_containers",
+                              count=len(freesurfer_exited),
+                              containers=freesurfer_exited)
+                    return True
+
+            # Check system prune operations (if any are running)
+            # This is harder to detect directly, but we can check for docker system commands
+
         except Exception as e:
-            logger.warning("docker_check_failed", error=str(e))
-            return False
+            logger.debug("error_checking_docker_cleanup_status", error=str(e))
+
+        return False
+
+    def _wait_for_docker_cleanup_if_needed(self) -> None:
+        """
+        Proactively wait for Docker cleanup if detected, before attempting Docker operations.
+
+        This helps prevent the "No container runtimes available" error by ensuring
+        Docker is fully ready before starting container operations.
+        """
+        if self._is_docker_performing_cleanup():
+            logger.info("docker_cleanup_detected_waiting_before_processing")
+            self._wait_for_docker_cleanup()
+        else:
+            logger.debug("no_docker_cleanup_detected_proceeding")
+
+    def _wait_for_docker_cleanup(self, max_wait_seconds: Optional[int] = None) -> bool:
+        """
+        Wait for Docker daemon to complete any cleanup operations.
+
+        Returns True if Docker becomes available within the timeout, False otherwise.
+        """
+        import time
+
+        # Use configured timeout if not specified
+        if max_wait_seconds is None:
+            from backend.core.config import get_settings
+            settings = get_settings()
+            max_wait_seconds = settings.docker_cleanup_wait_timeout
+
+        logger.info("checking_for_docker_cleanup_activity", max_wait=max_wait_seconds)
+
+        # First check if we can detect cleanup activity
+        if self._is_docker_performing_cleanup():
+            logger.info("detected_docker_cleanup_activity_waiting")
+
+        start_time = time.time()
+        check_interval = 2.0  # Check every 2 seconds
+
+        while time.time() - start_time < max_wait_seconds:
+            try:
+                # Quick check if Docker is responsive
+                result = subprocess.run(
+                    ["docker", "version"],
+                    capture_output=True,
+                    timeout=5,
+                    env=self._get_extended_env()
+                )
+
+                if result.returncode == 0:
+                    elapsed = time.time() - start_time
+                    logger.info("docker_available_after_cleanup_wait",
+                              wait_time=elapsed,
+                              max_wait=max_wait_seconds)
+                    return True
+
+            except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+                pass  # Continue waiting
+
+            # Wait before next check
+            time.sleep(check_interval)
+
+        # Timeout reached
+        elapsed = time.time() - start_time
+        logger.warning("docker_cleanup_wait_timeout",
+                     elapsed=elapsed,
+                     max_wait=max_wait_seconds)
+        return False
+
+    def _check_docker_available(self) -> bool:
+        """
+        Robustly check if Docker is available and functioning.
+
+        Uses multiple checks with retry logic to handle transient Docker daemon issues.
+        Includes automatic waiting for cleanup operations to complete.
+        """
+        import subprocess
+        import time
+
+        # Docker commands to try in order of reliability
+        docker_checks = [
+            ["docker", "version"],  # Quick check, usually fastest
+            ["docker", "info"],     # More comprehensive check
+            ["docker", "ps"]        # Check if we can list containers
+        ]
+
+        max_retries = 3
+        base_delay = 1.0  # seconds
+
+        for check_cmd in docker_checks:
+            cmd_name = check_cmd[1]  # 'version', 'info', or 'ps'
+
+            for attempt in range(max_retries):
+                try:
+                    logger.debug("docker_check_attempt",
+                               command=cmd_name,
+                               attempt=attempt + 1,
+                               max_retries=max_retries)
+
+                    result = subprocess.run(
+                        check_cmd,
+                        capture_output=True,
+                        timeout=10,
+                        env=self._get_extended_env()
+                    )
+
+                    if result.returncode == 0:
+                        logger.info("docker_available",
+                                  command=cmd_name,
+                                  attempt=attempt + 1)
+                        return True
+                    else:
+                        stderr_msg = result.stderr.decode()[:200] if result.stderr else "Unknown error"
+                        logger.warning("docker_command_failed",
+                                     command=cmd_name,
+                                     attempt=attempt + 1,
+                                     returncode=result.returncode,
+                                     stderr=stderr_msg)
+
+                        # If this is not the last attempt, wait before retrying
+                        if attempt < max_retries - 1:
+                            delay = base_delay * (2 ** attempt)  # Exponential backoff
+                            logger.info("docker_retry_delay",
+                                      command=cmd_name,
+                                      delay=delay)
+                            time.sleep(delay)
+
+                except subprocess.TimeoutExpired:
+                    logger.warning("docker_command_timeout",
+                                 command=cmd_name,
+                                 attempt=attempt + 1,
+                                 timeout=10)
+
+                    # Check if this might be due to cleanup activity
+                    # Only do this on the first timeout to avoid excessive waiting
+                    if attempt == 0 and cmd_name == "version":
+                        logger.info("docker_timeout_detected_checking_for_cleanup")
+                        if self._wait_for_docker_cleanup(max_wait_seconds=15):
+                            # Docker became available after waiting for cleanup
+                            logger.info("docker_available_after_cleanup_wait_retry")
+                            return True  # Retry immediately
+
+                    # If this is not the last attempt, wait before retrying
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        time.sleep(delay)
+
+                except FileNotFoundError:
+                    logger.warning("docker_not_installed",
+                                 message="Docker is not installed. Install Docker to enable FreeSurfer processing.")
+                    return False
+                except Exception as e:
+                    logger.warning("docker_check_exception",
+                                 command=cmd_name,
+                                 attempt=attempt + 1,
+                                 error=str(e))
+
+                    # If this is not the last attempt, wait before retrying
+                    if attempt < max_retries - 1:
+                        delay = base_delay * (2 ** attempt)
+                        time.sleep(delay)
+
+        # All checks failed
+        logger.error("docker_unavailable_all_checks_failed",
+                   message="All Docker availability checks failed. Docker daemon may be unresponsive or not installed.")
+        return False
 
     def _get_freesurfer_license_path(self) -> Path:
         """Get FreeSurfer license path from multiple possible locations.
@@ -1945,9 +2136,12 @@ class MRIProcessor:
                               freesurfer_dir=str(freesurfer_dir),
                               user=current_user)
 
+                    # Ensure chown uses absolute paths
+                    abs_freesurfer_dir = freesurfer_dir.resolve()
+
                     # Use sudo chown to fix ownership recursively
                     chown_result = subprocess_module.run(
-                        ['sudo', 'chown', '-R', f'{current_user}:{current_user}', str(freesurfer_dir)],
+                        ['sudo', 'chown', '-R', f'{current_user}:{current_user}', str(abs_freesurfer_dir)],
                         capture_output=True,
                         timeout=60,
                         env=self._get_extended_env()
@@ -2329,13 +2523,33 @@ class MRIProcessor:
         # Priority order: Docker (main) → Apptainer (fallback) → Mock data (final fallback)
 
         # Check if Docker is available (primary choice for most users)
-        if self._is_docker_available():
+        # First wait for any ongoing cleanup operations to complete
+        self._wait_for_docker_cleanup_if_needed()
+
+        # Use more robust checking to avoid transient daemon issues
+        # This includes automatic waiting for cleanup operations
+        docker_available = self._check_docker_available()
+        if docker_available:
             logger.info("freesurfer_docker_available_using_as_primary")
             try:
                 # Use Docker container as primary method
                 return self._run_freesurfer_docker(nifti_path, freesurfer_dir, license_path)
+            except RuntimeError as docker_error:
+                # Check if this is a Docker availability error (not a processing error)
+                if "Docker is not available" in str(docker_error):
+                    logger.warning("freesurfer_docker_unavailable_falling_back",
+                                 error=str(docker_error))
+                    docker_available = False  # Force fallback to Apptainer
+                else:
+                    # This is a processing error, re-raise it
+                    logger.error("freesurfer_docker_processing_error", error=str(docker_error))
+                    raise
             except Exception as docker_error:
                 logger.warning("freesurfer_docker_failed_falling_back", error=str(docker_error))
+
+        # If Docker failed or was unavailable, try fallback options
+        if not docker_available:
+            logger.info("docker_unavailable_checking_fallbacks")
 
         # Check if Apptainer/Singularity containers are available (fallback for HPC/specialized systems)
         sif_path = self._find_freesurfer_sif()
@@ -2356,13 +2570,23 @@ class MRIProcessor:
                 logger.error("freesurfer_apptainer_traceback",
                            traceback=traceback.format_exc())
 
-        # No container runtimes available - fail with clear error
+        # No container runtimes available - fail with clear error and troubleshooting steps
         error_msg = (
             "FreeSurfer processing failed: No container runtimes available. "
-            "Please ensure Docker is installed and running, or install Apptainer/Singularity. "
-            "FreeSurfer requires containerized execution for reliable processing."
+            "NeuroInsight requires Docker (recommended) or Apptainer/Singularity for FreeSurfer processing.\n\n"
+            "Troubleshooting steps:\n"
+            "1. Ensure Docker is installed and running: 'sudo systemctl status docker'\n"
+            "2. If Docker is stopped, start it: 'sudo systemctl start docker'\n"
+            "3. Test Docker: 'docker run --rm hello-world'\n"
+            "4. If Docker is unavailable, install Apptainer: 'sudo apt install apptainer'\n"
+            "5. For WSL users, ensure Docker Desktop is running with WSL integration enabled\n\n"
+            "Note: This error may occur due to temporary Docker daemon issues. "
+            "Try restarting the job after ensuring Docker is fully operational."
         )
-        logger.error("freesurfer_no_containers_available", error=error_msg)
+        logger.error("freesurfer_no_containers_available",
+                   error=error_msg,
+                   docker_available=docker_available,
+                   apptainer_available=bool(sif_path))
         raise RuntimeError(error_msg)
 
         logger.info("freesurfer_requirements_met", license_path=str(license_path))

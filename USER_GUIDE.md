@@ -365,9 +365,11 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 ### Common Issues
 
 **Jobs stuck in pending:**
-- Check `./neuroinsight status` for running services
-- Ensure FreeSurfer license is valid
-- Restart services: `./neuroinsight stop && ./neuroinsight start`
+- Check `./neuroinsight status` to verify all services are running (including Celery workers)
+- Ensure Redis is running: `redis-cli ping`
+- Check Celery worker logs: `ps aux | grep celery`
+- If workers not running, restart services: `./neuroinsight stop && ./neuroinsight start`
+- For detailed troubleshooting, see [TROUBLESHOUTING.md](TROUBLESHOUTING.md#jobs-stuck-in-pending-status)
 
 **Processing fails:**
 - **T1 Validation**: Ensure filename contains T1 indicators (t1, mprage, spgr, etc.)

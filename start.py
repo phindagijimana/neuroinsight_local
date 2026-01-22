@@ -271,6 +271,41 @@ monitor.start_background_monitoring()
         log_warning(f"Job monitor startup failed: {e}")
         return None
 
+def start_job_queue_processor():
+    """Start job queue processor service"""
+    try:
+        log_info("Starting job queue processor...")
+
+        # Set environment
+        env = os.environ.copy()
+        env['PYTHONPATH'] = str(Path.cwd())
+
+        # Start job queue processor
+        proc = subprocess.Popen([
+            sys.executable, '-c',
+            """
+import sys
+sys.path.insert(0, '.')
+from backend.services.job_queue_processor import start_job_queue_processor
+start_job_queue_processor()
+import time
+while True:
+    time.sleep(60)  # Keep process alive
+"""
+        ], env=env, stdout=open('job_queue_processor.log', 'w'),
+           stderr=subprocess.STDOUT)
+
+        # Save PID
+        with open('job_queue_processor.pid', 'w') as f:
+            f.write(str(proc.pid))
+
+        log_success(f"Job queue processor started (PID: {proc.pid})")
+        return proc
+
+    except Exception as e:
+        log_warning(f"Job queue processor startup failed: {e}")
+        return None
+
 def main():
     print("=" * 50)
     print("   NeuroInsight Startup (Python-based)")
@@ -313,6 +348,11 @@ def main():
     monitor_proc = start_job_monitor()
     if not monitor_proc:
         log_warning("Job monitor failed to start - continuing anyway")
+
+    # Start job queue processor
+    queue_proc = start_job_queue_processor()
+    if not queue_proc:
+        log_warning("Job queue processor failed to start - continuing anyway")
 
     print()
     print("=" * 50)

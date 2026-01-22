@@ -223,6 +223,7 @@ def main():
     kill_process_by_pid_file("neuroinsight.pid", "backend")
     kill_process_by_pid_file("celery.pid", "Celery worker")
     kill_process_by_pid_file("job_monitor.pid", "job monitor")
+    kill_process_by_pid_file("job_queue_processor.pid", "job queue processor")
     kill_process_by_pid_file("monitor.pid", "system monitor")
 
     # Kill any remaining processes by pattern
@@ -235,7 +236,7 @@ def main():
     stop_docker_services()
 
     # Final cleanup
-    for pid_file in ["neuroinsight.pid", "celery.pid", "job_monitor.pid", "monitor.pid"]:
+    for pid_file in ["neuroinsight.pid", "celery.pid", "job_monitor.pid", "job_queue_processor.pid", "monitor.pid"]:
         if os.path.exists(pid_file):
             try:
                 os.remove(pid_file)

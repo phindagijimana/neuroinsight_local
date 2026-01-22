@@ -131,3 +131,145 @@ Supported formats: NIfTI (.nii, .nii.gz) only
 MIT License. FreeSurfer requires separate license for research use.
 
 © 2025 University of Rochester. All rights reserved.
+**Example structure:**
+```
+neuroinsight_local/
+├── neuroinsight          # Main script
+├── license.txt          # FreeSurfer license file (YOU ADD THIS)
+├── data/                # Data directory
+└── ...                  # Other files
+```
+
+### License Validation
+
+During installation, NeuroInsight will automatically verify your license. If the license is missing or invalid, you'll see an error message with instructions.
+
+**Note:** FreeSurfer licenses are free for academic and research use. Commercial use requires a paid license from Martinos Center.
+
+## Quick Start for Linux Machine
+
+```bash
+# Clone repository
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local
+
+# Install (one-time setup)
+./neuroinsight install
+
+# Setup FreeSurfer license
+./neuroinsight license
+
+# Start NeuroInsight
+./neuroinsight start
+
+# Access at http://localhost:8000
+
+# Verify installation
+./neuroinsight status
+```
+
+**Need to reinstall?** Run `./neuroinsight reinstall` to get detailed step-by-step instructions for completely removing the NeuroInsight directory and performing a fresh installation when troubleshooting persistent issues.
+
+**Jobs stuck in pending?** Check `./neuroinsight status` to ensure all services are running. If jobs remain pending, see the [troubleshooting guide](TROUBLESHOUTING.md#jobs-stuck-in-pending-status).
+
+## File Requirements
+
+NeuroInsight processes T1-weighted MRI scans only. Filenames must contain:
+`t1`, `t1w`, `t1-weighted`, `mprage`, `spgr`, `tfl`, `tfe`, `fspgr`
+
+Supported formats: NIfTI (.nii, .nii.gz) only
+
+## Management Commands
+
+```bash
+./neuroinsight install   # Install NeuroInsight (one-time setup)
+./neuroinsight reinstall # Provides detailed step-by-step instructions to completely remove NeuroInsight directory and perform fresh installation for troubleshooting persistent issues
+./neuroinsight start     # Start all services
+./neuroinsight stop      # Stop all services
+./neuroinsight status    # Check system health
+./neuroinsight monitor   # Advanced monitoring
+./neuroinsight license   # FreeSurfer license setup
+```
+
+## Further Documentation
+
+- [User Guide](USER_GUIDE.md) - Complete usage instructions
+- [Troubleshooting](TROUBLESHOUTING.md) - Common issues
+- [FreeSurfer License](FREESURFER_LICENSE_README.md) - License setup
+
+## License
+
+MIT License. FreeSurfer requires separate license for research use.
+
+© 2025 University of Rochester. All rights reserved.
+**Example structure:**
+```
+neuroinsight_local/
+├── neuroinsight          # Main script
+├── license.txt          # FreeSurfer license file (YOU ADD THIS)
+├── data/                # Data directory
+└── ...                  # Other files
+```
+
+### License Validation
+
+During installation, NeuroInsight will automatically verify your license. If the license is missing or invalid, you'll see an error message with instructions.
+
+**Note:** FreeSurfer licenses are free for academic and research use. Commercial use requires a paid license from Martinos Center.
+
+## Quick Start for Linux Machine
+
+```bash
+# Clone repository
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local
+
+# Install (one-time setup)
+./neuroinsight install
+
+# Setup FreeSurfer license
+./neuroinsight license
+
+# Start NeuroInsight
+./neuroinsight start
+
+# Access at http://localhost:8000
+
+# Verify installation
+./neuroinsight status
+```
+
+**Need to reinstall?** Run `./neuroinsight reinstall` to get detailed step-by-step instructions for completely removing the NeuroInsight directory and performing a fresh installation when troubleshooting persistent issues.
+
+**Jobs stuck in pending?** Check `./neuroinsight status` to ensure all services are running. If jobs remain pending, see the [troubleshooting guide](TROUBLESHOUTING.md#jobs-stuck-in-pending-status).
+
+## File Requirements
+
+NeuroInsight processes T1-weighted MRI scans only. Filenames must contain:
+`t1`, `t1w`, `t1-weighted`, `mprage`, `spgr`, `tfl`, `tfe`, `fspgr`
+
+Supported formats: NIfTI (.nii, .nii.gz) only
+
+## Management Commands
+
+```bash
+./neuroinsight install   # Install NeuroInsight (one-time setup)
+./neuroinsight reinstall # Provides detailed step-by-step instructions to completely remove NeuroInsight directory and perform fresh installation for troubleshooting persistent issues
+./neuroinsight start     # Start all services
+./neuroinsight stop      # Stop all services
+./neuroinsight status    # Check system health
+./neuroinsight monitor   # Advanced monitoring
+./neuroinsight license   # FreeSurfer license setup
+```
+
+## Further Documentation
+
+- [User Guide](USER_GUIDE.md) - Complete usage instructions
+- [Troubleshooting](TROUBLESHOUTING.md) - Common issues
+- [FreeSurfer License](FREESURFER_LICENSE_README.md) - License setup
+
+## License
+
+MIT License. FreeSurfer requires separate license for research use.
+
+© 2025 University of Rochester. All rights reserved.

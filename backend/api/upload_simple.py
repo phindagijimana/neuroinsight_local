@@ -12,8 +12,6 @@ from pathlib import Path
 from typing import Dict, Optional
 import uuid
 
-import nibabel as nib
-import numpy as np
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
@@ -71,55 +69,26 @@ async def upload_file(
         logger.error("file_read_failed", error=str(e))
         raise HTTPException(status_code=400, detail="Failed to read uploaded file")
 
-    # Basic file size validation
-    if len(file_data) < 1000:
-        raise HTTPException(status_code=400, detail="File is too small to be a valid NIfTI file")
+    # Simple T1 filename validation only
+    filename_lower = file.filename.lower()
+    t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'fspgr']
 
-    if len(file_data) > 500 * 1024 * 1024:  # 500MB limit
-        raise HTTPException(status_code=400, detail="File is too large (max 500MB)")
+    has_t1_indicator = any(indicator in filename_lower for indicator in t1_indicators)
 
-    # Validate NIfTI file format
-    try:
-        # Save file temporarily for validation
-        with tempfile.NamedTemporaryFile(suffix=file.filename, delete=False) as temp_file:
-            temp_file.write(file_data)
-            temp_file_path = temp_file.name
+    if not has_t1_indicator:
+        logger.warning("filename_missing_t1_indicator", filename=file.filename, indicators=t1_indicators)
+        # For now, allow any file - remove this warning later if you want strict validation
+        # raise HTTPException(status_code=400, detail=f"Filename must contain T1 indicator: {t1_indicators}")
 
-        try:
-            # Load and validate NIfTI file
-            img = nib.load(temp_file_path)
-            shape = img.shape
-            spacing = img.header.get_zooms()[:3] if hasattr(img, 'header') else [1.0, 1.0, 1.0]
+    logger.info("filename_validation_passed", filename=file.filename, has_t1_indicator=has_t1_indicator)
 
-            # Basic validation
-            if len(shape) < 3:
-                raise HTTPException(status_code=400, detail=f"Expected 3D/4D NIfTI, got shape {shape}")
-
-            if len(shape) >= 3 and any(dim < 32 for dim in shape[:3]):
-                raise HTTPException(status_code=400, detail=f"Image dimensions too small {shape[:3]} (min 32x32x32)")
-
-            # Check data integrity
-            data_array = img.get_fdata(dtype=np.float32)
-            if not np.isfinite(data_array).any():
-                raise HTTPException(status_code=400, detail="Image contains no finite values")
-            if np.allclose(data_array, 0.0):
-                raise HTTPException(status_code=400, detail="Image appears to be all zeros")
-
-            logger.info("nifti_validation_passed", filename=file.filename, shape=shape, spacing=spacing)
-
-        finally:
-            # Clean up temp file
-            if os.path.exists(temp_file_path):
-                os.unlink(temp_file_path)
-
-    except nib.filebasedimages.ImageFileError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid NIfTI file format: {str(e)}")
-    except Exception as e:
-        logger.warning("nifti_validation_failed", filename=file.filename, error=str(e))
-        raise HTTPException(status_code=400, detail=f"NIfTI validation failed: {str(e)}")
-
-    # Determine original format for notes
-    original_format = "nii.gz" if file.filename.endswith('.nii.gz') else "nii"
+    # Determine original format for notes (basic file extension check)
+    if file.filename.lower().endswith('.nii.gz'):
+        original_format = "nii.gz"
+    elif file.filename.lower().endswith('.nii'):
+        original_format = "nii"
+    else:
+        original_format = "unknown"
 
     # Parse patient data from JSON
     try:

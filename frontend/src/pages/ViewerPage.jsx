@@ -460,3 +460,99 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
 }
 
 export default ViewerPage;
+
+                    <div
+                      key={slice}
+                      onClick={() => setActiveView(slice)}
+                      className={`relative bg-black rounded-lg overflow-hidden cursor-pointer transition transform hover:scale-105 ${
+                        activeView === slice ? 'ring-4 ring-blue-800 shadow-xl' : 'hover:ring-2 hover:ring-blue-300'
+                      }`}
+                    >
+                      <div className="w-24 h-24 flex items-center justify-center overflow-hidden relative">
+                        {/* Base anatomical layer */}
+                        <img
+                          src={sliceUrls.anatomical}
+                          alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Anatomical`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        {/* Overlay layer with opacity */}
+                        <img
+                          src={sliceUrls.overlay}
+                          alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Overlay`}
+                          className="absolute top-0 left-0 w-full h-full object-cover"
+                          style={{
+                            opacity: overlayOpacity,
+                            pointerEvents: 'none'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-2">
+                        <p className="text-white text-xs font-semibold text-center">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ViewerPage;
+
+                    <div
+                      key={slice}
+                      onClick={() => setActiveView(slice)}
+                      className={`relative bg-black rounded-lg overflow-hidden cursor-pointer transition transform hover:scale-105 ${
+                        activeView === slice ? 'ring-4 ring-blue-800 shadow-xl' : 'hover:ring-2 hover:ring-blue-300'
+                      }`}
+                    >
+                      <div className="w-24 h-24 flex items-center justify-center overflow-hidden relative">
+                        {/* Base anatomical layer */}
+                        <img
+                          src={sliceUrls.anatomical}
+                          alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Anatomical`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                        {/* Overlay layer with opacity */}
+                        <img
+                          src={sliceUrls.overlay}
+                          alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Overlay`}
+                          className="absolute top-0 left-0 w-full h-full object-cover"
+                          style={{
+                            opacity: overlayOpacity,
+                            pointerEvents: 'none'
+                          }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-2">
+                        <p className="text-white text-xs font-semibold text-center">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ViewerPage;

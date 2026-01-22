@@ -125,3 +125,33 @@ def get_file_size_mb(file_path: Path) -> float:
     size_mb = size_bytes / (1024 * 1024)
     return round(size_mb, 2)
 
+
+def get_file_size_mb(file_path: Path) -> float:
+    """
+    Get file size in megabytes.
+    
+    Args:
+        file_path: Path to file
+    
+    Returns:
+        File size in MB
+    """
+    size_bytes = file_path.stat().st_size
+    size_mb = size_bytes / (1024 * 1024)
+    return round(size_mb, 2)
+
+
+def get_file_size_mb(file_path: Path) -> float:
+    """
+    Get file size in megabytes.
+    
+    Args:
+        file_path: Path to file
+    
+    Returns:
+        File size in MB
+    """
+    size_bytes = file_path.stat().st_size
+    size_mb = size_bytes / (1024 * 1024)
+    return round(size_mb, 2)
+

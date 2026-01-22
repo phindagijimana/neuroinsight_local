@@ -3043,3 +3043,253 @@
 </html>
 <!-- CACHE BUST v20251217170000 -->
 <!-- FORCE RELOAD TEST - Wed Dec 17 17:26:41 EST 2025 -->
+
+      },
+
+      /**
+       * Show success toast
+       * @param {string} message - Message to display
+       */
+      success(message) {
+        this.show(message, 'success');
+      },
+
+      /**
+       * Show error toast
+       * @param {string} message - Message to display
+       */
+      error(message) {
+        this.show(message, 'error', 5000);
+      },
+
+      /**
+       * Show warning toast
+       * @param {string} message - Message to display
+       */
+      warning(message) {
+        this.show(message, 'warning');
+      },
+
+      /**
+       * Show info toast
+       * @param {string} message - Message to display
+       */
+      info(message) {
+        this.show(message, 'info');
+      }
+    };
+
+    // ============================================================================
+    // MODULE: Main App
+    // ============================================================================
+    /**
+     * Footer Component - Displays copyright information
+     * @returns {React.ReactElement}
+     */
+    function Footer() {
+      return (
+        <footer className="bg-gray-50 border-t border-gray-200 mt-12">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <p className="text-center text-sm text-gray-600">
+              © 2025 University of Rochester. All rights reserved.
+            </p>
+          </div>
+        </footer>
+      );
+    }
+
+    /**
+     * Main App Component - Root component of the application
+     * Manages page routing and global state
+     * @returns {React.ReactElement}
+     */
+    function NeuroInsightApp() {
+      const [activePage, setActivePage] = useState('home');
+      const [selectedJobId, setSelectedJobId] = useState(null);
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          <Navigation activePage={activePage} setActivePage={setActivePage} />
+          <div className="flex-grow">
+          {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
+          {activePage === 'jobs' && <JobsPage setActivePage={setActivePage} setSelectedJobId={setSelectedJobId} />}
+          {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
+          {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
+          </div>
+          <Footer />
+        </div>
+      );
+    }
+
+    // ============================================================================
+    // MODULE: Application Initialization
+    // ============================================================================
+    /**
+     * Initialize and render the React application
+     * Wraps the app in ErrorBoundary for error handling
+     */
+    async function initializeApp() {
+      // Wait longer for Electron to inject window.BACKEND_URL
+      // Some Macs need more time for executeJavaScript to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // If running in Electron desktop mode, use injected backend URL
+      if (window.BACKEND_URL) {
+        CONFIG.api.baseUrl = window.BACKEND_URL;
+        console.log('[Desktop] Backend URL set to:', window.BACKEND_URL);
+        console.log('[Desktop] CONFIG.api.baseUrl is now:', CONFIG.api.baseUrl);
+      } else if (window.electronAPI && window.electronAPI.getBackendURL) {
+        // Fallback to IPC method if available
+        try {
+          const backendURL = await window.electronAPI.getBackendURL();
+          CONFIG.api.baseUrl = backendURL;
+          console.log('[Desktop] Backend URL set via IPC to:', backendURL);
+        } catch (error) {
+          console.error('[Desktop] Failed to get backend URL:', error);
+        }
+      } else {
+        console.log('[Web] Using default backend URL:', CONFIG.api.baseUrl);
+        console.warn('[Web] window.BACKEND_URL was undefined!');
+      }
+      
+      // Render the app
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(
+        <ErrorBoundary>
+          <NeuroInsightApp />
+        </ErrorBoundary>
+      );
+    }
+    
+    // Start the app
+    initializeApp();
+  </script>
+</body>
+</html>
+<!-- CACHE BUST v20251217170000 -->
+<!-- FORCE RELOAD TEST - Wed Dec 17 17:26:41 EST 2025 -->
+
+      },
+
+      /**
+       * Show success toast
+       * @param {string} message - Message to display
+       */
+      success(message) {
+        this.show(message, 'success');
+      },
+
+      /**
+       * Show error toast
+       * @param {string} message - Message to display
+       */
+      error(message) {
+        this.show(message, 'error', 5000);
+      },
+
+      /**
+       * Show warning toast
+       * @param {string} message - Message to display
+       */
+      warning(message) {
+        this.show(message, 'warning');
+      },
+
+      /**
+       * Show info toast
+       * @param {string} message - Message to display
+       */
+      info(message) {
+        this.show(message, 'info');
+      }
+    };
+
+    // ============================================================================
+    // MODULE: Main App
+    // ============================================================================
+    /**
+     * Footer Component - Displays copyright information
+     * @returns {React.ReactElement}
+     */
+    function Footer() {
+      return (
+        <footer className="bg-gray-50 border-t border-gray-200 mt-12">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <p className="text-center text-sm text-gray-600">
+              © 2025 University of Rochester. All rights reserved.
+            </p>
+          </div>
+        </footer>
+      );
+    }
+
+    /**
+     * Main App Component - Root component of the application
+     * Manages page routing and global state
+     * @returns {React.ReactElement}
+     */
+    function NeuroInsightApp() {
+      const [activePage, setActivePage] = useState('home');
+      const [selectedJobId, setSelectedJobId] = useState(null);
+
+      return (
+        <div className="min-h-screen flex flex-col">
+          <Navigation activePage={activePage} setActivePage={setActivePage} />
+          <div className="flex-grow">
+          {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
+          {activePage === 'jobs' && <JobsPage setActivePage={setActivePage} setSelectedJobId={setSelectedJobId} />}
+          {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
+          {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
+          </div>
+          <Footer />
+        </div>
+      );
+    }
+
+    // ============================================================================
+    // MODULE: Application Initialization
+    // ============================================================================
+    /**
+     * Initialize and render the React application
+     * Wraps the app in ErrorBoundary for error handling
+     */
+    async function initializeApp() {
+      // Wait longer for Electron to inject window.BACKEND_URL
+      // Some Macs need more time for executeJavaScript to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // If running in Electron desktop mode, use injected backend URL
+      if (window.BACKEND_URL) {
+        CONFIG.api.baseUrl = window.BACKEND_URL;
+        console.log('[Desktop] Backend URL set to:', window.BACKEND_URL);
+        console.log('[Desktop] CONFIG.api.baseUrl is now:', CONFIG.api.baseUrl);
+      } else if (window.electronAPI && window.electronAPI.getBackendURL) {
+        // Fallback to IPC method if available
+        try {
+          const backendURL = await window.electronAPI.getBackendURL();
+          CONFIG.api.baseUrl = backendURL;
+          console.log('[Desktop] Backend URL set via IPC to:', backendURL);
+        } catch (error) {
+          console.error('[Desktop] Failed to get backend URL:', error);
+        }
+      } else {
+        console.log('[Web] Using default backend URL:', CONFIG.api.baseUrl);
+        console.warn('[Web] window.BACKEND_URL was undefined!');
+      }
+      
+      // Render the app
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(
+        <ErrorBoundary>
+          <NeuroInsightApp />
+        </ErrorBoundary>
+      );
+    }
+    
+    // Start the app
+    initializeApp();
+  </script>
+</body>
+</html>
+<!-- CACHE BUST v20251217170000 -->
+<!-- FORCE RELOAD TEST - Wed Dec 17 17:26:41 EST 2025 -->

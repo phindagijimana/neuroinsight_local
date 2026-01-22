@@ -343,3 +343,9 @@ def _start_next_pending_job(db: Session):
     except Exception as e:
         logger.error("error_starting_next_pending_job", error=str(e))
 
+
+        logger.error("error_starting_next_pending_job", error=str(e))
+
+
+        logger.error("error_starting_next_pending_job", error=str(e))
+

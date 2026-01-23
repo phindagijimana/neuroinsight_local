@@ -26,18 +26,46 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
   const [stats, setStats] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const normalizeStatus = (status) => {
+    if (!status) return 'queued';
+    const normalized = String(status).toLowerCase();
+    if (normalized === 'running' || normalized === 'processing') return 'processing';
+    if (normalized === 'pending') return 'pending';
+    if (normalized === 'queued') return 'pending';
+    if (normalized === 'completed') return 'completed';
+    if (normalized === 'failed') return 'failed';
+    return 'queued';
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US');
+    } catch {
+      return dateString;
+    }
+  };
+
+  const isValidNifti = (fileName) => {
+    const lower = fileName.toLowerCase();
+    return lower.endsWith('.nii.gz') || lower.endsWith('.nii');
+  };
+
   // Calculate statistics whenever jobs change
   useEffect(() => {
-    if (jobs.length > 0) {
-      const stats = {
-        total: jobs.length,
-        completed: jobs.filter(job => job.status === 'completed').length,
-        processing: jobs.filter(job => job.status === 'processing' || job.status === 'running').length,
-        pending: jobs.filter(job => job.status === 'pending').length,
-        failed: jobs.filter(job => job.status === 'failed').length
-      };
-      setStats(stats);
-    }
+    const counts = jobs.reduce(
+      (acc, job) => {
+        const status = normalizeStatus(job.status);
+        acc.total += 1;
+        if (status === 'completed') acc.completed += 1;
+        if (status === 'processing') acc.processing += 1;
+        if (status === 'pending') acc.pending += 1;
+        if (status === 'failed') acc.failed += 1;
+        return acc;
+      },
+      { total: 0, completed: 0, processing: 0, pending: 0, failed: 0 }
+    );
+    setStats(counts);
   }, [jobs]);
 
   const handleRefresh = async () => {
@@ -60,15 +88,10 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
     const files = event.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
-      // Check file extension
-      const allowedExtensions = ['.nii', '.nii.gz', '.dcm', '.dicom'];
-      const fileName = file.name.toLowerCase();
-      const isAllowed = allowedExtensions.some(ext => fileName.endsWith(ext));
-
-      if (isAllowed) {
+      if (isValidNifti(file.name)) {
         setSelectedFile(file);
       } else {
-        alert('Please select a valid MRI file (.nii, .nii.gz, .dcm, .dicom)');
+        alert('Please select a valid MRI file (.nii or .nii.gz)');
       }
     }
   };
@@ -120,7 +143,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
 
   const generateReport = async (jobId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/reports/${jobId}/pdf`);
+      const response = await fetch(`${API_BASE_URL}/api/reports/${jobId}/pdf`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -142,20 +165,20 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-4">
 
         {/* Upload Section */}
-        <div className="mb-8">
+        <div className="mb-4">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload New MRI Scan</h2>
-          <p className="text-gray-600 mb-6">Upload T1-weighted MRI scans in DICOM or NIfTI format</p>
+          <p className="text-gray-600 mb-6">Upload T1-weighted MRI scans in NIfTI format (.nii or .nii.gz)</p>
 
           {/* Patient Information Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-6">
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-3 mb-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Brain className="w-5 h-5 text-blue-800" />
+              <Brain className="w-5 h-5 text-[#003d7a]" />
               Patient Information
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Patient Name *
@@ -165,7 +188,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                   value={patientInfo.patient_name}
                   onChange={(e) => handlePatientInfoChange('patient_name', e.target.value)}
                   placeholder="Enter patient name"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-800 focus:border-blue-900"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003d7a] focus:border-[#002b55]"
                 />
               </div>
               <div>
@@ -179,7 +202,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                   placeholder="Enter age"
                   min="0"
                   max="120"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-800 focus:border-blue-900"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003d7a] focus:border-[#002b55]"
                 />
               </div>
               <div>
@@ -189,7 +212,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                 <select
                   value={patientInfo.sex}
                   onChange={(e) => handlePatientInfoChange('sex', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-800 focus:border-blue-900"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003d7a] focus:border-[#002b55]"
                 >
                   <option value="">Select...</option>
                   <option value="M">Male</option>
@@ -206,7 +229,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                   value={patientInfo.scanner}
                   onChange={(e) => handlePatientInfoChange('scanner', e.target.value)}
                   placeholder="e.g., Siemens, GE, Philips"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-800 focus:border-blue-900"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003d7a] focus:border-[#002b55]"
                 />
               </div>
               <div>
@@ -217,8 +240,8 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                   type="text"
                   value={patientInfo.sequence}
                   onChange={(e) => handlePatientInfoChange('sequence', e.target.value)}
-                  placeholder="e.g., T1w, T2w, FLAIR"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-800 focus:border-blue-900"
+                  placeholder="e.g., T1w"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003d7a] focus:border-[#002b55]"
                 />
               </div>
               <div>
@@ -230,7 +253,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                   value={patientInfo.notes}
                   onChange={(e) => handlePatientInfoChange('notes', e.target.value)}
                   placeholder="Additional notes (optional)"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-800 focus:border-blue-900"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003d7a] focus:border-[#002b55]"
                 />
               </div>
             </div>
@@ -241,12 +264,12 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
-            className={`border-2 border-dashed rounded-2xl p-12 transition-all duration-200 border-blue-200 bg-white hover:border-blue-400 hover:bg-blue-50 ${isDragging ? 'border-blue-400 bg-blue-50 scale-105' : ''}`}
+            className={`border-2 border-dashed rounded-2xl p-6 transition-all duration-200 border-blue-200 bg-white hover:border-[#003d7a] hover:bg-blue-50 ${isDragging ? 'border-[#003d7a] bg-blue-50 scale-105' : ''}`}
           >
             <div className="text-center space-y-4">
               <div className="flex justify-center">
-                <div className="bg-blue-100 p-6 rounded-full">
-                  <Upload className="w-12 h-12 text-blue-800" />
+                <div className="bg-blue-100 p-4 rounded-full">
+                  <Upload className="w-12 h-12 text-[#003d7a]" />
                 </div>
               </div>
               <div>
@@ -258,16 +281,16 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
               <label className="inline-block">
                 <input
                   type="file"
-                  accept=".nii,.nii.gz,.dcm,.dicom"
+                  accept=".nii,.nii.gz"
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                <span className="mt-4 px-6 py-3 bg-blue-800 text-white rounded-lg font-semibold hover:bg-blue-900 transition cursor-pointer inline-block">
+                <span className="mt-4 px-6 py-3 bg-[#003d7a] text-white rounded-lg font-semibold hover:bg-[#002b55] transition cursor-pointer inline-block">
                   Select Files
                 </span>
               </label>
               <p className="text-xs text-gray-400 mt-4">
-                Accepted formats: .dcm, .nii, .nii.gz • Max size: 500MB
+                Accepted formats: .nii, .nii.gz • Max size: 500MB
               </p>
             </div>
           </div>
@@ -275,7 +298,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
           <button
             onClick={handleUpload}
             disabled={!selectedFile || uploadProgress !== null || !patientInfo.patient_name.trim()}
-            className="mt-4 w-full px-6 py-3 bg-blue-800 text-white rounded-lg font-semibold hover:bg-blue-900 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="mt-4 w-full px-6 py-3 bg-[#003d7a] text-white rounded-lg font-semibold hover:bg-[#002b55] transition disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {uploadProgress !== null ? `Processing... ${uploadProgress}%` : 'Start Processing'}
           </button>
@@ -285,15 +308,15 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
           )}
 
           {/* Statistics Dashboard */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
             {[
-              { label: 'Total Jobs', value: (stats?.total ?? 0).toString(), icon: FileText, bgColor: 'bg-blue-100', iconColor: 'text-blue-800' },
+              { label: 'Total Jobs', value: (stats?.total ?? 0).toString(), icon: FileText, bgColor: 'bg-blue-100', iconColor: 'text-[#003d7a]' },
               { label: 'Completed', value: (stats?.completed ?? 0).toString(), icon: CheckCircle, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
-              { label: 'Processing', value: (stats?.processing ?? 0).toString(), icon: Clock, bgColor: 'bg-blue-100', iconColor: 'text-blue-800' },
+              { label: 'Processing', value: (stats?.processing ?? 0).toString(), icon: Clock, bgColor: 'bg-blue-100', iconColor: 'text-[#003d7a]' },
               { label: 'Pending', value: (stats?.pending ?? 0).toString(), icon: Clock, bgColor: 'bg-yellow-100', iconColor: 'text-yellow-600' },
               { label: 'Failed', value: (stats?.failed ?? 0).toString(), icon: XCircle, bgColor: 'bg-red-100', iconColor: 'text-red-600' }
             ].map((stat, idx) => (
-              <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
+              <div key={idx} className="bg-white rounded-xl p-3 shadow-sm border border-blue-100">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
@@ -310,24 +333,45 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
 
         {/* Jobs List */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-blue-100 flex items-center justify-between">
+          <div className="px-6 py-2 border-b border-blue-100 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900">Recent Jobs</h2>
-            <div className="flex items-center gap-4">
-              {lastRefreshTime && (
-                <div className="text-xs text-gray-500 flex items-center gap-1">
-                  <div className={`w-2 h-2 rounded-full ${isRefreshing ? 'bg-blue-400 animate-pulse' : 'bg-green-400'}`}></div>
-                  Updated {lastRefreshTime.toLocaleTimeString()}
-                </div>
-              )}
-              <button
-                onClick={() => onJobsUpdate(true)}
-                disabled={isRefreshing}
-                className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition disabled:opacity-50"
-                title="Refresh job list"
-              >
-                <div className={`w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full transition-opacity ${isRefreshing ? 'animate-spin opacity-100' : 'opacity-0'}`}></div>
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </button>
+            <button
+              onClick={() => onJobsUpdate()}
+              className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-50 hover:bg-blue-100 text-[#003d7a] rounded-lg transition"
+              title="Refresh job list"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div className="px-6 py-3 border-b border-blue-100 flex items-center justify-between">
+            <div className="text-sm text-gray-500">
+              Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+              {stats?.completed > 0 ? ` (${stats.completed} completed)` : ''}
+            </div>
+            <div className="flex space-x-2">
+              {[
+                { key: 'all', label: 'All', count: stats?.total || 0 },
+                { key: 'completed', label: 'Completed', count: stats?.completed || 0 },
+                { key: 'processing', label: 'Processing', count: stats?.processing || 0 },
+                { key: 'pending', label: 'Pending', count: stats?.pending || 0 },
+                { key: 'failed', label: 'Failed', count: stats?.failed || 0 }
+              ].map(({ key, label, count }) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    // UI-only filters to match production behavior
+                  }}
+                  className={`px-3 py-1 text-xs rounded-full transition ${
+                    count > 0
+                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                  disabled={count === 0}
+                >
+                  {label} ({count})
+                </button>
+              ))}
             </div>
           </div>
 
@@ -337,109 +381,80 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
               <p className="text-gray-600">Loading jobs...</p>
             </div>
           ) : jobs.length === 0 ? (
-            <div className="p-12 text-center">
-              <p className="text-gray-600 mb-4">No jobs found</p>
-              <button
-                onClick={() => setActivePage('home')}
-                className="bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2 px-6 rounded-lg"
-              >
-                Upload Your First File
-              </button>
+            <div className="p-12 text-center text-gray-500">
+              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-semibold mb-2">No jobs found</p>
+              <p className="text-sm">Try uploading a file to get started.</p>
             </div>
           ) : (
             <div className="divide-y divide-blue-100">
-              {jobs.map((job) => (
-                <div key={job.id} className="p-6 hover:bg-blue-50 transition">
+              {jobs.map((job) => {
+                const normalizedStatus = normalizeStatus(job.status);
+                const statusInfo = {
+                  completed: { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100' },
+                  processing: { icon: Activity, color: 'text-[#003d7a]', bgColor: 'bg-blue-100' },
+                  pending: { icon: Clock, color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
+                  failed: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' },
+                  queued: { icon: Clock, color: 'text-gray-400', bgColor: 'bg-gray-100' }
+                };
+                const statusColors = {
+                  completed: 'bg-green-50 text-green-700 border-green-200',
+                  processing: 'bg-blue-50 text-[#003d7a] border-blue-200',
+                  pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+                  failed: 'bg-red-50 text-red-700 border-red-200',
+                  queued: 'bg-gray-50 text-gray-700 border-gray-200'
+                };
+                const StatusIcon = (statusInfo[normalizedStatus] || statusInfo.queued).icon;
+                const statusColor = statusColors[normalizedStatus] || statusColors.queued;
+                const currentStep = job.current_step || (normalizedStatus === 'processing' ? 'Processing...' : normalizedStatus === 'pending' ? 'Queued for processing' : '');
+
+                return (
+                  <div key={job.id} className="p-3 hover:bg-blue-50 transition">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
-                      {(() => {
-                        const statusInfo = {
-                          completed: { icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-100' },
-                          processing: { icon: Activity, color: 'text-blue-800', bgColor: 'bg-blue-100' },
-                          running: { icon: Activity, color: 'text-blue-800', bgColor: 'bg-blue-100' },
-                          pending: { icon: Clock, color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
-                          failed: { icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100' }
-                        };
-                        const status = statusInfo[job.status] || statusInfo.pending;
-                        const StatusIcon = status.icon;
-
-                        return (
-                          <div className={`p-2 rounded-lg ${status.bgColor}`}>
-                            <StatusIcon className={`w-5 h-5 ${status.color}`} />
-                          </div>
-                        );
-                      })()}
+                      <div className={`p-2 rounded-lg ${(statusInfo[normalizedStatus] || statusInfo.queued).bgColor}`}>
+                        <StatusIcon className={`w-5 h-5 ${(statusInfo[normalizedStatus] || statusInfo.queued).color}`} />
+                      </div>
 
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-gray-900">{job.filename}</h3>
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${(() => {
-                            const statusColors = {
-                              completed: 'bg-green-100 text-green-800 border-green-200',
-                              processing: 'bg-blue-100 text-blue-800 border-blue-200',
-                              running: 'bg-blue-100 text-blue-800 border-blue-200',
-                              pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-                              failed: 'bg-red-100 text-red-800 border-red-200'
-                            };
-                            return statusColors[job.status] || 'bg-gray-100 text-gray-800 border-gray-200';
-                          })()}`}>
-                            {job.status.toUpperCase()}
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${statusColor}`}>
+                            {normalizedStatus.toUpperCase()}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                           <span>ID: {job.id}</span>
                           <span>•</span>
-                          <span>Uploaded: {new Date(job.created_at).toLocaleDateString()}</span>
+                          <span>Uploaded: {formatDate(job.created_at || job.started_at)}</span>
                           {job.completed_at && (
                             <>
                               <span>•</span>
-                              <span>Completed: {new Date(job.completed_at).toLocaleDateString()}</span>
+                              <span>Completed: {formatDate(job.completed_at)}</span>
                             </>
                           )}
                         </div>
 
-                        {/* Patient Information */}
-                        {(job.patient_name || job.patient_age || job.patient_sex) && (
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            {job.patient_name && <span>Patient: {job.patient_name}</span>}
-                            {job.patient_age && (
-                              <>
-                                {job.patient_name && <span>•</span>}
-                                <span>Age: {job.patient_age}</span>
-                              </>
-                            )}
-                            {job.patient_sex && (
-                              <>
-                                {(job.patient_name || job.patient_age) && <span>•</span>}
-                                <span>Sex: {job.patient_sex}</span>
-                              </>
-                            )}
-                            {job.scanner_info && (
-                              <>
-                                {(job.patient_name || job.patient_age || job.patient_sex) && <span>•</span>}
-                                <span>Scanner: {job.scanner_info}</span>
-                              </>
-                            )}
-                          </div>
-                        )}
-
-                        {(job.status === 'processing' || job.status === 'running') && (
+                        {(normalizedStatus === 'processing' || normalizedStatus === 'pending') && (
                           <div className="mt-3">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm text-gray-600">{job.current_step || 'Processing...'}</span>
-                              <span className="text-sm font-semibold text-blue-800">
-                                {job.progress || 0}%
+                              <span className="text-sm text-gray-600">{currentStep}</span>
+                              <span className={`text-sm font-semibold ${normalizedStatus === 'processing' ? 'text-[#003d7a]' : 'text-yellow-600'}`}>
+                                {normalizedStatus === 'pending' ? 'Queued' : `${job.progress || 0}%`}
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className="h-2 bg-blue-800 rounded-full transition-all duration-500" style={{ width: `${job.progress || 0}%` }}></div>
+                              <div
+                                className={`h-2 rounded-full transition-all duration-500 ${normalizedStatus === 'processing' ? 'bg-[#003d7a]' : 'bg-yellow-600'}`}
+                                style={{ width: `${job.progress || 0}%` }}
+                              ></div>
                             </div>
                           </div>
                         )}
 
 
-                        {job.status === 'failed' && job.error_message && (
+                        {normalizedStatus === 'failed' && job.error_message && (
                           <div className="mt-3 bg-red-50 border-2 border-red-300 rounded-lg p-4 shadow-sm">
                             <div className="flex items-start gap-3">
                               <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
@@ -460,14 +475,15 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
 
                   {/* Action buttons - always visible below content */}
                   <div className="flex items-center justify-end gap-2 mt-4 border-t border-gray-200 pt-3">
-                      {job.status === 'completed' && (
+                    <>
+                      {normalizedStatus === 'completed' && (
                         <>
                           <button
                             onClick={() => {
                               setSelectedJobId(job.id);
                               setActivePage('dashboard');
                             }}
-                            className="p-2 text-blue-800 hover:bg-blue-100 rounded-lg transition"
+                            className="p-2 text-[#003d7a] hover:bg-blue-100 rounded-lg transition"
                             title="View Statistics"
                           >
                             <Eye className="w-5 h-5" />
@@ -485,10 +501,13 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                           <button
                             onClick={async () => {
                               try {
-                                const response = await fetch(`${API_BASE_URL}/reports/${job.id}/pdf`);
+                                const response = await fetch(`${API_BASE_URL}/api/reports/${job.id}/pdf`);
                                 if (response.ok) {
                                   const blob = await response.blob();
                                   const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `neuroinsight_report_${job.id}.pdf`;
                                   document.body.appendChild(a);
                                   a.click();
                                   document.body.removeChild(a);
@@ -520,15 +539,16 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                             }
                           }
                         }}
-                        className="p-3 bg-red-600 text-white hover:bg-red-700 rounded-lg transition font-semibold"
+                        className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
                         title="Delete Job"
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
-                    </div>
+                    </>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

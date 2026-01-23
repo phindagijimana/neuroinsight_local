@@ -1,10 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { apiService, API_BASE_URL } from '../utils/api.js';
+import AlertCircle from '../components/icons/AlertCircle.jsx';
 
 function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
   const [metrics, setMetrics] = useState(null);
   const [patientInfo, setPatientInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const availableJobs = Array.isArray(jobs)
+    ? jobs.filter(job => String(job?.status || '').toLowerCase() === 'completed')
+    : [];
 
   useEffect(() => {
     if (selectedJobId) {
@@ -93,33 +97,11 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
     }
   };
 
-  // Calculate system statistics from all jobs
-  const systemStats = jobs && jobs.length > 0 ? {
-    total: jobs.length,
-    completed: jobs.filter(job => job.status === 'completed').length,
-    processing: jobs.filter(job => job.status === 'processing' || job.status === 'running').length,
-    pending: jobs.filter(job => job.status === 'pending').length,
-    failed: jobs.filter(job => job.status === 'failed').length,
-    successRate: jobs.length > 0 ? Math.round((jobs.filter(job => job.status === 'completed').length / jobs.length) * 100) : 0,
-    avgProcessingTime: (() => {
-      const completedJobs = jobs.filter(job => job.status === 'completed' && job.created_at && job.completed_at);
-      if (completedJobs.length === 0) return null;
-
-      const totalTime = completedJobs.reduce((sum, job) => {
-        const start = new Date(job.created_at);
-        const end = new Date(job.completed_at);
-        return sum + (end - start);
-      }, 0);
-
-      return Math.round(totalTime / completedJobs.length / 1000 / 60); // minutes
-    })()
-  } : null;
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-800 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <div className="animate-spin w-8 h-8 border-4 border-[#003d7a] border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-gray-600">Loading statistics...</p>
         </div>
       </div>
@@ -148,119 +130,27 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
 
   if (!selectedJobId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          {/* System Overview Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">System Overview</h1>
-            <p className="text-gray-600">Aggregate statistics across all jobs</p>
-          </div>
-
-          {/* System Statistics Cards */}
-          {systemStats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-blue-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Total Jobs</p>
-                    <p className="text-3xl font-bold text-gray-900">{systemStats.total}</p>
-                  </div>
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <svg className="w-6 h-6 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-green-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Success Rate</p>
-                    <p className="text-3xl font-bold text-green-600">{systemStats.successRate}%</p>
-                  </div>
-                  <div className="bg-green-100 p-3 rounded-lg">
-                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-yellow-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Active Jobs</p>
-                    <p className="text-3xl font-bold text-yellow-600">{systemStats.processing + systemStats.pending}</p>
-                  </div>
-                  <div className="bg-yellow-100 p-3 rounded-lg">
-                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {systemStats.avgProcessingTime && (
-                <div className="bg-white rounded-xl p-6 shadow-sm border border-purple-100">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Avg Processing Time</p>
-                      <p className="text-3xl font-bold text-purple-600">{systemStats.avgProcessingTime}m</p>
-                    </div>
-                    <div className="bg-purple-100 p-3 rounded-lg">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Job Status Breakdown */}
-          {jobs && jobs.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Job Status Breakdown</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="text-2xl font-bold text-green-600 mb-1">{systemStats?.completed || 0}</div>
-                  <div className="text-sm text-green-800">Completed</div>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="text-2xl font-bold text-blue-600 mb-1">{systemStats?.processing || 0}</div>
-                  <div className="text-sm text-blue-800">Processing</div>
-                </div>
-                <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="text-2xl font-bold text-yellow-600 mb-1">{systemStats?.pending || 0}</div>
-                  <div className="text-sm text-yellow-800">Pending</div>
-                </div>
-                <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="text-2xl font-bold text-red-600 mb-1">{systemStats?.failed || 0}</div>
-                  <div className="text-sm text-red-800">Failed</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {(!jobs || jobs.length === 0) && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Jobs Yet</h3>
-              <p className="text-gray-500 mb-6">Upload your first MRI scan to get started with NeuroInsight</p>
-              <button
-                onClick={() => window.location.href = '#'}
-                className="bg-blue-800 hover:bg-blue-900 text-white font-semibold py-2 px-6 rounded-lg transition"
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto">
+          <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">No Job Selected</h2>
+          <p className="text-gray-600 mb-6">Please select a completed job to view statistics</p>
+          {availableJobs.length > 0 ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Job:</label>
+              <select
+                value={selectedJobId || ''}
+                onChange={(e) => setSelectedJobId(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
               >
-                Upload MRI Scan
-              </button>
+                <option value="">-- Select a job --</option>
+                {availableJobs.map(job => (
+                  <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
+                ))}
+              </select>
             </div>
+          ) : (
+            <p className="text-gray-500">No completed jobs available. Please upload and process an MRI scan first.</p>
           )}
         </div>
       </div>
@@ -269,11 +159,11 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-4">
 
         {/* Generate Report Button - Top right corner */}
         {patientInfo && (
-        <div className="flex justify-end mb-8">
+        <div className="flex justify-end mb-4">
           <button
             onClick={() => {
               const response = fetch(`${API_BASE_URL}/api/reports/${selectedJobId}/pdf`);
@@ -297,7 +187,7 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
                 alert('Failed to generate report. Please try again.');
               });
             }}
-            className="flex items-center gap-3 bg-blue-800 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-900 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+            className="flex items-center gap-3 bg-[#003d7a] text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-[#002b55] transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -308,9 +198,9 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
         )}
 
         {patientInfo && (
-        <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-3 mb-4">
           <div className="flex items-center gap-2 mb-4">
-            <svg className="w-5 h-5 text-blue-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-[#003d7a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             <h2 className="text-lg font-semibold text-gray-900">Patient Information</h2>
@@ -345,7 +235,7 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
         )}
 
         {displayMetrics && displayMetrics.length > 0 ? (
-        <div className="grid grid-cols-3 gap-6">
+        <div className="grid grid-cols-3 gap-4">
           {(!metrics || metrics.length === 0) && (
             <div className="col-span-3 mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-yellow-800">
@@ -353,22 +243,22 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
               </p>
             </div>
           )}
-            <div className="col-span-1 bg-white rounded-xl shadow-sm border border-blue-100 p-6">
+            <div className="col-span-1 bg-white rounded-xl shadow-sm border border-blue-100 p-3">
             <h2 className="text-lg font-semibold text-gray-900 mb-8">Hippocampal Volume Comparison (mm³)</h2>
             {/* Simple Bar Chart */}
             <div className="mb-8 pt-8">
               <div className="flex items-end justify-center space-x-12 mb-6">
                 <div className="text-center">
-                  <div className="w-16 bg-blue-800 rounded-t-lg relative" style={{ height: `${Math.max(displayVolumes.left / 50, 30)}px` }}>
-                    <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 -translate-y-full text-sm font-bold text-blue-800 bg-white px-1 rounded">
+                  <div className="w-16 bg-[#003d7a] rounded-t-lg relative" style={{ height: `${Math.max(displayVolumes.left / 50, 30)}px` }}>
+                    <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 -translate-y-full text-sm font-bold text-[#003d7a] bg-white px-1 rounded">
                       {displayVolumes.left.toFixed(1)}
                     </div>
                   </div>
                   <div className="mt-3 text-sm text-gray-600">Left</div>
                 </div>
                 <div className="text-center">
-                  <div className="w-16 bg-blue-800 rounded-t-lg relative" style={{ height: `${Math.max(displayVolumes.right / 50, 30)}px` }}>
-                    <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 -translate-y-full text-sm font-bold text-blue-800 bg-white px-1 rounded">
+                  <div className="w-16 bg-[#003d7a] rounded-t-lg relative" style={{ height: `${Math.max(displayVolumes.right / 50, 30)}px` }}>
+                    <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 -translate-y-full text-sm font-bold text-[#003d7a] bg-white px-1 rounded">
                       {displayVolumes.right.toFixed(1)}
                     </div>
                   </div>
@@ -379,22 +269,22 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
             </div>
           </div>
 
-            <div className="col-span-2 space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6">
+            <div className="col-span-2 space-y-4">
+            <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-3">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Total Hippocampal Volume</h2>
               <div className="space-y-4">
                 <div className="bg-blue-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-1">Left Hemisphere</p>
-                    <p className="text-2xl font-bold text-blue-800">{displayVolumes.left.toFixed(1)} mm³</p>
+                    <p className="text-2xl font-bold text-[#003d7a]">{displayVolumes.left.toFixed(1)} mm³</p>
                 </div>
                 <div className="bg-blue-50 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-1">Right Hemisphere</p>
-                    <p className="text-2xl font-bold text-blue-800">{displayVolumes.right.toFixed(1)} mm³</p>
+                    <p className="text-2xl font-bold text-[#003d7a]">{displayVolumes.right.toFixed(1)} mm³</p>
                 </div>
                   {/* Asymmetry Index */}
                   <div className="bg-blue-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600 mb-1">Asymmetry Index</p>
-                    <p className="text-2xl font-bold text-blue-800">{displayVolumes.aiDecimal.toFixed(4)}</p>
+                    <p className="text-2xl font-bold text-[#003d7a]">{displayVolumes.aiDecimal.toFixed(4)}</p>
                     <p className="text-xs text-gray-500 mt-1">AI = (Left − Right) / (Left + Right)</p>
                   </div>
                   {/* Lateralization */}
@@ -412,7 +302,7 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
                         : ai < HS_THRESHOLDS.LEFT_HS
                         ? 'Right-dominant'
                         : 'Balanced';
-                      const color = label === 'Balanced' ? 'text-gray-700' : 'text-blue-900';
+                      const color = label === 'Balanced' ? 'text-gray-700' : 'text-[#003d7a]';
                       return <p className={`text-xl font-semibold ${color}`}>{label}</p>;
                     })()}
                     <div className="text-xs text-gray-500 mt-2">

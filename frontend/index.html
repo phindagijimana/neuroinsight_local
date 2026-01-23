@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -94,159 +93,10 @@
       accent-color: #003d7a !important;
     }
   </style>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
-</html>
-  <script src="/static/js/react.production.min.js"></script>
-  <script src="/static/js/react-dom.production.min.js"></script>
+  <script src="/static/js/react.development.js"></script>
+  <script src="/static/js/react-dom.development.js"></script>
   <script src="/static/js/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  
-  <!-- Apply custom #003d7a theme overrides after Tailwind loads -->
-  <script>
-    // Wait for Tailwind to load, then apply our custom overrides
-    setTimeout(function() {
-      const style = document.createElement('style');
-      style.textContent = `
-        /* Override Tailwind blue colors with custom #003d7a theme */
-        .bg-blue-50 { background-color: #f8fafc !important; }
-        .bg-blue-100 { background-color: #f1f5f9 !important; }
-        .bg-blue-200 { background-color: #003d7a !important; }
-        .bg-blue-300 { background-color: #003d7a !important; }
-        .bg-blue-400 { background-color: #00264d !important; }
-        .bg-blue-500 { background-color: #00264d !important; }
-        .bg-blue-600 { background-color: #003d7a !important; }
-        .bg-blue-700 { background-color: #0054a7 !important; }
-        .bg-blue-800 { background-color: #006bd4 !important; }
-        .bg-blue-900 { background-color: #3382ff !important; }
-
-        .text-blue-50 { color: #f8fafc !important; }
-        .text-blue-100 { color: #f1f5f9 !important; }
-        .text-blue-200 { color: #003d7a !important; }
-        .text-blue-300 { color: #003d7a !important; }
-        .text-blue-400 { color: #00264d !important; }
-        .text-blue-500 { color: #00264d !important; }
-        .text-blue-600 { color: #003d7a !important; }
-        .text-blue-700 { color: #0054a7 !important; }
-        .text-blue-800 { color: #006bd4 !important; }
-        .text-blue-900 { color: #3382ff !important; }
-
-        .border-blue-50 { border-color: #f8fafc !important; }
-        .border-blue-100 { border-color: #f1f5f9 !important; }
-        .border-blue-200 { border-color: #003d7a !important; }
-        .border-blue-300 { border-color: #003d7a !important; }
-        .border-blue-400 { border-color: #00264d !important; }
-        .border-blue-500 { border-color: #00264d !important; }
-        .border-blue-600 { border-color: #003d7a !important; }
-        .border-blue-700 { border-color: #0054a7 !important; }
-        .border-blue-800 { border-color: #006bd4 !important; }
-        .border-blue-900 { border-color: #3382ff !important; }
-
-        .hover\:bg-blue-50:hover { background-color: #f8fafc !important; }
-        .hover\:bg-blue-100:hover { background-color: #f1f5f9 !important; }
-        .hover\:bg-blue-200:hover { background-color: #003d7a !important; }
-        .hover\:bg-blue-300:hover { background-color: #003d7a !important; }
-        .hover\:bg-blue-400:hover { background-color: #00264d !important; }
-        .hover\:bg-blue-500:hover { background-color: #00264d !important; }
-        .hover\:bg-blue-600:hover { background-color: #003d7a !important; }
-        .hover\:bg-blue-700:hover { background-color: #0054a7 !important; }
-        .hover\:bg-blue-800:hover { background-color: #006bd4 !important; }
-        .hover\:bg-blue-900:hover { background-color: #3382ff !important; }
-
-        .hover\:text-blue-50:hover { color: #f8fafc !important; }
-        .hover\:text-blue-100:hover { color: #f1f5f9 !important; }
-        .hover\:text-blue-200:hover { color: #003d7a !important; }
-        .hover\:text-blue-300:hover { color: #003d7a !important; }
-        .hover\:text-blue-400:hover { color: #00264d !important; }
-        .hover\:text-blue-500:hover { color: #00264d !important; }
-        .hover\:text-blue-600:hover { color: #003d7a !important; }
-        .hover\:text-blue-700:hover { color: #0054a7 !important; }
-        .hover\:text-blue-800:hover { color: #006bd4 !important; }
-        .hover\:text-blue-900:hover { color: #3382ff !important; }
-
-        /* Form focus and accent colors */
-        input:focus, select:focus, textarea:focus {
-          --tw-ring-color: rgb(0 61 122 / var(--tw-ring-opacity)) !important;
-          --tw-border-color: rgb(0 61 122 / var(--tw-border-opacity)) !important;
-        }
-
-        /* Force orientation dropdown colors */
-        #orientation-select,
-        #orientation-select:focus,
-        #orientation-select:hover,
-        select[value*="coronal"], select[value*="axial"],
-        .force-blue-colors {
-          color: #003d7a !important;
-          border-color: #003d7a !important;
-          border: 1px solid #003d7a !important;
-          background-color: #f8fafc !important;
-        }
-
-        /* Override focus ring colors for orientation select */
-        #orientation-select:focus {
-          --tw-ring-color: rgb(0 61 122 / var(--tw-ring-opacity)) !important;
-          box-shadow: 0 0 0 2px rgb(0 61 122 / 0.2) !important;
-        }
-        input[type="range"]::-webkit-slider-thumb {
-          accent-color: #003d7a !important;
-        }
-        input[type="range"]::-moz-range-thumb {
-          accent-color: #003d7a !important;
-        }
-      `;
-      document.head.appendChild(style);
-      console.log('Custom NeuroInsight theme applied');
-
-      // Force dropdown colors immediately and as fallback
-      function applyDropdownColors() {
-        const orientationSelect = document.getElementById('orientation-select');
-        if (orientationSelect) {
-          console.log('🎯 Applying colors to orientation dropdown...');
-
-          // Force the colors using multiple methods
-          orientationSelect.style.color = '#003d7a';
-          orientationSelect.style.borderColor = '#003d7a';
-          orientationSelect.style.border = '1px solid #003d7a';
-          orientationSelect.style.backgroundColor = '#f8fafc';
-
-          // Use setProperty with important for maximum override
-          orientationSelect.style.setProperty('color', '#003d7a', 'important');
-          orientationSelect.style.setProperty('border-color', '#003d7a', 'important');
-          orientationSelect.style.setProperty('border', '1px solid #003d7a', 'important');
-          orientationSelect.style.setProperty('background-color', '#f8fafc', 'important');
-          orientationSelect.style.setProperty('--tw-ring-color', 'rgb(0 61 122)', 'important');
-          orientationSelect.style.setProperty('box-shadow', '0 0 0 2px rgb(0 61 122 / 0.2)', 'important');
-
-          // Add event listeners to maintain colors on focus/hover
-          orientationSelect.addEventListener('focus', function() {
-            this.style.setProperty('border-color', '#003d7a', 'important');
-            this.style.setProperty('--tw-ring-color', 'rgb(0 61 122)', 'important');
-            this.style.setProperty('box-shadow', '0 0 0 2px rgb(0 61 122 / 0.2)', 'important');
-          });
-
-          orientationSelect.addEventListener('blur', function() {
-            this.style.setProperty('border-color', '#003d7a', 'important');
-          });
-
-          console.log('✅ Applied forced colors and event listeners to orientation dropdown');
-          return true;
-        }
-        return false;
-      }
-
-      // Try immediately
-      if (!applyDropdownColors()) {
-        // If not found, try again after a short delay
-        setTimeout(applyDropdownColors, 500);
-        // And again after longer delay for slow loading
-        setTimeout(applyDropdownColors, 1500);
-      }
-    }, 100);
-  </script>
   <!-- <script src="https://unpkg.com/recharts@2.10.3/umd/Recharts.js"></script> -->
   <style>
     @keyframes spin {
@@ -281,7 +131,7 @@
      */
 
 
-    const { useState, useEffect, useRef, useMemo } = React;
+    const { useState, useEffect, useRef } = React;
     
     // ============================================================================
     // MODULE: Configuration
@@ -327,8 +177,10 @@
         if (urlParams.get('env')) {
           return urlParams.get('env');
         }
-        // Backend is running in production mode, so frontend should match
-        return 'production';
+        // Default to production if accessed via non-localhost
+        return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? 'development'
+          : 'production';
       })()
     };
     
@@ -360,8 +212,8 @@
        */
       async getJobs() {
         try {
-          console.log('Fetching jobs from:', `${CONFIG.api.baseUrl}/api/jobs/`);
-          const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/`);
+          console.log('Fetching jobs from:', `${CONFIG.api.baseUrl}/jobs/delete/`);
+          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/`);
           console.log('Response status:', response.status, response.statusText);
           if (!response.ok) {
             const errorText = await response.text();
@@ -390,19 +242,15 @@
       async uploadFile(file, onProgress, metadata = {}) {
         const formData = new FormData();
         formData.append('file', file);
-
-        // Add patient metadata as JSON string
+        
+        // Add patient metadata if provided
         if (metadata && Object.keys(metadata).length > 0) {
-          // Filter out empty values and send as JSON
-          const cleanMetadata = {};
+          // Only append non-empty fields
           Object.entries(metadata).forEach(([key, value]) => {
             if (value && value.trim() !== '') {
-              cleanMetadata[key] = value;
+              formData.append(key, value);
             }
           });
-          formData.append('patient_data', JSON.stringify(cleanMetadata));
-        } else {
-          formData.append('patient_data', '{}');
         }
         
         return new Promise((resolve, reject) => {
@@ -443,8 +291,8 @@
             reject(new Error('Upload was cancelled'));
           });
           
-          console.log('Uploading to:', `${CONFIG.api.baseUrl}/api/upload/`);
-          xhr.open('POST', `${CONFIG.api.baseUrl}/api/upload/`);
+          console.log('Uploading to:', `${CONFIG.api.baseUrl}/upload/`);
+          xhr.open('POST', `${CONFIG.api.baseUrl}/upload/`);
           xhr.send(formData);
         });
       },
@@ -456,7 +304,7 @@
        */
       async getJob(jobId) {
         try {
-          const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/by-id?job_id=${jobId}`);
+          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/?job_id=${jobId}`);
           if (!response.ok) throw new Error('Failed to fetch job');
           return await response.json();
         } catch (error) {
@@ -472,11 +320,13 @@
        */
       async getMetrics(jobId) {
         try {
-          // Use correct API endpoint: /metrics/?job_id={jobId}
-          const response = await fetch(`${CONFIG.api.baseUrl}/api/metrics/?job_id=${jobId}`);
+          // Try /jobs/delete/{jobId}/metrics first, fallback to /metrics/{jobId}
+          let response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/?job_id=${jobId}/metrics`);
           if (!response.ok) {
-            // If metrics endpoint fails, get metrics from job data as fallback
-            console.warn('Metrics API failed, falling back to job data');
+            response = await fetch(`${CONFIG.api.baseUrl}/metrics/${jobId}`);
+          }
+          if (!response.ok) {
+            // If metrics endpoint doesn't exist, get metrics from job data
             const jobData = await this.getJob(jobId);
             return jobData.metrics || null;
           }
@@ -500,7 +350,7 @@
        */
       async deleteJob(jobId) {
         try {
-          const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/delete/${jobId}`, { method: 'DELETE' });
+          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/?job_id=${jobId}`, { method: 'DELETE' });
           if (!response.ok) throw new Error('Failed to delete job');
           return true;
         } catch (error) {
@@ -555,8 +405,7 @@
      */
     const toUiJob = (job) => {
       const normalizedStatus = normalizeStatus(job.status);
-      // Create a more stable representation by ensuring consistent object shape
-      const uiJob = {
+      return {
         id: job.id || job.job_id,
         filename: job.filename || job.file_path?.split('/').pop() || 'unknown',
         status: normalizedStatus,
@@ -567,11 +416,6 @@
         currentStep: job.current_step ?? (normalizedStatus === 'processing' ? 'Processing...' : normalizedStatus === 'pending' ? 'Queued for processing' : ''),
         errorMessage: job.error_message || null,
       };
-
-      // Add a computed stable key for React reconciliation
-      uiJob.stableKey = `${uiJob.id}-${uiJob.status}-${uiJob.progress}`;
-
-      return uiJob;
     };
     
     // ============================================================================
@@ -661,11 +505,6 @@
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
       </svg>
     );
-    const RefreshCw = ({ className }) => (
-      <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-    );
     const ChevronLeft = ({ className }) => (
       <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -720,8 +559,6 @@
 
     // Calculate total volumes and asymmetry from metrics
     const calculateVolumes = (metrics) => {
-      if (metrics?.length > 0) {
-      }
       if (!metrics || !Array.isArray(metrics) || metrics.length === 0) {
         return { left: 0, right: 0, ai: 0, aiDecimal: 0 };
       }
@@ -733,8 +570,7 @@
         : 0;
       const ai = aiDecimal * 100;
       
-      const result = { left, right, ai, aiDecimal };
-      return result;
+      return { left, right, ai, aiDecimal };
     };
 
     const HS_THRESHOLDS = {
@@ -889,11 +725,11 @@
                     
                     <ellipse cx="200" cy="200" rx="150" ry="170" fill="#eff6ff" stroke="#003d7a" strokeWidth="3"/>
                     <line x1="200" y1="30" x2="200" y2="370" stroke="#003d7a" strokeWidth="2" strokeDasharray="5,5" opacity="0.3"/>
-
+                    
                     <path d="M 80 150 Q 100 100, 150 120 T 180 160" fill="none" stroke="#003d7a" strokeWidth="2" opacity="0.7"/>
                     <path d="M 70 200 Q 90 180, 130 190 T 170 210" fill="none" stroke="#003d7a" strokeWidth="2" opacity="0.7"/>
                     <path d="M 85 250 Q 110 230, 150 245 T 180 270" fill="none" stroke="#003d7a" strokeWidth="2" opacity="0.7"/>
-
+                    
                     <path d="M 320 150 Q 300 100, 250 120 T 220 160" fill="none" stroke="#003d7a" strokeWidth="2" opacity="0.7"/>
                     <path d="M 330 200 Q 310 180, 270 190 T 230 210" fill="none" stroke="#003d7a" strokeWidth="2" opacity="0.7"/>
                     <path d="M 315 250 Q 290 230, 250 245 T 220 270" fill="none" stroke="#003d7a" strokeWidth="2" opacity="0.7"/>
@@ -902,12 +738,12 @@
                       <animate attributeName="opacity" values="0.6;0.9;0.6" dur="3s" repeatCount="indefinite" />
                     </ellipse>
                     <text x="140" y="335" fill="#003d7a" fontSize="16" fontWeight="bold" textAnchor="middle">L</text>
-
+                    
                     <ellipse cx="260" cy="260" rx="23" ry="48" fill="url(#brainGradient)" opacity="0.8">
                       <animate attributeName="opacity" values="0.6;0.9;0.6" dur="3s" repeatCount="indefinite" begin="0.5s" />
                     </ellipse>
                     <text x="260" y="335" fill="#003d7a" fontSize="16" fontWeight="bold" textAnchor="middle">R</text>
-
+                    
                     <circle cx="140" cy="260" r="55" fill="none" stroke="#003d7a" strokeWidth="2" strokeDasharray="3,3" opacity="0.5"/>
                     <circle cx="260" cy="260" r="55" fill="none" stroke="#003d7a" strokeWidth="2" strokeDasharray="3,3" opacity="0.5"/>
                   </svg>
@@ -929,7 +765,7 @@
                 {
                   icon: Zap,
                   title: 'Fast Processing',
-                  description: 'Automated pipeline delivers results in minutes, not hours'
+              description: 'Automated pipeline delivers results faster due to reduced manual interventions'
                 },
                 {
                   icon: Activity,
@@ -959,33 +795,6 @@
       const [uploadProgress, setUploadProgress] = useState(null);
       const [loading, setLoading] = useState(true);
       const [pollingJobId, setPollingJobId] = useState(null);
-      const [isLoadingJobs, setIsLoadingJobs] = useState(false);
-
-      // Cache for stable job objects to prevent bouncing
-      const jobCache = useRef(new Map());
-
-      // Memoize jobs list with stable object references
-      const stableJobs = useMemo(() => {
-        // Clean up old cache entries periodically (keep last 50)
-        if (jobCache.current.size > 50) {
-          const keys = Array.from(jobCache.current.keys());
-          keys.slice(0, 20).forEach(key => jobCache.current.delete(key));
-        }
-
-        return jobs.map(job => {
-          const cacheKey = `${job.id}-${job.status}-${job.progress}-${job.current_step || ''}-${job.error_message || ''}`;
-
-          if (jobCache.current.has(cacheKey)) {
-            console.log(`🔄 Using cached job: ${job.id}`);
-            return jobCache.current.get(cacheKey);
-          }
-
-          console.log(`🆕 Creating new job object: ${job.id}`);
-          const uiJob = toUiJob(job);
-          jobCache.current.set(cacheKey, uiJob);
-          return uiJob;
-        });
-      }, [jobs]);
       const [patientInfo, setPatientInfo] = useState({
         patient_name: '',
         age: '',
@@ -994,94 +803,14 @@
         sequence: '',
         notes: ''
       });
-
-      // Form validation state
-      const [formErrors, setFormErrors] = useState({});
-      const [isFormValid, setIsFormValid] = useState(false);
-
-      // Validation function
-      const validateForm = () => {
-        const errors = {};
-
-        // Patient name is required
-        if (!patientInfo.patient_name.trim()) {
-          errors.patient_name = 'Patient name is required';
-        }
-
-        // Age validation (if provided)
-        if (patientInfo.age && patientInfo.age.trim()) {
-          const ageNum = parseInt(patientInfo.age);
-          if (isNaN(ageNum) || ageNum < 0 || ageNum > 150) {
-            errors.age = 'Age must be a number between 0 and 150';
-          }
-        }
-
-        // Sex validation (if provided)
-        if (patientInfo.sex && patientInfo.sex.trim() && !['M', 'F', 'Other'].includes(patientInfo.sex)) {
-          errors.sex = 'Please select a valid sex option';
-        }
-
-        // Scanner validation (if provided)
-        if (patientInfo.scanner && patientInfo.scanner.trim() && patientInfo.scanner.length < 2) {
-          errors.scanner = 'Scanner name must be at least 2 characters';
-        }
-
-        // Sequence validation (if provided)
-        if (patientInfo.sequence && patientInfo.sequence.trim() && patientInfo.sequence.length < 2) {
-          errors.sequence = 'Sequence name must be at least 2 characters';
-        }
-
-        // File validation
-        if (!selectedFile) {
-          errors.file = 'Please select a file to upload';
-        } else {
-          // Check file extension
-          const allowedExtensions = ['.nii', '.nii.gz'];
-          const fileName = selectedFile.name.toLowerCase();
-          const isValidExt = allowedExtensions.some(ext => fileName.endsWith(ext));
-          if (!isValidExt) {
-            errors.file = `Invalid file type. Supported: ${allowedExtensions.join(', ')}`;
-          }
-
-          // Check for T1 indicators in filename
-          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr', 't1_mprage', 't1_spgr', 't1_tfe', 'mpr', 'fspgr_t1', 't1w_mprage'];
-          const has_t1_indicator = t1_indicators.some(indicator => fileName.includes(indicator));
-          if (!has_t1_indicator) {
-            errors.file = `Filename must contain T1 indicators. Expected one of: ${t1_indicators.join(', ')}`;
-          }
-
-          // Check file size (500MB limit)
-          if (selectedFile.size > 500 * 1024 * 1024) {
-            errors.file = 'File size must be less than 500MB';
-          }
-        }
-
-        setFormErrors(errors);
-        const valid = Object.keys(errors).length === 0;
-        setIsFormValid(valid);
-        return valid;
-      };
-
-      // Form validation is now handled only on submit attempt
-
-      // Update form validity for button state (without showing errors)
-      useEffect(() => {
-        const hasPatientName = patientInfo.patient_name.trim();
-        const hasFile = !!selectedFile;
-        const hasRequiredFields = hasPatientName && hasFile;
-        console.log('Form validity check:', { hasPatientName, hasFile, selectedFile: selectedFile?.name, hasRequiredFields });
-        setIsFormValid(hasRequiredFields);
-      }, [patientInfo.patient_name, selectedFile]);
-
+      
       // Load jobs on mount and auto-refresh
       useEffect(() => {
         console.log('JobsPage mounted, loading jobs...');
         loadJobs();
         const interval = setInterval(() => {
-          // Add small random delay to prevent synchronized polling across multiple clients
-          const delay = Math.random() * 2000; // 0-2 second random delay
-          setTimeout(() => loadJobs(), delay);
-        }, 15000); // Auto-refresh every 15 seconds (reduced frequency to minimize bouncing)
+          loadJobs();
+        }, 10000); // Auto-refresh every 10 seconds
         return () => clearInterval(interval);
       }, []);
       
@@ -1095,16 +824,9 @@
       }, [jobs]);
       
       const loadJobs = async () => {
-        // Prevent concurrent job loads to reduce bouncing
-        if (isLoadingJobs) {
-          console.log('loadJobs: Already loading, skipping...');
-          return;
-        }
-
         try {
           console.log('=== Starting loadJobs ===');
           setLoading(true);
-          setIsLoadingJobs(true);
           console.log('Loading state set to true');
           console.log('API Base URL:', CONFIG.api.baseUrl);
           console.log('Current jobs state:', jobs.length);
@@ -1119,8 +841,8 @@
             console.log('Trying direct fetch fallback...');
             // Fallback: Try direct fetch with credentials
             try {
-              console.log('Making direct fetch request to:', `${CONFIG.api.baseUrl}/api/jobs/delete/`);
-              const response = await fetch(`${CONFIG.api.baseUrl}/api/jobs/delete/`, {
+              console.log('Making direct fetch request to:', `${CONFIG.api.baseUrl}/jobs/delete/`);
+              const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/`, {
                 method: 'GET',
                 headers: {
                   'Accept': 'application/json',
@@ -1148,24 +870,16 @@
           console.log('Data type:', typeof data);
           console.log('Is array:', Array.isArray(data));
           console.log('Data length:', data?.length);
-
-          // Handle new API response format with pagination
-          let jobsArray = data;
-          if (data && typeof data === 'object' && data.jobs && Array.isArray(data.jobs)) {
-            jobsArray = data.jobs;
-            console.log('Extracted jobs array from response object, length:', jobsArray.length);
-          }
-
-          if (!jobsArray || !Array.isArray(jobsArray)) {
+          
+          if (!data || !Array.isArray(data)) {
             console.error('Invalid data format:', data);
             console.error('Data type:', typeof data);
-            console.error('Jobs array type:', typeof jobsArray);
-            console.error('Is jobs array:', Array.isArray(jobsArray));
+            console.error('Is array:', Array.isArray(data));
             setJobs([]);
             return;
           }
-
-          const uiJobs = jobsArray.map(toUiJob);
+          
+          const uiJobs = data.map(toUiJob);
           console.log('Converted UI jobs:', uiJobs);
           console.log('UI jobs count:', uiJobs.length);
           
@@ -1196,7 +910,6 @@
         } finally {
           console.log('Setting loading to false...');
           setLoading(false);
-          setIsLoadingJobs(false);
           console.log('=== Loading Complete ===');
         }
       };
@@ -1204,25 +917,13 @@
       const handleFileSelect = (e) => {
         const file = e.target.files?.[0];
         if (file) {
-          const validFormats = ['.nii', '.nii.gz', '.zip'];
-          const fileName = file.name.toLowerCase();
-          const isValidFormat = validFormats.some(format => fileName.endsWith(format));
-
-          if (!isValidFormat) {
-            alert('Invalid file format. Please upload .nii or .nii.gz files only.');
-            return;
+          const validFormats = ['.nii', '.nii.gz'];
+          const isValid = validFormats.some(format => file.name.toLowerCase().endsWith(format));
+          if (isValid) {
+            setSelectedFile(file);
+          } else {
+            alert('Invalid file format. Please upload .nii or .nii.gz files.');
           }
-
-          // Check for T1 indicators in filename
-          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr', 't1_mprage', 't1_spgr', 't1_tfe', 'mpr', 'fspgr_t1', 't1w_mprage'];
-          const has_t1_indicator = t1_indicators.some(indicator => fileName.includes(indicator));
-
-          if (!has_t1_indicator) {
-            alert(`Filename must contain T1 indicators. Expected one of: ${t1_indicators.join(', ')}`);
-            return;
-          }
-
-          setSelectedFile(file);
         }
       };
       
@@ -1231,34 +932,17 @@
         setIsDragging(false);
         const file = e.dataTransfer.files[0];
         if (file) {
-          const validFormats = ['.nii', '.nii.gz', '.zip'];
-          const fileName = file.name.toLowerCase();
-          const isValidFormat = validFormats.some(format => fileName.endsWith(format));
-
-          if (!isValidFormat) {
-            return; // Invalid format, don't set file
+          const validFormats = ['.nii', '.nii.gz'];
+          const isValid = validFormats.some(format => file.name.toLowerCase().endsWith(format));
+          if (isValid) {
+            setSelectedFile(file);
           }
-
-          // Check for T1 indicators in filename
-          const t1_indicators = ['t1', 't1w', 't1-weighted', 'mprage', 'spgr', 'tfl', 'tfe', 'fspgr', 't1_mprage', 't1_spgr', 't1_tfe', 'mpr', 'fspgr_t1', 't1w_mprage'];
-          const has_t1_indicator = t1_indicators.some(indicator => fileName.includes(indicator));
-
-          if (!has_t1_indicator) {
-            return; // No T1 indicator, don't set file
-          }
-
-          setSelectedFile(file);
         }
       };
       
       const handleUpload = async () => {
-        // Validate form before attempting upload
-        if (!validateForm()) {
-          return; // Validation failed, errors are now displayed
-        }
-
         if (!selectedFile) return;
-
+        
         try {
           setUploadProgress(0);
           const job = await ApiService.uploadFile(selectedFile, (progress) => {
@@ -1284,86 +968,37 @@
         } catch (error) {
           console.error('Upload failed:', error);
           setUploadProgress(null);
-
-          // Provide user-friendly error messages
-          let errorMessage = 'Upload failed. Please try again.';
-          if (error.message) {
-            if (error.message.includes('400')) {
-              errorMessage = 'Invalid file or missing information. Please check your file format and required fields.';
-            } else if (error.message.includes('413')) {
-              errorMessage = 'File is too large. Maximum size is 500MB.';
-            } else if (error.message.includes('429')) {
-              errorMessage = 'Too many jobs in queue. Please wait for existing jobs to complete.';
-            } else if (error.message.includes('500')) {
-              errorMessage = 'Server error. Please try again later.';
-            } else if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
-              errorMessage = 'Network error. Please check your connection and try again.';
-            }
-          }
-
-          // Show error in UI instead of alert
-          setFormErrors(prev => ({ ...prev, submit: errorMessage }));
+          alert('Upload failed. Please try again.');
         }
       };
 
       const pollJobUntilDone = async (jobId) => {
         console.log('Start polling job', jobId);
         let attempts = 0;
-        const maxAttempts = 300; // ~15 minutes total
-        let intervalMs = 2000; // Start with 2s intervals for responsiveness
-        let lastUpdate = Date.now();
-
+        const maxAttempts = 200; // ~10 minutes at 3s interval
+        const intervalMs = 3000;
         const timer = setInterval(async () => {
           attempts += 1;
-
-          // Gradually increase polling interval for efficiency
-          if (attempts > 30) intervalMs = 5000;   // 5s after 1 minute
-          if (attempts > 120) intervalMs = 10000; // 10s after 4 minutes
-          if (attempts > 240) intervalMs = 15000; // 15s after 8 minutes
-
           try {
             const job = await ApiService.getJob(jobId);
             if (job) {
               const uiJob = toUiJob(job);
-              const now = Date.now();
-
-              // Only update UI if status changed or enough time has passed (prevents excessive re-renders)
-              const currentJob = jobs.find(j => j.id === jobId);
-              const statusChanged = !currentJob || uiJob.status !== currentJob.status;
-              const timeSinceLastUpdate = now - lastUpdate;
-              const needsUpdate = statusChanged || timeSinceLastUpdate > 10000; // Update every 10s minimum
-
-              if (needsUpdate) {
-                setJobs((prev) => {
-                  const others = prev.filter(j => j.id !== jobId);
-                  return [uiJob, ...others];
-                });
-                lastUpdate = now;
-
-                // Update stats when job completes
-                if (uiJob.status === 'completed' || uiJob.status === 'failed') {
-                  setTimeout(() => loadJobs(), 1000); // Refresh job list to update stats
-                }
-              }
-
+              setJobs((prev) => {
+                const others = prev.filter(j => j.id !== jobId);
+                return [uiJob, ...others];
+              });
               if (uiJob.status === 'completed' || uiJob.status === 'failed') {
                 clearInterval(timer);
                 setPollingJobId(null);
-                console.log('Job polling completed:', jobId, uiJob.status);
-
-                // Auto-navigate to results for completed jobs
                 if (uiJob.status === 'completed') {
-                  setTimeout(() => {
-                    setSelectedJobId(jobId);
-                    setActivePage('dashboard');
-                  }, 1500); // Brief delay to show completion
+                  setSelectedJobId(jobId);
+                  setActivePage('dashboard');
                 }
               }
             }
           } catch (e) {
             console.warn('Polling failed for job', jobId, e);
           }
-
           if (attempts >= maxAttempts) {
             console.warn('Polling timed out for job', jobId);
             clearInterval(timer);
@@ -1442,28 +1077,6 @@
                   <Brain className="w-5 h-5 text-blue-600" />
                   Patient Information
                 </h3>
-                {formErrors.submit && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-800 font-medium">Upload Error:</p>
-                    <p className="text-sm text-red-700">{formErrors.submit}</p>
-                  </div>
-                )}
-                {!isFormValid && Object.keys(formErrors).length > 0 && !formErrors.submit && (
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800 font-medium">Please fix the following errors:</p>
-                    <ul className="mt-1 text-sm text-blue-700 list-disc list-inside">
-                      {Object.entries(formErrors).filter(([key]) => key !== 'submit').map(([field, error]) => (
-                        <li key={field}>{error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {isFormValid && selectedFile && (
-                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-sm text-green-800 font-medium">✓ Ready to process!</p>
-                    <p className="text-sm text-green-700">All required fields completed and file selected.</p>
-                  </div>
-                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1474,13 +1087,8 @@
                       value={patientInfo.patient_name}
                       onChange={(e) => handlePatientInfoChange('patient_name', e.target.value)}
                       placeholder="Enter patient name"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
-                        formErrors.patient_name ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500' : 'border-gray-300'
-                      }`}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                    {formErrors.patient_name && (
-                      <p className="mt-1 text-sm text-blue-600">{formErrors.patient_name}</p>
-                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1492,14 +1100,9 @@
                       onChange={(e) => handlePatientInfoChange('age', e.target.value)}
                       placeholder="Enter age"
                       min="0"
-                      max="150"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
-                        formErrors.age ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500' : 'border-gray-300'
-                      }`}
+                      max="120"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                    {formErrors.age && (
-                      <p className="mt-1 text-sm text-blue-600">{formErrors.age}</p>
-                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1508,18 +1111,13 @@
                     <select
                       value={patientInfo.sex}
                       onChange={(e) => handlePatientInfoChange('sex', e.target.value)}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
-                        formErrors.sex ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500' : 'border-gray-300'
-                      }`}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">Select...</option>
                       <option value="M">Male</option>
                       <option value="F">Female</option>
                       <option value="Other">Other</option>
                     </select>
-                    {formErrors.sex && (
-                      <p className="mt-1 text-sm text-blue-600">{formErrors.sex}</p>
-                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1530,13 +1128,8 @@
                       value={patientInfo.scanner}
                       onChange={(e) => handlePatientInfoChange('scanner', e.target.value)}
                       placeholder="e.g., Siemens, GE, Philips"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
-                        formErrors.scanner ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500' : 'border-gray-300'
-                      }`}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                    {formErrors.scanner && (
-                      <p className="mt-1 text-sm text-blue-600">{formErrors.scanner}</p>
-                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1547,13 +1140,8 @@
                       value={patientInfo.sequence}
                       onChange={(e) => handlePatientInfoChange('sequence', e.target.value)}
                       placeholder="e.g., T1w"
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 ${
-                        formErrors.sequence ? 'border-blue-500 focus:ring-blue-500 focus:border-blue-500' : 'border-gray-300'
-                      }`}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                    {formErrors.sequence && (
-                      <p className="mt-1 text-sm text-blue-600">{formErrors.sequence}</p>
-                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1564,7 +1152,7 @@
                       value={patientInfo.notes}
                       onChange={(e) => handlePatientInfoChange('notes', e.target.value)}
                       placeholder="Additional notes (optional)"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 </div>
@@ -1592,7 +1180,7 @@
                   <label className="inline-block">
                     <input
                       type="file"
-                      accept=".nii,.gz,.zip"
+                      accept=".nii,.nii.gz"
                       onChange={handleFileSelect}
                       className="hidden"
                     />
@@ -1603,46 +1191,29 @@
                   <p className="text-xs text-gray-400 mt-4">
                     Accepted formats: .nii, .nii.gz • Max size: 500MB
                   </p>
-                  {formErrors.file && (
-                    <p className="mt-2 text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
-                      {formErrors.file}
-                    </p>
-                  )}
                 </div>
               </div>
               {uploadProgress !== null && (
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-800">
-                        {uploadProgress < 100 ? 'Uploading file...' : 'Processing upload...'}
-                      </p>
-                      <div className="w-full bg-blue-200 rounded-full h-2 mt-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${uploadProgress}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-blue-600 mt-1">{uploadProgress}% complete</p>
-                    </div>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Uploading...</span>
+                    <span className="text-sm font-medium text-gray-700">{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }}></div>
                   </div>
                 </div>
               )}
               <button
-                onClick={() => {
-                  if (validateForm()) {
-                    handleUpload();
-                  }
-                }}
-                disabled={!selectedFile || uploadProgress !== null || !isFormValid}
+                onClick={handleUpload}
+                disabled={!selectedFile || uploadProgress !== null}
                 className="mt-4 w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
-                {!isFormValid && selectedFile ? 'Please Complete Required Fields' : 'Start Processing'}
+                Start Processing
               </button>
             </div>
 
-            <div className="grid grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
               {[
                 { label: 'Total Jobs', value: (stats?.total ?? 0).toString(), icon: FileText, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
                 { label: 'Completed', value: (stats?.completed ?? 0).toString(), icon: CheckCircle, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
@@ -1665,63 +1236,22 @@
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
-              <div className="px-6 py-4 border-b border-blue-100">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">Recent Jobs</h2>
-                  <button
-                    onClick={() => loadJobs()}
-                    className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition"
-                    title="Refresh job list"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-1" />
-                    Refresh
-                  </button>
-                </div>
-
-                {/* Job filtering and status info */}
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-500">
-                    Showing {stableJobs.length} job{stableJobs.length !== 1 ? 's' : ''}
-                    {(stats?.completed > 0) && ` (${stats.completed} completed)`}
-                    {pollingJobId ? ` • monitoring ${pollingJobId}` : ''}
-                  </div>
-
-                  {/* Status filter buttons */}
-                  <div className="flex space-x-2">
-                    {[
-                      { key: 'all', label: 'All', count: stats?.total || 0 },
-                      { key: 'completed', label: 'Completed', count: stats?.completed || 0 },
-                      { key: 'processing', label: 'Processing', count: stats?.processing || 0 },
-                      { key: 'pending', label: 'Pending', count: stats?.pending || 0 },
-                      { key: 'failed', label: 'Failed', count: stats?.failed || 0 }
-                    ].map(({ key, label, count }) => (
-                      <button
-                        key={key}
-                        onClick={() => {
-                          // Simple filter implementation - could be enhanced
-                          console.log(`Filter by ${key}`);
-                        }}
-                        className={`px-3 py-1 text-xs rounded-full transition ${
-                          count > 0
-                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        }`}
-                        disabled={count === 0}
-                      >
-                        {label} ({count})
-                      </button>
-                    ))}
-                  </div>
+              <div className="px-6 py-4 border-b border-blue-100 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Recent Jobs</h2>
+                <div className="text-sm text-gray-500">
+                  Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+                  {(stats?.completed > 0) && ` (${stats.completed} completed)`}
+                  {pollingJobId ? ` • monitoring ${pollingJobId}` : ''}
                 </div>
               </div>
 
 
-              {loading && stableJobs.length === 0 ? (
+              {loading && jobs.length === 0 ? (
                 <div className="p-12 text-center">
                   <Clock className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
                   <p className="text-gray-600">Loading jobs...</p>
                 </div>
-              ) : stableJobs.length === 0 ? (
+              ) : jobs.length === 0 ? (
                 <div className="p-12 text-center text-gray-500">
                   <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-semibold mb-2">No jobs found</p>
@@ -1729,7 +1259,7 @@
                 </div>
               ) : (
               <div className="divide-y divide-blue-100">
-                {stableJobs.map((job) => (
+                {jobs.map((job) => (
                   <div key={job.id} className="p-6 hover:bg-blue-50 transition">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
@@ -1785,14 +1315,12 @@
                                     const isFilenameError = errMsg.includes('filename') && 
                                                            (errMsg.includes('does not contain') || 
                                                             errMsg.includes('rename'));
-                                    const isFormatError = errMsg.includes('File format validation failed') ||
-                                                          errMsg.includes('not a valid NIfTI file');
-                                    const isT1wError = (errMsg.includes('t1') ||
+                                    const isT1wError = (errMsg.includes('t1') || 
                                                        errMsg.includes('t2') ||
                                                        errMsg.includes('flair') ||
                                                        errMsg.includes('dwi') ||
                                                        errMsg.includes('image type') ||
-                                                       errMsg.includes('sequence')) && !isFilenameError && !isFormatError;
+                                                       errMsg.includes('sequence')) && !isFilenameError;
                                     
                                     if (isDockerError) {
                                       return (
@@ -1936,7 +1464,7 @@
                               <button
                                 onClick={async () => {
                                   try {
-                                    const response = await fetch(`${CONFIG.api.baseUrl}/api/reports/${job.id}/pdf`);
+                                    const response = await fetch(`${CONFIG.api.baseUrl}/reports/${job.id}/pdf`);
                                     if (response.ok) {
                                       const blob = await response.blob();
                                       const url = window.URL.createObjectURL(blob);
@@ -1962,30 +1490,22 @@
                               </button>
                             </>
                           )}
-                          {/* Delete button for all jobs */}
-                          {(() => {
-                            console.log(`Rendering delete button for job ${job.id} with status: ${job.status}`);
-                            return (
-                              <button
-                                onClick={async () => {
-                                  console.log(`Delete button clicked for job ${job.id}`);
-                                  if (confirm(`Delete job ${job.id}? Status: ${job.status}`)) {
-                                    try {
-                                      await ApiService.deleteJob(job.id);
-                                      setJobs(jobs.filter(j => j.id !== job.id));
-                                    } catch (error) {
-                                      console.error('Delete failed:', error);
-                                      alert('Failed to delete job');
-                                    }
-                                  }
-                                }}
+                          <button
+                            onClick={async () => {
+                              if (confirm('Delete this job?')) {
+                                try {
+                                  await ApiService.deleteJob(job.id);
+                                  setJobs(jobs.filter(j => j.id !== job.id));
+                                } catch (error) {
+                                  console.error('Delete failed:', error);
+                                  alert('Failed to delete job');
+                                }
+                              }
+                            }}
                             className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
-                            title={`Delete job (Status: ${job.status})`}
-                              >
-                                <Trash2 className="w-5 h-5" />
-                              </button>
-                            );
-                          })()}
+                          >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -2023,9 +1543,7 @@
       const loadAvailableJobs = async () => {
         try {
           const data = await ApiService.getJobs();
-          // Handle new API response format with pagination
-          const jobsArray = (data && typeof data === 'object' && data.jobs) ? data.jobs : (data || []);
-          const completedJobs = jobsArray.filter(j =>
+          const completedJobs = (data || []).filter(j =>
             normalizeStatus(j.status) === 'completed'
           ).map(toUiJob);
           setAvailableJobs(completedJobs);
@@ -2125,7 +1643,7 @@
               <button
                 onClick={async () => {
                   try {
-                    const response = await fetch(`${CONFIG.api.baseUrl}/api/reports/${selectedJobId}/pdf`);
+                    const response = await fetch(`${CONFIG.api.baseUrl}/reports/${selectedJobId}/pdf`);
                     if (response.ok) {
                       const blob = await response.blob();
                       const url = window.URL.createObjectURL(blob);
@@ -2145,6 +1663,7 @@
                   }
                 }}
                 className="flex items-center gap-3 bg-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:bg-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                style={{ backgroundColor: '#3b82f6' }} // Same blue as chart bars
               >
                 <Download className="w-6 h-6" />
                 Generate PDF Report
@@ -2267,45 +1786,19 @@
     }
 
     // Viewer Page
-    function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
-      // FORCE CACHE BUST TEST - If you see this, you have NEW CODE
-      console.log('🚨🚨🚨 NEW CODE LOADED - DYNAMIC URL FIX ACTIVE - VERSION 2 🚨🚨🚨');
-      console.log('Current selectedJobId:', selectedJobId);
+    function ViewerPage({ selectedJobId, setSelectedJobId }) {
       const [activeView, setActiveView] = useState(0);
-
-      // Wrapper for setActiveView to track all calls
-      const trackedSetActiveView = (value) => {
-        console.log(`setActiveView CALLED: ${activeView} -> ${value}`, new Error().stack);
-        setActiveView(value);
-      };
-      const [orientation, setOrientation] = useState('axial');  // coronal or axial
+      const [orientation, setOrientation] = useState('coronal');  // coronal or axial
       const [loading, setLoading] = useState(false);
       const [slices, setSlices] = useState([]);
       const [availableJobs, setAvailableJobs] = useState([]);
       const [maxSlice, setMaxSlice] = useState(9); // Start with expected 10 slices (0-9)
-      const [zoomLevel, setZoomLevel] = useState(0.75);  // Zoom level: 1.0 = 100%, 0.75 = 75%, etc.
+      const [zoomLevel, setZoomLevel] = useState(1.0);  // Zoom level: 1.0 = 100%, 2.0 = 200%, etc.
       const [overlayOpacity, setOverlayOpacity] = useState(0.6);  // Overlay opacity: 0.0 = only anatomical, 1.0 = full overlay
       const [imageLoadError, setImageLoadError] = useState(false);  // Track if current slice image failed to load
-      const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
-      const [rotation, setRotation] = useState(90); // Rotation: 0, 90, 180, 270 degrees (works for both axial and coronal)
-      const [jobVisualizations, setJobVisualizations] = useState(null); // Store visualization data from API
       // No flip needed; backend overlays saved with correct orientation
       const FLIP_VERTICAL = false;
-
-      // Helper function to get display label (anatomically correct)
-      const getDisplayOrientation = (orientation) => {
-        return orientation.charAt(0).toUpperCase() + orientation.slice(1);
-      };
-
-      // Set default rotation based on orientation (user-specified angles)
-      useEffect(() => {
-        if (orientation === 'axial') {
-          setRotation(0);   // Axial: 0° rotation as requested
-        } else if (orientation === 'coronal') {
-          setRotation(180); // Coronal: 180° rotation as requested
-        }
-      }, [orientation]); // Update rotation when orientation changes
-
+      
       // Zoom handlers
       const handleZoomIn = () => {
         setZoomLevel(prev => Math.min(prev + 0.25, 3.0)); // Max 300%
@@ -2318,80 +1811,12 @@
       const handleZoomReset = () => {
         setZoomLevel(1.0);
       };
-
-      // Rotation handlers for axial views
-      const handleRotateClockwise = () => {
-        setRotation(prev => (prev + 90) % 360);
-        console.log('🔄 ROTATION: Clockwise clicked');
-        console.log(`🔄 ROTATION: ${rotation}° → ${(rotation + 90) % 360}°`);
-      };
-
-      const handleRotateCounterClockwise = () => {
-        setRotation(prev => (prev - 90 + 360) % 360);
-        console.log('🔄 ROTATION: Counter-clockwise clicked');
-        console.log(`🔄 ROTATION: ${rotation}° → ${(rotation - 90 + 360) % 360}°`);
-      };
-
-      const handleRotateReset = () => {
-        setRotation(0);
-        console.log('🔄 ROTATION: Reset clicked');
-        console.log('🔄 ROTATION: Reset to 0°');
-      };
       
-      // Load available completed jobs from props and auto-select first job
+      // Load available completed jobs
       useEffect(() => {
-        if (jobs && jobs.length > 0) {
-          const completedJobs = jobs.filter(j =>
-            normalizeStatus(j.status) === 'completed'
-          ).map(toUiJob);
-          setAvailableJobs(completedJobs);
-
-          // Auto-select first completed job if none selected and load its visualizations
-          if (!selectedJobId && completedJobs.length > 0) {
-            const firstJobId = completedJobs[0].id;
-            console.log('ViewerPage: Auto-selecting first completed job:', firstJobId);
-            setSelectedJobId(firstJobId);
-
-            // Load visualizations immediately for the auto-selected job
-            const loadJobVisualizations = async () => {
-              try {
-                console.log(`🔄 Loading visualizations for auto-selected job ${firstJobId}...`);
-
-                const baseUrl = CONFIG.api.baseUrl || window.location.origin;
-                const fullUrl = `${baseUrl}/api/jobs/${firstJobId}`;
-                console.log(`🔗 Final fetch URL: ${fullUrl}`);
-
-                const response = await fetch(fullUrl);
-                console.log(`📡 Response status: ${response.status}`);
-
-                if (response.ok) {
-                  const jobData = await response.json();
-                  console.log('📦 Full job data received:', jobData);
-                  console.log('🎨 Visualizations in job data:', jobData.visualizations);
-
-                  if (jobData.visualizations) {
-                    console.log('✅ Setting jobVisualizations state for auto-selected job...');
-                    setJobVisualizations(jobData.visualizations);
-                    console.log('✅ SUCCESS: jobVisualizations state set to:', jobData.visualizations);
-                  } else {
-                    console.log('⚠️ WARNING: Auto-selected job has no visualizations field');
-                    setJobVisualizations(null);
-                  }
-                } else {
-                  console.error('❌ ERROR: Failed to load job data for auto-selected job, status:', response.status);
-                  setJobVisualizations(null);
-                }
-              } catch (error) {
-                console.error('💥 ERROR: Exception in loadJobVisualizations for auto-selected job:', error);
-                setJobVisualizations(null);
-              }
-            };
-
-            loadJobVisualizations();
-          }
-        }
-      }, [jobs, selectedJobId]);
-
+        loadAvailableJobs();
+      }, []);
+      
       // Load slices when job or orientation changes
       const prevSelectedJobId = useRef(selectedJobId);
       const prevOrientation = useRef(orientation);
@@ -2409,74 +1834,31 @@
           new_orientation: orientation
         });
 
-        // Clear slicesLoaded when job or orientation changes to allow fresh slice loading
-        if (jobChanged || orientationChanged) {
-          console.log('Clearing slicesLoaded cache due to job/orientation change');
-          setSlicesLoaded(new Set());
-        }
-
         prevSelectedJobId.current = selectedJobId;
         prevOrientation.current = orientation;
 
         if (selectedJobId) {
-          // Load job visualizations if not already loaded
-          if (!jobVisualizations) {
-            console.log(`🔄 Loading visualizations for selected job ${selectedJobId}...`);
-            const loadJobVisualizationsForSelected = async () => {
-              try {
-                const baseUrl = CONFIG.api.baseUrl || window.location.origin;
-                const fullUrl = `${baseUrl}/api/jobs/${selectedJobId}`;
-                console.log(`🔗 Fetching job details from: ${fullUrl}`);
-
-                const response = await fetch(fullUrl);
-                console.log(`📡 Response status: ${response.status}`);
-
-                if (response.ok) {
-                  const jobData = await response.json();
-                  console.log('📦 Job details received:', jobData);
-                  console.log('🎨 Visualizations data:', jobData.visualizations);
-
-                  if (jobData.visualizations) {
-                    console.log('✅ Setting jobVisualizations state...');
-                    setJobVisualizations(jobData.visualizations);
-                    console.log('✅ SUCCESS: jobVisualizations state set');
-                  } else {
-                    console.log('⚠️ No visualizations in job data');
-                    setJobVisualizations(null);
-                  }
-                } else {
-                  console.error('❌ Failed to load job details, status:', response.status);
-                  setJobVisualizations(null);
-                }
-              } catch (error) {
-                console.error('💥 Error loading job visualizations:', error);
-                setJobVisualizations(null);
-              }
-            };
-            loadJobVisualizationsForSelected();
-          }
-
           loadSlices();
           setImageLoadError(false); // Reset error state when switching slices/orientation
         }
       }, [selectedJobId, orientation]); // Removed activeView dependency to prevent infinite loop
-
-      // Debug: Watch all state changes
-      useEffect(() => {
-        console.log(`SELECTEDJOBID CHANGED: "${selectedJobId}"`);
-        console.log(`Stack trace:`, new Error().stack);
-      }, [selectedJobId]);
-
-      useEffect(() => {
-        console.log(`ORIENTATION CHANGED: "${orientation}"`);
-        console.log(`Stack trace:`, new Error().stack);
-      }, [orientation]);
-
-      useEffect(() => {
-        console.log(`ACTIVEVIEW CHANGED: ${activeView}`);
-        console.log(`Stack trace:`, new Error().stack);
-      }, [activeView]);
-
+      
+      const loadAvailableJobs = async () => {
+        try {
+          const data = await ApiService.getJobs();
+          const completedJobs = (data || []).filter(j => 
+            normalizeStatus(j.status) === 'completed'
+          ).map(toUiJob);
+          setAvailableJobs(completedJobs);
+          
+          // Auto-select first completed job if none selected
+          if (!selectedJobId && completedJobs.length > 0) {
+            setSelectedJobId(completedJobs[0].id);
+          }
+        } catch (error) {
+          console.error('Failed to load jobs:', error);
+        }
+      };
       
       const loadSlices = async () => {
         if (!selectedJobId) return;
@@ -2495,7 +1877,7 @@
           let availableSlices = 0;
           for (let i = 0; i <= 9; i++) {
             try {
-              const testUrl = `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/slice_${String(i).padStart(2, '0')}?orientation=${orientation}`;
+              const testUrl = `${CONFIG.api.baseUrl}/visualizations/${selectedJobId}/overlay/slice_${String(i).padStart(2, '0')}?orientation=${orientation}`;
               const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Timeout')), 1000)
               );
@@ -2519,25 +1901,14 @@
           }
           
           setMaxSlice(detectedMax);
-
-          // Only set initial activeView when slices are first loaded for this job/orientation
-          const sliceKey = `${selectedJobId}-${orientation}`;
-          console.log(`loadSlices: Checking sliceKey "${sliceKey}", slicesLoaded has:`, Array.from(slicesLoaded));
-          if (!slicesLoaded.has(sliceKey)) {
-            const middleSlice = Math.floor(detectedMax / 2);
-            console.log(`loadSlices: FIRST LOAD - setting activeView to middle slice ${middleSlice} (detectedMax=${detectedMax})`);
-            console.log(`Stack trace:`, new Error().stack);
-            trackedSetActiveView(middleSlice); // Start at middle slice for first load
-            setSlicesLoaded(prev => new Set([...prev, sliceKey]));
-            console.log(`loadSlices: Added "${sliceKey}" to slicesLoaded, now has:`, Array.from(slicesLoaded));
-          } else {
-            console.log(`loadSlices: Slices already loaded for "${sliceKey}", keeping current activeView=${activeView}`);
-          }
+          const middleSlice = Math.floor(detectedMax / 2);
+          console.log(`loadSlices: Setting activeView to middle slice ${middleSlice} (detectedMax=${detectedMax})`);
+          setActiveView(middleSlice); // Start at middle slice
         } catch (error) {
           console.error('Failed to load slices:', error);
           // Set default values on error
           setMaxSlice(9); // Default to 10 slices (0-9)
-          trackedSetActiveView(5);
+          setActiveView(5);
         } finally {
           setLoading(false);
         }
@@ -2545,37 +1916,19 @@
       
       const getSliceUrls = (sliceIndex) => {
         if (!selectedJobId) return { anatomical: '', overlay: '' };
-
-        console.log(`🔍 getSliceUrls called for slice ${sliceIndex}, orientation: ${orientation}`);
-        console.log(`📊 jobVisualizations state:`, jobVisualizations);
-        console.log(`🔍 Checking jobVisualizations.overlays[${orientation}]:`, jobVisualizations && jobVisualizations.overlays ? jobVisualizations.overlays[orientation] : 'jobVisualizations.overlays is null/undefined');
-
-        // Use actual visualization URLs from job data if available - construct dynamic URLs
-        if (jobVisualizations && jobVisualizations.overlays && jobVisualizations.overlays[orientation]) {
-          const ts = Date.now() + Math.random(); // Cache busting
-          const sliceId = `slice_${String(sliceIndex).padStart(2, '0')}`;
-          const basePath = `/outputs/${selectedJobId}/visualizations/overlays/${orientation}`;
-          const urls = {
-            anatomical: `${basePath}/anatomical_${sliceId}.png?v=${ts}`,
-            overlay: `${basePath}/hippocampus_overlay_${sliceId}.png?v=${ts}`
-          };
-          console.log(`✅ USING REAL VISUALIZATION URLS for slice ${sliceIndex} (${orientation}):`, urls);
-          return urls;
-        }
-
-        // Fallback: construct URL using old format (for compatibility)
-        const sliceId = sliceIndex < 100
+        
+        // Generate URL based on slice index and orientation
+        // Format: slice_00, slice_01, ..., slice_99, slice_100, etc.
+        const sliceId = sliceIndex < 100 
           ? `slice_${String(sliceIndex).padStart(2, '0')}`
           : `slice_${sliceIndex}`;
-        const ts = Date.now() + Math.random();
-
-        const urls = {
-          anatomical: `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=anatomical&v=${ts}`,
-          overlay: `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=overlay&v=${ts}`
+        // Add cache-busting query to avoid stale cached PNGs
+        const ts = Date.now();
+        
+        return {
+          anatomical: `${CONFIG.api.baseUrl}/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=anatomical&v=${ts}`,
+          overlay: `${CONFIG.api.baseUrl}/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=overlay&v=${ts}`
         };
-
-        console.log(`🔄 FALLBACK URLS for slice ${sliceIndex} (${orientation}):`, urls);
-        return urls;
       };
 
       // Show all available slices (0..maxSlice) for buttons and overview
@@ -2638,23 +1991,14 @@
                         ))}
                       </select>
                       
-                      <div className="relative">
-                        <select
-                          id="orientation-select"
-                          value={orientation}
-                          onChange={(e) => setOrientation(e.target.value)}
-                          className="rounded-lg px-4 py-2 text-sm font-semibold bg-blue-50 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 appearance-none"
-                          style={{
-                            color: '#003d7a',
-                            borderColor: '#003d7a',
-                            border: '1px solid #003d7a',
-                            backgroundColor: '#f8fafc'
-                          }}
-                        >
-                        <option value="axial">Axial (Horizontal View)</option>
+                      <select
+                        value={orientation}
+                        onChange={(e) => setOrientation(e.target.value)}
+                        className="border border-blue-300 rounded-lg px-4 py-2 text-sm font-semibold text-blue-800 bg-blue-50"
+                      >
                         <option value="coronal">Coronal (Front View)</option>
+                        <option value="axial">Axial (View from Below)</option>
                       </select>
-                      </div>
                     </>
                   )}
                 </div>
@@ -2666,15 +2010,14 @@
                   <button
                     key={slice}
                     onClick={() => {
-                      console.log(`SLICE BUTTON CLICKED: current activeView=${activeView}, setting to ${slice}`);
-                      console.log(`Stack trace:`, new Error().stack);
-                      trackedSetActiveView(slice);
+                      console.log(`Button clicked: current activeView=${activeView}, setting to ${slice}`);
+                      setActiveView(slice);
                     }}
                     className={`px-4 py-2 rounded-lg font-medium transition whitespace-nowrap ${
                       activeView === slice ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                     }`}
                   >
-                    {getDisplayOrientation(orientation)} {slice}
+                    {orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}
                   </button>
                 ))}
                 </div>
@@ -2705,8 +2048,7 @@
                       <ZoomIn className="w-5 h-5" />
                     </button>
                   </div>
-
-
+                  
                   <div className="flex items-center gap-3 bg-white border border-blue-200 rounded-lg px-4 py-2">
                     <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
                       Overlay Opacity:
@@ -2724,38 +2066,6 @@
                       {Math.round(overlayOpacity * 100)}%
                     </span>
                   </div>
-
-                  {/* Rotation Controls */}
-                  <div className="flex items-center gap-3">
-                    <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                      Rotation:
-                    </label>
-                    <button
-                      onClick={handleRotateCounterClockwise}
-                      className="p-2 hover:bg-blue-100 rounded-md transition text-blue-800"
-                      title="Rotate Counter-Clockwise (-90°)"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={handleRotateReset}
-                      className="px-3 py-2 hover:bg-blue-100 rounded-md transition text-sm font-semibold text-blue-900 min-w-[60px]"
-                      title="Reset Rotation (0°)"
-                    >
-                      {rotation}°
-                    </button>
-                    <button
-                      onClick={handleRotateClockwise}
-                      className="p-2 hover:bg-blue-100 rounded-md transition text-blue-800"
-                      title="Rotate Clockwise (+90°)"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
                 </div>
               </div>
 
@@ -2772,7 +2082,7 @@
                     <div 
                       className="relative max-w-none"
                       style={{
-                        transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}${rotation !== 0 ? ` rotate(${rotation}deg)` : ''}`,
+                        transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}`,
                         transformOrigin: 'center center',
                         transition: 'transform 0.2s ease-out',
                         cursor: zoomLevel > 1 ? 'move' : 'default'
@@ -2780,10 +2090,8 @@
                     >
                       {/* Base layer: Anatomical T1 (grayscale) */}
                       <img
-                        key={`anatomical-${selectedJobId}-${orientation}-${activeView}`}
                         src={getSliceUrls(activeView).anatomical}
-                        alt={`${getDisplayOrientation(orientation)} Slice ${activeView} - Anatomical`}
-                        onLoad={() => console.log(`ANATOMICAL IMAGE LOADED: ${getSliceUrls(activeView).anatomical}`)}
+                        alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${activeView} - Anatomical`}
                         className="block"
                         style={{
                           display: 'block',
@@ -2791,17 +2099,14 @@
                           height: 'auto'
                         }}
                         onError={(e) => {
-                          console.error(`ANATOMICAL IMAGE LOAD ERROR: ${e.target.src}`);
                           // Fallback to placeholder if image fails to load
                           setImageLoadError(true);
                         }}
                       />
                       {/* Overlay layer: Hippocampus segmentation (colored, transparent PNG) */}
                       <img
-                        key={`overlay-${selectedJobId}-${orientation}-${activeView}`}
                         src={getSliceUrls(activeView).overlay}
-                        alt={`${getDisplayOrientation(orientation)} Slice ${activeView} - Overlay`}
-                        onLoad={() => console.log(`OVERLAY IMAGE LOADED: ${getSliceUrls(activeView).overlay}`)}
+                        alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${activeView} - Overlay`}
                         className="block absolute top-0 left-0"
                         style={{
                           opacity: overlayOpacity,
@@ -2811,7 +2116,6 @@
                           height: '100%'
                         }}
                         onError={(e) => {
-                          console.error(`OVERLAY IMAGE LOAD ERROR: ${e.target.src}`);
                           // Just hide overlay if it fails, anatomical will still show
                           e.target.style.display = 'none';
                         }}
@@ -2824,21 +2128,18 @@
                   <div className="absolute inset-0 flex items-center justify-center bg-black pointer-events-none">
                     <div className="text-center text-white">
                       <AlertCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-gray-300">{getDisplayOrientation(orientation)} Slice {activeView} not available</p>
+                      <p className="text-gray-300">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice {activeView} not available</p>
                     </div>
                   </div>
                 )}
 
                 <div className="absolute top-6 right-6 bg-black/80 px-4 py-3 rounded-lg">
-                  <span className="text-white text-sm font-semibold">{getDisplayOrientation(orientation)} Slice: {activeView} / {maxSlice}</span>
+                  <span className="text-white text-sm font-semibold">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice: {activeView} / {maxSlice}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-4 mb-6">
-                <button onClick={() => {
-                  console.log(`PREV BUTTON: current activeView=${activeView}, setting to ${Math.max(0, activeView - 1)}`);
-                  trackedSetActiveView(Math.max(0, activeView - 1));
-                }} className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                <button onClick={() => setActiveView(Math.max(0, activeView - 1))} className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
                   <ChevronLeft className="w-5 h-5" />
                 </button>
                 <div className="flex-1">
@@ -2850,43 +2151,39 @@
                     onChange={(e) => {
                       const newValue = parseInt(e.target.value);
                       console.log(`Range slider: current activeView=${activeView}, setting to ${newValue}`);
-                        trackedSetActiveView(newValue);
+                      setActiveView(newValue);
                     }}
-                    className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
+                    className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
                 </div>
-                <button onClick={() => {
-                  console.log(`NEXT BUTTON: current activeView=${activeView}, setting to ${Math.min(maxSlice, activeView + 1)}`);
-                  trackedSetActiveView(Math.min(maxSlice, activeView + 1));
-                }} className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                <button onClick={() => setActiveView(Math.min(maxSlice, activeView + 1))} className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
 
-
               <div className="border-t border-blue-100 pt-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Multi-Slice Overview (All 10 {getDisplayOrientation(orientation)} Slices)</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Multi-Slice Overview (All 10 {orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slices)</h3>
                 <div className="grid grid-cols-5 gap-3">
                   {previewSlices.map((slice, idx) => {
                     const sliceUrls = getSliceUrls(slice);
                     return (
                     <div 
                       key={slice} 
-                      onClick={() => trackedSetActiveView(slice)}
+                      onClick={() => {
+                      console.log(`Button clicked: current activeView=${activeView}, setting to ${slice}`);
+                      setActiveView(slice);
+                    }}
                       className={`relative bg-black rounded-lg overflow-hidden cursor-pointer transition transform hover:scale-105 ${
-                        activeView === slice ? 'ring-4 ring-blue-600 shadow-xl' : 'hover:ring-2 hover:ring-blue-300'
+                        activeView === slice ? 'ring-4 ring-blue-500 shadow-xl' : 'hover:ring-2 hover:ring-blue-300'
                       }`}
                     >
                         <div className="w-24 h-24 flex items-center justify-center overflow-hidden relative">
                           {/* Base anatomical layer */}
                           <img
                             src={sliceUrls.anatomical}
-                            alt={`${getDisplayOrientation(orientation)} Slice ${slice} - Anatomical`}
+                            alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Anatomical`}
                             className="w-full h-full object-cover"
-                            style={{
-                              ...FLIP_VERTICAL && { transform: 'scaleY(-1)' },
-                              ...(rotation !== 0) && { transform: `${FLIP_VERTICAL ? 'scaleY(-1)' : ''}${rotation !== 0 ? ` rotate(${rotation}deg)` : ''}` }
-                            }}
+                            style={FLIP_VERTICAL ? { transform: 'scaleY(-1)' } : {}}
                             onError={(e) => {
                               e.target.style.display = 'none';
                             }}
@@ -2894,23 +2191,23 @@
                           {/* Overlay layer with opacity */}
                           <img
                             src={sliceUrls.overlay}
-                            alt={`${getDisplayOrientation(orientation)} Slice ${slice} - Overlay`}
+                            alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Overlay`}
                             className="absolute top-0 left-0 w-full h-full object-cover"
                             style={{
                               opacity: overlayOpacity,
                               pointerEvents: 'none',
-                              transform: `${FLIP_VERTICAL ? 'scaleY(-1)' : ''}${rotation !== 0 ? ` rotate(${rotation}deg)` : ''}`.trim() || 'none'
+                              transform: FLIP_VERTICAL ? 'scaleY(-1)' : 'none'
                             }}
                             onError={(e) => {
                               e.target.style.display = 'none';
                             }}
                           />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/50" style={{ display: 'none' }}>
-                            <p className="text-white text-xs">{getDisplayOrientation(orientation)} {slice}</p>
+                            <p className="text-white text-xs">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}</p>
                           </div>
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-2">
-                        <p className="text-white text-xs font-semibold text-center">{getDisplayOrientation(orientation)} {slice}</p>
+                        <p className="text-white text-xs font-semibold text-center">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}</p>
                       </div>
                     </div>
                     );
@@ -2992,7 +2289,7 @@
                   }}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition"
                 >
-                  Refresh Page
+                  Refresh
                 </button>
               </div>
             </div>
@@ -3133,22 +2430,6 @@
     // MODULE: Main App
     // ============================================================================
     /**
-     * Footer Component - Displays copyright information
-     * @returns {React.ReactElement}
-     */
-    function Footer() {
-      return (
-        <footer className="bg-gray-50 border-t border-gray-200 mt-12">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <p className="text-center text-sm text-gray-600">
-              © 2025 University of Rochester. All rights reserved.
-            </p>
-          </div>
-        </footer>
-      );
-    }
-
-    /**
      * Main App Component - Root component of the application
      * Manages page routing and global state
      * @returns {React.ReactElement}
@@ -3156,43 +2437,14 @@
     function NeuroInsightApp() {
       const [activePage, setActivePage] = useState('home');
       const [selectedJobId, setSelectedJobId] = useState(null);
-      const [jobs, setJobs] = useState([]);
-      const [jobsLoading, setJobsLoading] = useState(true);
-
-      // Load jobs globally for the app
-      useEffect(() => {
-        loadJobs();
-
-        // Auto-refresh jobs every 15 seconds
-        const interval = setInterval(() => {
-          loadJobs();
-        }, 15000);
-
-        return () => clearInterval(interval);
-      }, []);
-
-      const loadJobs = async () => {
-        try {
-          const response = await fetch('/api/jobs/');
-          const data = await response.json();
-          setJobs(data.jobs || []);
-          setJobsLoading(false);
-        } catch (error) {
-          console.error('Failed to load jobs:', error);
-          setJobsLoading(false);
-        }
-      };
 
       return (
-        <div className="min-h-screen flex flex-col">
+        <div>
           <Navigation activePage={activePage} setActivePage={setActivePage} />
-          <div className="flex-grow">
           {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
           {activePage === 'jobs' && <JobsPage setActivePage={setActivePage} setSelectedJobId={setSelectedJobId} />}
           {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
-          {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} jobs={jobs} />}
-          </div>
-          <Footer />
+          {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
         </div>
       );
     }
@@ -3242,5 +2494,3 @@
   </script>
 </body>
 </html>
-<!-- CACHE BUST v20251217170000 -->
-<!-- FORCE RELOAD TEST - Wed Dec 17 17:26:41 EST 2025 -->

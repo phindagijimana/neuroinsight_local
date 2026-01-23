@@ -32,6 +32,14 @@ else
                 exec python3 start.py
             fi
             ;;
+        dev-start)
+            echo "Starting NeuroInsight (dev backend)..."
+            if [ -f "venv/bin/activate" ]; then
+                exec venv/bin/python start_dev.py
+            else
+                exec python3 start_dev.py
+            fi
+            ;;
         stop)
             echo "Stopping NeuroInsight..."
             # Check if virtual environment exists
@@ -41,9 +49,21 @@ else
                 exec python3 stop.py "${@:2}"
             fi
             ;;
+        dev-stop)
+            echo "Stopping NeuroInsight (dev backend)..."
+            if [ -f "venv/bin/activate" ]; then
+                exec venv/bin/python stop_dev.py "${@:2}"
+            else
+                exec python3 stop_dev.py "${@:2}"
+            fi
+            ;;
         status)
             echo "NeuroInsight Status..."
             exec ./status.sh
+            ;;
+        dev-status)
+            echo "NeuroInsight Dev Status..."
+            exec ./status_dev.sh
             ;;
         monitor)
             echo "NeuroInsight Monitoring..."

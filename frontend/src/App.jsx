@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { apiService } from './utils/api.js'
+import { CONFIG } from './utils/config.ts'
 import Navigation from './components/Navigation.jsx'
 import HomePage from './pages/HomePage.jsx'
 import JobsPage from './pages/JobsPage.jsx'
@@ -19,10 +20,10 @@ function App() {
     // Load jobs initially
     loadJobs()
 
-    // Simple polling every 15 seconds
+    // Polling based on configuration
     const interval = setInterval(() => {
       loadJobs()
-    }, 15000)
+    }, CONFIG.POLLING_INTERVAL)
 
     return () => clearInterval(interval)
   }, [])
@@ -71,6 +72,19 @@ function App() {
           jobs={jobs}
         />
       )}
+
+      {/* Debug: Log jobs when viewer is active */}
+      {activePage === 'viewer' && console.log('App: Rendering ViewerPage with jobs:', jobs, 'length:', jobs.length)}
+
+      {/* Auto-select first completed job when viewer is activated */}
+      {activePage === 'viewer' && !selectedJobId && jobs.length > 0 && (() => {
+        const completedJob = jobs.find(job => job.status === 'completed');
+        if (completedJob) {
+          console.log('Auto-selecting first completed job for viewer:', completedJob.id);
+          setSelectedJobId(completedJob.id);
+        }
+        return null;
+      })()}
     </div>
   )
 }

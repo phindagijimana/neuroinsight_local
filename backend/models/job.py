@@ -151,6 +151,12 @@ class Job(Base):
         nullable=True,
         doc="Path to processing output directory"
     )
+
+    visualizations = Column(
+        Text,
+        nullable=True,
+        doc="JSON string containing paths to generated visualizations"
+    )
     
     # Progress tracking
     progress = Column(

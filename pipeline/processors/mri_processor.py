@@ -180,20 +180,21 @@ class MRIProcessor:
             progress: Progress percentage (0-100)
             step: Current processing step description
         """
-        # Cap progress at 100%
-        self._current_progress = min(progress, 100)
+        # Cap progress at 100% for storage and callbacks
+        capped_progress = min(progress, 100)
+        self._current_progress = capped_progress
 
         # Update database if we're in a worker context (has db_session)
         if hasattr(self, 'db_session') and self.db_session:
             try:
                 from workers.tasks.processing_web import update_job_progress
-                update_job_progress(self.db_session, self.job_id, progress, step)
+                update_job_progress(self.db_session, self.job_id, capped_progress, step)
             except Exception as e:
                 logger.warning("failed_to_update_job_progress_in_db", error=str(e), progress=progress, step=step)
 
         # Notify callback if available (for Celery task state)
         if self.progress_callback:
-            self.progress_callback(progress, step)
+            self.progress_callback(capped_progress, step)
 
     def _store_container_id(self, container_id: str):
         """
@@ -244,6 +245,23 @@ class MRIProcessor:
                            job_id=str(self.job_id),
                            container_name=container_name,
                            stderr=result.stderr.decode() if result.stderr else "")
+
+            # Ensure the container is removed to avoid name conflicts
+            try:
+                rm_result = subprocess_module.run(
+                    ["docker", "rm", "-f", container_name],
+                    capture_output=True,
+                    timeout=30
+                )
+                if rm_result.returncode == 0:
+                    logger.info("removed_job_container", job_id=str(self.job_id), container_name=container_name)
+                else:
+                    logger.debug("container_remove_failed_or_not_found",
+                               job_id=str(self.job_id),
+                               container_name=container_name,
+                               stderr=rm_result.stderr.decode() if rm_result.stderr else "")
+            except Exception as rm_error:
+                logger.warning("container_remove_exception", job_id=str(self.job_id), error=str(rm_error))
 
         except subprocess_module.TimeoutExpired:
             logger.warning("container_stop_timeout", job_id=str(self.job_id), container_name=container_name)
@@ -1785,6 +1803,16 @@ class MRIProcessor:
                           path=str(subject_output_dir),
                           message="Removing existing subject directory to allow recon-all -i to run")
             import shutil
+            # Make best-effort permission fixes before deletion (root-owned outputs)
+            try:
+                subprocess_module.run(
+                    ["chmod", "-R", "777", str(subject_output_dir)],
+                    capture_output=True,
+                    timeout=30
+                )
+            except Exception as chmod_error:
+                logger.warning("failed_to_chmod_subject_dir", path=str(subject_output_dir), error=str(chmod_error))
+
             shutil.rmtree(subject_output_dir)
 
         # Convert all paths to absolute paths (required for container mounts)
@@ -1951,16 +1979,31 @@ class MRIProcessor:
     def _run_freesurfer_docker(self, nifti_path: Path, output_dir: Path, license_path: Path) -> Path:
         print("DEBUG: ENTERING _run_freesurfer_docker method")
 
-        # Check Docker availability before proceeding
+        # Docker availability is already checked by the caller; avoid false negatives here.
         if not self._check_docker_available():
-            raise RuntimeError(
-                "Docker is not available. FreeSurfer processing requires Docker. "
-                "Please ensure Docker is installed and running: 'sudo systemctl start docker'"
+            logger.warning(
+                "docker_check_failed_in_run_freesurfer",
+                job_id=str(self.job_id),
+                message="Docker check failed inside runner; attempting to proceed with docker run."
             )
 
         subject_id = f"freesurfer_docker_{self.job_id}"
         freesurfer_dir = output_dir / "freesurfer_docker"
         freesurfer_dir.mkdir(exist_ok=True)
+        abs_freesurfer_dir = freesurfer_dir.resolve()
+
+        # Avoid permission issues from previous runs by using a unique subject id if needed
+        subject_output_dir = freesurfer_dir / subject_id
+        if subject_output_dir.exists():
+            import time
+            unique_suffix = int(time.time())
+            subject_id = f"{subject_id}_{unique_suffix}"
+            subject_output_dir = freesurfer_dir / subject_id
+            logger.warning(
+                "freesurfer_subject_dir_exists_using_unique_subject",
+                previous_path=str(freesurfer_dir / f"freesurfer_docker_{self.job_id}"),
+                new_subject_id=subject_id
+            )
 
         # Ensure FreeSurfer container is available (lazy download)
         self._ensure_container_image(
@@ -1976,19 +2019,9 @@ class MRIProcessor:
                 f"Processing with FreeSurfer (Docker) ({subject_id})..."
             )
 
-        # IMPORTANT: Clean up any existing subject directory to prevent "re-run existing subject" error
-        subject_output_dir = freesurfer_dir / subject_id
-        if subject_output_dir.exists():
-            logger.warning("freesurfer_subject_dir_exists",
-                          path=str(subject_output_dir),
-                          message="Removing existing subject directory to allow recon-all -i to run")
-            import shutil
-            shutil.rmtree(subject_output_dir)
-
         # Execute with timeout
         try:
             # Convert all paths to absolute paths (Docker requires absolute paths for volume mounts)
-            abs_freesurfer_dir = freesurfer_dir.resolve()
             abs_input_dir = nifti_path.parent.resolve()
             abs_license_path = license_path.resolve()
             
@@ -2020,6 +2053,16 @@ class MRIProcessor:
             print(f"DEBUG: Input dir: {abs_input_dir}")
             print(f"DEBUG: Output dir: {abs_freesurfer_dir}")
 
+            # Provide a minimal hostname script to avoid missing binary/glibc mismatches
+            import tempfile
+            hostname_script_path = Path(tempfile.gettempdir()) / "ni-hostname"
+            try:
+                hostname_script_path.write_text("#!/bin/sh\n\necho \"${HOSTNAME:-localhost}\"\n")
+                hostname_script_path.chmod(0o755)
+            except Exception as script_error:
+                logger.warning("failed_to_prepare_hostname_script", path=str(hostname_script_path), error=str(script_error))
+            hostname_mount = ["-v", f"{hostname_script_path}:/usr/bin/hostname:ro"]
+
             # Use traditional FreeSurfer recon-all command format
             docker_cmd = [
                 "docker", "run", "--rm", "--user", "root",  # Run as root to avoid nonroot user issues
@@ -2028,6 +2071,7 @@ class MRIProcessor:
                 "-v", f"{abs_freesurfer_dir}:/subjects",
                 "-v", f"{abs_input_dir}:/input:ro",
                 "-v", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
+                *hostname_mount,
                 "-e", "FS_LICENSE=/usr/local/freesurfer/license.txt",
                 "-e", "SUBJECTS_DIR=/subjects",
                 "-e", "PATH=/usr/bin:/usr/local/bin:$PATH",
@@ -2038,7 +2082,7 @@ class MRIProcessor:
                 "-e", "FS_THREADED=1",  # Enable FreeSurfer threading
                 FREESURFER_CONTAINER_IMAGE,
                 "/bin/bash", "-c",
-                f" source /usr/local/freesurfer/FreeSurferEnv.sh && recon-all -i /input/{nifti_path.name} -s {subject_id} -autorecon1 -autorecon2-volonly",
+                f"source /usr/local/freesurfer/FreeSurferEnv.sh && recon-all -i /input/{nifti_path.name} -s {subject_id} -autorecon1 -autorecon2-volonly",
             ]
 
             print(f"DEBUG: Full Docker command: {' '.join(docker_cmd)}")
@@ -2160,6 +2204,7 @@ class MRIProcessor:
                     "docker", "run", "--rm",  # Removed user mapping - FreeSurfer needs to run as root
                     "-v", f"{abs_freesurfer_dir}:/subjects",
                     "-v", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
+                    *hostname_mount,
                     "-e", "FS_LICENSE=/usr/local/freesurfer/license.txt",
                     "-e", "SUBJECTS_DIR=/subjects",
                 FREESURFER_CONTAINER_IMAGE,
@@ -2605,7 +2650,9 @@ class MRIProcessor:
                     logger.error("freesurfer_docker_processing_error", error=str(docker_error))
                     raise
             except Exception as docker_error:
-                logger.warning("freesurfer_docker_failed_falling_back", error=str(docker_error))
+                # Treat any other Docker exception as a processing error, not a runtime absence
+                logger.error("freesurfer_docker_processing_error", error=str(docker_error))
+                raise
 
         # If Docker failed or was unavailable, try fallback options
         if not docker_available:
@@ -4260,23 +4307,36 @@ class MRIProcessor:
             last_line_count = 0
             current_phase = None
 
-            # Fixed percentage allocation based on phase complexity/duration
-            # Total: 100% distributed across FreeSurfer autorecon1 + autorecon2-volonly phases
-            phase_info = {
-                "motioncor": {"completion_percent": min(base_progress + 8, 100), "estimated_duration": 60},         # Basic correction: 8%
-                "nu intensity correction": {"completion_percent": min(base_progress + 18, 100), "estimated_duration": 180}, # N4 bias correction: 10%
-                "talairach": {"completion_percent": min(base_progress + 45, 100), "estimated_duration": 240},       # Registration (longest): 27%
-                "intensity normalization": {"completion_percent": min(base_progress + 55, 100), "estimated_duration": 120}, # Normalization: 10%
-                "skull stripping": {"completion_percent": min(base_progress + 70, 100), "estimated_duration": 90},   # EM + watershed: 15%
-                "em registration": {"completion_percent": min(base_progress + 80, 100), "estimated_duration": 180},  # CA registration: 10%
-                "ca normalize": {"completion_percent": min(base_progress + 85, 100), "estimated_duration": 120},    # CA normalize: 5%
-                "ca reg": {"completion_percent": min(base_progress + 88, 100), "estimated_duration": 90},           # CA reg: 3%
-                "subcort seg": {"completion_percent": min(base_progress + 92, 100), "estimated_duration": 60},      # Subcortical: 4%
-                "wm segmentation": {"completion_percent": min(base_progress + 95, 100), "estimated_duration": 60},  # WM seg: 3%
-                "fill": {"completion_percent": min(base_progress + 97, 100), "estimated_duration": 45},             # Filling: 2%
-                "cc seg": {"completion_percent": min(base_progress + 99, 100), "estimated_duration": 30},           # CC seg: 2%
-                "cortical parcellation": {"completion_percent": min(base_progress + 100, 100), "estimated_duration": 60}, # Parcellation: 1%
+            # Fixed percentage allocation based on phase complexity/duration.
+            # Weights are mapped into the remaining range [base_progress, 100]
+            # so percentages never exceed 100 even when base_progress > 0.
+            phase_weights = {
+                "motioncor": 5,                 # Motion correction
+                "nu intensity correction": 15,  # N4 bias correction (long)
+                "talairach": 25,                # Atlas registration (long)
+                "intensity normalization": 10,  # Intensity normalization
+                "skull stripping": 12,          # Brain extraction
+                "em registration": 12,          # EM registration (long)
+                "ca normalize": 6,              # CA normalize
+                "ca reg": 5,                    # CA registration
+                "subcort seg": 5,               # Subcortical segmentation
+                "wm segmentation": 3,           # WM segmentation
+                "fill": 1,                      # Surface filling
+                "cc seg": 1,                    # Corpus callosum
+                "cortical parcellation": 0,     # Not usually reached in volonly
             }
+
+            total_weight = sum(phase_weights.values()) or 1
+            remaining_range = max(0, 100 - base_progress)
+            cumulative = 0
+            phase_info = {}
+            for phase, weight in phase_weights.items():
+                cumulative += weight
+                completion = base_progress + int((remaining_range * cumulative) / total_weight)
+                phase_info[phase] = {
+                    "completion_percent": min(completion, 100),
+                    "estimated_duration": 0
+                }
 
             # Create reverse mapping for progress lookup
             phase_progress_map = {phase: info["completion_percent"] for phase, info in phase_info.items()}

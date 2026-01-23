@@ -96,7 +96,7 @@ if [[ "$HOSTNAME" == *"test"* ]] || [[ "$USER" == *"test"* ]] || [[ "$PWD" == *"
     MIN_DISK_GB=30  # Reduced for testing
     log_info "Testing environment detected - using reduced disk requirement: ${MIN_DISK_GB}GB"
 else
-    MIN_DISK_GB=50  # Standard production requirement
+    MIN_DISK_GB=45  # Standard production requirement
 fi
 
 if (( AVAILABLE_SPACE < MIN_DISK_GB )); then

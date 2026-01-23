@@ -593,17 +593,24 @@ class JobService:
 
                     # Start the job using the appropriate method for the environment
                     try:
-                        if settings.environment in ["development", "desktop"]:
-                            # Use desktop-specific queue processing (development = desktop mode)
+                        # Use desktop processing only in development/desktop environments
+                        # unless Celery is explicitly forced.
+                        if settings.environment in ["development", "desktop"] and not settings.force_celery:
+                            # Use desktop-specific queue processing
                             from workers.tasks.processing_desktop import _start_next_pending_job
                             _start_next_pending_job(db)
+                            logger.info("job_started_desktop_mode",
+                                      job_id=str(pending_job.id),
+                                      environment=settings.environment,
+                                      max_concurrent=settings.max_concurrent_jobs)
                         else:
-                            # Use web/Celery version
+                            # Always use Celery/Redis in production; concurrency is still enforced above.
                             from workers.tasks.processing_web import process_mri_task
                             task = process_mri_task.delay(str(pending_job.id))
-                            logger.info("queued_job_task_submitted",
+                            logger.info("job_started_celery_mode",
                                       job_id=str(pending_job.id),
-                                      celery_task_id=task.id)
+                                      celery_task_id=task.id,
+                                      max_concurrent=settings.max_concurrent_jobs)
                     except Exception as e:
                         logger.error("failed_to_start_queued_job",
                                    job_id=str(pending_job.id),
@@ -648,7 +655,7 @@ class JobService:
             from backend.core.config import Settings
             settings = Settings()
 
-            if settings.environment in ["development", "desktop"]:
+            if settings.environment in ["development", "desktop"] and not settings.force_celery:
                 # Use desktop-specific queue processing
                 from workers.tasks.processing_desktop import _start_next_pending_job
                 _start_next_pending_job(db)

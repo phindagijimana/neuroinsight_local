@@ -52,6 +52,15 @@ def list_jobs(
     # Convert Job objects to dictionaries for simple response
     result = []
     for job in jobs:
+        # Parse visualizations JSON if present
+        visualizations = None
+        if job.visualizations:
+            try:
+                import json
+                visualizations = json.loads(job.visualizations)
+            except:
+                visualizations = None
+
         job_dict = {
             "id": str(job.id),
             "filename": job.filename,
@@ -71,6 +80,7 @@ def list_jobs(
             "scanner_info": job.scanner_info,
             "sequence_info": job.sequence_info,
             "notes": job.notes,
+            "visualizations": visualizations,
         }
         result.append(job_dict)
 
@@ -153,6 +163,9 @@ def get_job(
         logger.warning("job_not_found_by_path", job_id=job_id)
         raise HTTPException(status_code=404, detail=f"Job with ID '{job_id}' not found")
 
+    # Get visualizations (already parsed by JobService)
+    visualizations = getattr(job_response, 'visualizations', None)
+
     # Convert to dictionary response
     return {
         "id": str(job_response.id),
@@ -173,7 +186,8 @@ def get_job(
         "scanner_info": job_response.scanner_info,
         "sequence_info": job_response.sequence_info,
         "notes": job_response.notes,
-        "metrics": [metric.dict() for metric in job_response.metrics]
+        "metrics": [metric.dict() for metric in job_response.metrics],
+        "visualizations": visualizations
     }
 
 

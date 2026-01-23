@@ -16,9 +16,11 @@ from fastapi import FastAPI, APIRouter, Request, HTTPException, Query, Depends, 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from backend.api import cleanup_router, jobs_router, metrics_router, placeholder_router, reports_router, upload_router, visualizations_router
+from pathlib import Path
 from backend.core import get_settings, init_db, setup_logging
 from backend.core.logging import get_logger
 from backend.core.database import get_db
@@ -109,6 +111,15 @@ async def lifespan(app: FastAPI):
         logger.info("static_files_enabled_with_caching", path=str(static_dir))
 
     # Mount static files for web frontend from dist directory
+    # Mount outputs directory FIRST (before frontend to take precedence)
+    outputs_dir = Path.home() / ".local" / "share" / "neuroinsight" / "outputs"
+    if outputs_dir.exists():
+        app.mount("/outputs", StaticFiles(directory=str(outputs_dir)), name="outputs")
+        logger.info("outputs_static_files_enabled", path=str(outputs_dir))
+    else:
+        logger.warning("outputs_directory_not_found", path=str(outputs_dir))
+
+    # Mount frontend static files (after outputs so /outputs takes precedence)
     frontend_dir = Path(__file__).parent.parent / "frontend" / "dist"
     if frontend_dir.exists():
         index_file = frontend_dir / "index.html"
@@ -217,13 +228,27 @@ async def serve_static_with_cache(path: str):
     logger.info("static_file_served_with_cache", path=path, cache_control=response.headers.get("Cache-Control"))
     return response
 
-# Add caching headers for HTML responses
+# Add cache-control headers for HTML and API responses
 @app.middleware("http")
-async def add_html_cache_headers(request, call_next):
+async def add_cache_headers(request, call_next):
     response = await call_next(request)
-    if request.url.path == "/" and hasattr(response, 'headers'):
-        # HTML: cache for 1 hour to allow updates
-        response.headers["Cache-Control"] = "public, max-age=3600"
+    if not hasattr(response, "headers"):
+        return response
+
+    path = request.url.path
+
+    # Never cache API responses so progress updates are always fresh.
+    if path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        return response
+
+    # For the root HTML, prefer no-store unless explicitly set elsewhere.
+    if path == "/" and "Cache-Control" not in response.headers:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
     return response
 
 
@@ -268,7 +293,22 @@ async def root():
             }
         )
     else:
-        return {"error": "Frontend not found", "path": str(frontend_path)}
+        # Fallback to inline JSX version
+        inline_frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
+        if inline_frontend_path.exists():
+            with open(inline_frontend_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            return HTMLResponse(
+                content=content,
+                status_code=200,
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
+            )
+        else:
+            return {"error": "Frontend not found", "path": str(frontend_path)}
 
 
 # Exception handlers
@@ -295,6 +335,24 @@ async def global_exception_handler(request, exc):
         },
     )
 
+
+# Direct endpoint for serving visualization files
+@app.get("/outputs/{job_id}/{file_path:path}")
+async def serve_visualization(job_id: str, file_path: str):
+    """Serve visualization files directly."""
+    outputs_dir = Path.home() / ".local" / "share" / "neuroinsight" / "outputs"
+    file_path_obj = (outputs_dir / job_id / file_path).resolve()
+
+    # Security check: ensure the file is within the outputs directory
+    try:
+        file_path_obj.relative_to(outputs_dir)
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if not file_path_obj.exists() or not file_path_obj.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(file_path_obj)
 
 # Include routers
 app.include_router(upload_router, prefix="/api")
@@ -346,6 +404,7 @@ async def get_system_status(db: Session = Depends(get_db)):
             "status": "healthy",
             "timestamp": time.time(),
             "version": settings.app_version,
+            "environment": settings.environment,
             "services": services,
             "jobs": {
                 "total": total_jobs,

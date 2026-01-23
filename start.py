@@ -83,7 +83,12 @@ def check_port_available(port):
         return result != 0  # True if available
 
 def find_available_port(start_port=8000, end_port=8050):
-    """Find an available port in the range"""
+    """Find an available port in the range, preferring port 8000"""
+    # First, try port 8000 specifically
+    if check_port_available(8000):
+        return 8000
+
+    # If 8000 is not available, find any available port in range
     for port in range(start_port, end_port + 1):
         if check_port_available(port):
             return port
@@ -175,6 +180,8 @@ def start_backend(port):
         env['PYTHONPATH'] = str(Path.cwd())
         env['API_PORT'] = str(port)
         env['PORT'] = str(port)
+        env['ENVIRONMENT'] = 'production'
+        env['MAX_CONCURRENT_JOBS'] = '1'
         # Force PostgreSQL usage for production
         env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
 

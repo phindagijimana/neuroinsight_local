@@ -101,6 +101,7 @@ class Settings(BaseSettings):
 
     # Task Queue Configuration (Redis/Celery)
     redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
+    force_celery: bool = Field(default=False, env="FORCE_CELERY")
 
     # Processing Configuration
     fastsurfer_container: str = Field(

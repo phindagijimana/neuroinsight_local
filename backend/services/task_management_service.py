@@ -249,42 +249,65 @@ class TaskManagementService:
 
             failed_jobs = []
             for job in running_jobs:
-                # Check if the job has a docker container ID
-                if job.docker_container_id:
+                # Determine expected container name (stored or derived)
+                container_name = job.docker_container_id or f"freesurfer-job-{job.id}"
+
+                # Avoid false positives right after job start
+                if job.started_at:
+                    elapsed_seconds = (datetime.utcnow() - job.started_at).total_seconds()
+                    if elapsed_seconds < 120:
+                        continue
+
+                # Check if the container is running
+                if container_name:
                     try:
                         # Check if container is actually running
                         import subprocess
                         result = subprocess.run(
-                            ["docker", "ps", "--filter", f"name={job.docker_container_id}", "--format", "{{.Names}}"],
+                            ["docker", "ps", "--filter", f"name={container_name}", "--format", "{{.Names}}"],
                             capture_output=True, text=True, timeout=10
                         )
 
                         # If container name is not in output, container is not running
-                        if job.docker_container_id not in result.stdout:
+                        if container_name not in result.stdout:
                             logger.warning(
                                 "container_job_mismatch_detected",
                                 job_id=str(job.id),
-                                container_id=job.docker_container_id,
+                                container_id=container_name,
                                 reason="Container not running but job status is RUNNING"
                             )
 
                             # Mark job as failed
-                            error_message = "Processing interrupted - system sleep/shutdown detected. Container stopped but job remained in running state."
+                            error_message = "Processing interrupted - container or task stopped unexpectedly. Job remained in running state."
                             JobService.fail_job(db, job.id, error_message)
+
+                            # Best-effort cleanup of any leftover container
+                            try:
+                                subprocess.run(
+                                    ["docker", "rm", "-f", container_name],
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=10
+                                )
+                            except Exception as cleanup_error:
+                                logger.warning("failed_to_cleanup_stopped_container",
+                                               job_id=str(job.id),
+                                               container_id=container_name,
+                                               error=str(cleanup_error))
 
                             elapsed_minutes = (datetime.utcnow() - job.started_at).total_seconds() / 60 if job.started_at else 0
                             failed_jobs.append({
                                 "job_id": str(job.id),
-                                "container_id": job.docker_container_id,
+                                "container_id": container_name,
                                 "started_at": job.started_at.isoformat() if job.started_at else None,
                                 "elapsed_minutes": elapsed_minutes,
                                 "reason": "container_stopped"
                             })
 
                     except subprocess.TimeoutExpired:
-                        logger.warning("container_check_timeout", job_id=str(job.id), container_id=job.docker_container_id)
+                        logger.warning("container_check_timeout", job_id=str(job.id), container_id=container_name)
                     except Exception as e:
-                        logger.error("container_check_failed", job_id=str(job.id), container_id=job.docker_container_id, error=str(e))
+                        logger.error("container_check_failed", job_id=str(job.id), container_id=container_name, error=str(e))
 
             if failed_jobs:
                 logger.info("container_job_mismatches_resolved", count=len(failed_jobs))

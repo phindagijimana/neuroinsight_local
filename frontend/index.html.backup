@@ -13,7 +13,9 @@
   <script src="/static/js/react.production.min.js"></script>
   <script src="/static/js/react-dom.production.min.js"></script>
   <script src="/static/js/babel.min.js"></script>
-  <script src="/static/js/tailwind.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  
   <!-- Apply custom #003d7a theme overrides after Tailwind loads -->
   <script>
     // Wait for Tailwind to load, then apply our custom overrides
@@ -189,7 +191,7 @@
      */
 
 
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect, useRef, useMemo } = React;
     
     // ============================================================================
     // MODULE: Configuration
@@ -463,7 +465,8 @@
      */
     const toUiJob = (job) => {
       const normalizedStatus = normalizeStatus(job.status);
-      return {
+      // Create a more stable representation by ensuring consistent object shape
+      const uiJob = {
         id: job.id || job.job_id,
         filename: job.filename || job.file_path?.split('/').pop() || 'unknown',
         status: normalizedStatus,
@@ -474,6 +477,11 @@
         currentStep: job.current_step ?? (normalizedStatus === 'processing' ? 'Processing...' : normalizedStatus === 'pending' ? 'Queued for processing' : ''),
         errorMessage: job.error_message || null,
       };
+
+      // Add a computed stable key for React reconciliation
+      uiJob.stableKey = `${uiJob.id}-${uiJob.status}-${uiJob.progress}`;
+
+      return uiJob;
     };
     
     // ============================================================================
@@ -861,6 +869,33 @@
       const [uploadProgress, setUploadProgress] = useState(null);
       const [loading, setLoading] = useState(true);
       const [pollingJobId, setPollingJobId] = useState(null);
+      const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+
+      // Cache for stable job objects to prevent bouncing
+      const jobCache = useRef(new Map());
+
+      // Memoize jobs list with stable object references
+      const stableJobs = useMemo(() => {
+        // Clean up old cache entries periodically (keep last 50)
+        if (jobCache.current.size > 50) {
+          const keys = Array.from(jobCache.current.keys());
+          keys.slice(0, 20).forEach(key => jobCache.current.delete(key));
+        }
+
+        return jobs.map(job => {
+          const cacheKey = `${job.id}-${job.status}-${job.progress}-${job.current_step || ''}-${job.error_message || ''}`;
+
+          if (jobCache.current.has(cacheKey)) {
+            console.log(`🔄 Using cached job: ${job.id}`);
+            return jobCache.current.get(cacheKey);
+          }
+
+          console.log(`🆕 Creating new job object: ${job.id}`);
+          const uiJob = toUiJob(job);
+          jobCache.current.set(cacheKey, uiJob);
+          return uiJob;
+        });
+      }, [jobs]);
       const [patientInfo, setPatientInfo] = useState({
         patient_name: '',
         age: '',
@@ -911,7 +946,7 @@
           errors.file = 'Please select a file to upload';
         } else {
           // Check file extension
-          const allowedExtensions = ['.nii', '.nii.gz', '.zip'];
+          const allowedExtensions = ['.nii', '.nii.gz'];
           const fileName = selectedFile.name.toLowerCase();
           const isValidExt = allowedExtensions.some(ext => fileName.endsWith(ext));
           if (!isValidExt) {
@@ -953,8 +988,10 @@
         console.log('JobsPage mounted, loading jobs...');
         loadJobs();
         const interval = setInterval(() => {
-          loadJobs();
-        }, 10000); // Auto-refresh every 10 seconds
+          // Add small random delay to prevent synchronized polling across multiple clients
+          const delay = Math.random() * 2000; // 0-2 second random delay
+          setTimeout(() => loadJobs(), delay);
+        }, 15000); // Auto-refresh every 15 seconds (reduced frequency to minimize bouncing)
         return () => clearInterval(interval);
       }, []);
       
@@ -968,9 +1005,16 @@
       }, [jobs]);
       
       const loadJobs = async () => {
+        // Prevent concurrent job loads to reduce bouncing
+        if (isLoadingJobs) {
+          console.log('loadJobs: Already loading, skipping...');
+          return;
+        }
+
         try {
           console.log('=== Starting loadJobs ===');
           setLoading(true);
+          setIsLoadingJobs(true);
           console.log('Loading state set to true');
           console.log('API Base URL:', CONFIG.api.baseUrl);
           console.log('Current jobs state:', jobs.length);
@@ -1062,6 +1106,7 @@
         } finally {
           console.log('Setting loading to false...');
           setLoading(false);
+          setIsLoadingJobs(false);
           console.log('=== Loading Complete ===');
         }
       };
@@ -1074,7 +1119,7 @@
           const isValidFormat = validFormats.some(format => fileName.endsWith(format));
 
           if (!isValidFormat) {
-            alert('Invalid file format. Please upload .nii, .nii.gz, or .zip files (ZIP must contain DICOM slices for T1 images).');
+            alert('Invalid file format. Please upload .nii or .nii.gz files only.');
             return;
           }
 
@@ -1299,7 +1344,7 @@
           <div className="max-w-7xl mx-auto px-6 py-8">
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Upload New MRI Scan</h2>
-              <p className="text-gray-600 mb-6">Upload T1-weighted MRI scans in DICOM or NIfTI format</p>
+              <p className="text-gray-600 mb-6">Upload T1-weighted MRI scans in NIfTI format (.nii or .nii.gz)</p>
               
               {/* Patient Information Section */}
               <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-6">
@@ -1466,7 +1511,7 @@
                     </span>
                   </label>
                   <p className="text-xs text-gray-400 mt-4">
-                    Accepted formats: .nii, .nii.gz, .zip (containing DICOM slices) • Max size: 500MB
+                    Accepted formats: .nii, .nii.gz • Max size: 500MB
                   </p>
                   {formErrors.file && (
                     <p className="mt-2 text-sm text-blue-600 bg-blue-50 p-2 rounded border border-blue-200">
@@ -1546,7 +1591,7 @@
                 {/* Job filtering and status info */}
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-500">
-                    Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+                    Showing {stableJobs.length} job{stableJobs.length !== 1 ? 's' : ''}
                     {(stats?.completed > 0) && ` (${stats.completed} completed)`}
                     {pollingJobId ? ` • monitoring ${pollingJobId}` : ''}
                   </div>
@@ -1581,12 +1626,12 @@
               </div>
 
 
-              {loading && jobs.length === 0 ? (
+              {loading && stableJobs.length === 0 ? (
                 <div className="p-12 text-center">
                   <Clock className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
                   <p className="text-gray-600">Loading jobs...</p>
                 </div>
-              ) : jobs.length === 0 ? (
+              ) : stableJobs.length === 0 ? (
                 <div className="p-12 text-center text-gray-500">
                   <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p className="text-lg font-semibold mb-2">No jobs found</p>
@@ -1594,7 +1639,7 @@
                 </div>
               ) : (
               <div className="divide-y divide-blue-100">
-                {jobs.map((job) => (
+                {stableJobs.map((job) => (
                   <div key={job.id} className="p-6 hover:bg-blue-50 transition">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
@@ -1650,12 +1695,14 @@
                                     const isFilenameError = errMsg.includes('filename') && 
                                                            (errMsg.includes('does not contain') || 
                                                             errMsg.includes('rename'));
-                                    const isT1wError = (errMsg.includes('t1') || 
+                                    const isFormatError = errMsg.includes('File format validation failed') ||
+                                                          errMsg.includes('not a valid NIfTI file');
+                                    const isT1wError = (errMsg.includes('t1') ||
                                                        errMsg.includes('t2') ||
                                                        errMsg.includes('flair') ||
                                                        errMsg.includes('dwi') ||
                                                        errMsg.includes('image type') ||
-                                                       errMsg.includes('sequence')) && !isFilenameError;
+                                                       errMsg.includes('sequence')) && !isFilenameError && !isFormatError;
                                     
                                     if (isDockerError) {
                                       return (
@@ -1825,22 +1872,30 @@
                               </button>
                             </>
                           )}
-                          <button
-                            onClick={async () => {
-                              if (confirm('Delete this job?')) {
-                                try {
-                                  await ApiService.deleteJob(job.id);
-                                  setJobs(jobs.filter(j => j.id !== job.id));
-                                } catch (error) {
-                                  console.error('Delete failed:', error);
-                                  alert('Failed to delete job');
-                                }
-                              }
-                            }}
+                          {/* Delete button for all jobs */}
+                          {(() => {
+                            console.log(`Rendering delete button for job ${job.id} with status: ${job.status}`);
+                            return (
+                              <button
+                                onClick={async () => {
+                                  console.log(`Delete button clicked for job ${job.id}`);
+                                  if (confirm(`Delete job ${job.id}? Status: ${job.status}`)) {
+                                    try {
+                                      await ApiService.deleteJob(job.id);
+                                      setJobs(jobs.filter(j => j.id !== job.id));
+                                    } catch (error) {
+                                      console.error('Delete failed:', error);
+                                      alert('Failed to delete job');
+                                    }
+                                  }
+                                }}
                             className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
-                          >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
+                            title={`Delete job (Status: ${job.status})`}
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            );
+                          })()}
                       </div>
                     </div>
                   </div>

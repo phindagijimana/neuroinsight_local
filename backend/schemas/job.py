@@ -7,7 +7,7 @@ job-related API requests and responses.
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field, field_validator, field_serializer
 
 
@@ -266,6 +266,11 @@ class JobResponse(BaseModel):
     metrics: List[MetricSummary] = Field(
         default=[],
         description="Associated hippocampal metrics"
+    )
+
+    visualizations: Optional[Dict] = Field(
+        default=None,
+        description="Paths to generated visualization files"
     )
 
     class Config:

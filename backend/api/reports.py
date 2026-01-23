@@ -298,8 +298,8 @@ async def generate_pdf_report(
         images_data = []
         logger.info(f"Creating anatomical + overlay composites for coronal slices: {coronal_slices}")
 
-        # Paths to existing images
-        base_viz_path = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / job_id / "visualizations" / "overlays" / "coronal"
+        # Paths to existing images - use job's result_path from database
+        base_viz_path = Path(job.result_path) / "visualizations" / "overlays" / "coronal"
 
         for slice_idx in coronal_slices:
             try:

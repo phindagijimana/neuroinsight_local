@@ -1,26 +1,36 @@
 // API configuration
 export const API_BASE_URL = (() => {
-  // Check if running in Electron desktop mode (window.electronAPI is set by preload)
-  if (window.electronAPI && window.electronAPI.getBackendURL) {
-    // We'll fetch this asynchronously, but for now return a placeholder
-    // The actual URL will be fetched when needed
-    return 'http://localhost:8001'; // Placeholder, will be replaced
+  // For development (port 5173), use the proxied backend
+  // For production (port 8000), use the same origin
+  if (window.location.port === '5173') {
+    // Vite dev server proxies /api/* to port 8001 (development backend)
+    return `${window.location.protocol}//${window.location.hostname}:8001`;
+  } else {
+    // Production mode - use same origin
+    return `${window.location.protocol}//${window.location.hostname}:${window.location.port || '8000'}`;
   }
-  
-  // Since frontend is served by FastAPI backend, API is on the same port
-  const apiUrl = `${window.location.protocol}//${window.location.hostname}:${window.location.port || (window.location.protocol === 'https:' ? '443' : '80')}`;
-  
-  // Allow override via query parameter: ?api=http://localhost:8000
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('api')) {
-    return urlParams.get('api');
-  }
-  
-  console.log('Web mode detected, using API URL:', apiUrl);
-  return apiUrl;
 })();
 
 // API service functions
+const normalizeStatus = (status) => {
+  if (!status) return 'queued';
+  const normalized = String(status).toLowerCase();
+  if (normalized === 'running' || normalized === 'processing') return 'processing';
+  if (normalized === 'pending') return 'pending';
+  if (normalized === 'queued') return 'pending';
+  if (normalized === 'completed') return 'completed';
+  if (normalized === 'failed') return 'failed';
+  return 'queued';
+};
+
+const normalizeJob = (job) => {
+  if (!job || typeof job !== 'object') return job;
+  return {
+    ...job,
+    status: normalizeStatus(job.status)
+  };
+};
+
 export const apiService = {
   async getJobs() {
     try {
@@ -37,7 +47,8 @@ export const apiService = {
       console.log('Jobs array:', data.jobs);
       console.log('Number of jobs:', data.jobs?.length || 0);
       // Extract jobs array from the response wrapper
-      return data.jobs || [];
+      const jobs = data.jobs || [];
+      return jobs.map(normalizeJob);
     } catch (error) {
       console.error('Failed to load jobs:', error);
       console.error('Error details:', error.message);
@@ -50,7 +61,8 @@ export const apiService = {
     try {
       const response = await fetch(`${API_BASE_URL}/api/jobs/${jobId}`);
       if (!response.ok) throw new Error('Failed to fetch job');
-      return await response.json();
+      const job = await response.json();
+      return normalizeJob(job);
     } catch (error) {
       console.error('Failed to get job:', error);
       return null;
@@ -100,8 +112,8 @@ export const apiService = {
         reject(new Error('Upload was cancelled'));
       });
 
-      console.log('Uploading to:', `${API_BASE_URL}/upload/`);
-      xhr.open('POST', `${API_BASE_URL}/upload/`);
+      console.log('Uploading to:', `${API_BASE_URL}/api/upload/`);
+      xhr.open('POST', `${API_BASE_URL}/api/upload/`);
       xhr.send(formData);
     });
   },
@@ -129,9 +141,5 @@ export const apiService = {
     }
   }
 };
-
-export default apiService;
-
-export default apiService;
 
 export default apiService;

@@ -5,7 +5,7 @@ export const CONFIG = {
 
   // File upload settings
   MAX_FILE_SIZE: 1073741824, // 1GB
-  ALLOWED_EXTENSIONS: ['.nii', '.nii.gz', '.dcm', '.dicom'] as readonly string[],
+  ALLOWED_EXTENSIONS: ['.nii', '.nii.gz'] as readonly string[],
 
   // UI settings
   POLLING_INTERVAL: 5000, // 5 seconds

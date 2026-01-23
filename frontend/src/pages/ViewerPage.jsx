@@ -6,10 +6,15 @@ import ChevronRight from '../components/icons/ChevronRight.jsx'
 import ZoomIn from '../components/icons/ZoomIn.jsx'
 import Clock from '../components/icons/Clock.jsx'
 
-function ViewerPage({ selectedJobId, setSelectedJobId }) {
+function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
   // FORCE CACHE BUST TEST - If you see this, you have NEW CODE
   console.log(' NEW CODE LOADED - SLICE NAVIGATION FIX ACTIVE ');
   console.log('Current selectedJobId:', selectedJobId);
+  console.log('Jobs prop received:', jobs);
+  console.log('Jobs length:', jobs ? jobs.length : 'undefined/null');
+
+  // Log jobs every render to see if they change
+  console.log('ViewerPage render: jobs =', jobs, 'jobsLoading =', false);
 
   const [activeView, setActiveView] = useState(0);
   const [orientation, setOrientation] = useState('coronal'); // coronal or axial
@@ -22,6 +27,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
   const [imageLoadError, setImageLoadError] = useState(false);  // Track if current slice image failed to load
   const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
   const [rotation, setRotation] = useState(0); // Rotation: 0, 90, 180, 270 degrees (works for both axial and coronal)
+  const [jobVisualizations, setJobVisualizations] = useState(null); // Store visualization data from API
   const FLIP_VERTICAL = false; // No flip needed; backend overlays saved with correct orientation
 
   // Zoom handlers
@@ -52,10 +58,23 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
     console.log('🔄 ROTATION: Reset to 0°');
   };
 
-  // Load available completed jobs
+  // Load available completed jobs from props
   useEffect(() => {
-    loadAvailableJobs();
-  }, []);
+    console.log('ViewerPage useEffect: jobs prop changed:', jobs, 'length:', jobs ? jobs.length : 'null');
+    if (jobs && jobs.length > 0) {
+      const completedJobs = jobs.filter(j => j.status === 'completed');
+      console.log('ViewerPage: Found completed jobs:', completedJobs.length, completedJobs);
+      setAvailableJobs(completedJobs);
+
+      // Auto-select first completed job if none selected
+      if (!selectedJobId && completedJobs.length > 0) {
+        console.log('ViewerPage: Auto-selecting first completed job:', completedJobs[0].id);
+        setSelectedJobId(completedJobs[0].id);
+      }
+    } else {
+      console.log('ViewerPage: No jobs prop or empty jobs array');
+    }
+  }, [jobs, selectedJobId]);
 
   // Load slices when job or orientation changes
   const prevSelectedJobId = useRef(selectedJobId);
@@ -74,10 +93,11 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
       new_orientation: orientation
     });
 
-    // Clear slicesLoaded when job or orientation changes to allow fresh slice loading
+    // Clear slicesLoaded and visualizations when job or orientation changes
     if (jobChanged || orientationChanged) {
       console.log('Clearing slicesLoaded cache due to job/orientation change');
       setSlicesLoaded(new Set());
+      setJobVisualizations(null);
     }
 
     prevSelectedJobId.current = selectedJobId;
@@ -105,20 +125,6 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
     console.log(`Stack trace:`, new Error().stack);
   }, [activeView]);
 
-  const loadAvailableJobs = async () => {
-    try {
-      const data = await apiService.getJobs();
-      const completedJobs = (data || []).filter(j => j.status === 'completed');
-      setAvailableJobs(completedJobs);
-
-      // Auto-select first completed job if none selected
-      if (!selectedJobId && completedJobs.length > 0) {
-        setSelectedJobId(completedJobs[0].id);
-      }
-    } catch (error) {
-      console.error('Failed to load jobs:', error);
-    }
-  };
 
   const loadSlices = async () => {
     if (!selectedJobId) return;
@@ -133,65 +139,110 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
       setLoading(true);
       console.log(`Loading slices for job ${selectedJobId}, orientation ${orientation}`);
 
-      // For demo purposes, create mock slice data
-      // In real implementation, this would fetch from backend
-      const mockSlices = Array.from({ length: 10 }, (_, i) => ({
-        slice: i,
-        anatomical: `/api/placeholder/anatomical/${selectedJobId}/${orientation}/${i}.png`,
-        overlay: `/api/placeholder/overlay/${selectedJobId}/${orientation}/${i}.png`
-      }));
+      // Fetch job data to get visualization URLs
+      const jobData = await apiService.getJob(selectedJobId);
+      console.log('Job data received:', jobData);
 
-      setSlices(mockSlices);
-      setSlicesLoaded(prev => new Set([...prev, cacheKey]));
-      console.log(`Loaded ${mockSlices.length} slices for ${cacheKey}`);
+      if (jobData && jobData.visualizations && jobData.visualizations.overlays) {
+        const vizData = jobData.visualizations.overlays;
+        setJobVisualizations(vizData);
+
+        // Create slice data using actual visualization URLs
+        const actualSlices = [];
+        if (vizData[orientation]) {
+          // We have specific anatomical and hippocampus overlay images
+          actualSlices.push({
+            slice: 0,
+            anatomical: vizData[orientation].anatomical,
+            overlay: vizData[orientation].hippocampus
+          });
+        }
+
+        // Also add some additional slices (for now, reuse the same images)
+        // In a full implementation, we'd have multiple slices per orientation
+        for (let i = 1; i < 10; i++) {
+          if (vizData[orientation]) {
+            actualSlices.push({
+              slice: i,
+              anatomical: vizData[orientation].anatomical,
+              overlay: vizData[orientation].hippocampus
+            });
+          }
+        }
+
+        setSlices(actualSlices);
+        setSlicesLoaded(prev => new Set([...prev, cacheKey]));
+        console.log(`Loaded ${actualSlices.length} slices for ${cacheKey} using real visualization data`);
+        console.log('Visualization URLs:', vizData[orientation]);
+      } else {
+        console.warn('No visualization data found in job response');
+        // Fallback to empty slices
+        setSlices([]);
+      }
     } catch (error) {
       console.error('Failed to load slices:', error);
+      setSlices([]);
     } finally {
       setLoading(false);
     }
   };
 
   const getSliceUrls = (sliceIndex) => {
-    // Use the same URL structure as the original
+    // Use actual visualization URLs from API, with cache busting
     const ts = Date.now(); // Cache busting
+
+    if (jobVisualizations && jobVisualizations[orientation]) {
+      const baseUrls = jobVisualizations[orientation];
+      return {
+        anatomical: `${baseUrls.anatomical}?v=${ts}`,
+        overlay: `${baseUrls.hippocampus}?v=${ts}`
+      };
+    }
+
+    // Fallback for when visualizations aren't loaded yet
     return {
-      anatomical: `${API_BASE_URL}/visualizations/${selectedJobId}/overlay/${sliceIndex}?orientation=${orientation}&layer=anatomical&v=${ts}`,
-      overlay: `${API_BASE_URL}/visualizations/${selectedJobId}/overlay/${sliceIndex}?orientation=${orientation}&layer=overlay&v=${ts}`
+      anatomical: '',
+      overlay: ''
     };
   };
 
   // Generate preview slices for the overview grid
   const previewSlices = Array.from({ length: 10 }, (_, i) => i);
 
-  if (!selectedJobId) {
+  if (!selectedJobId || !jobVisualizations) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex justify-center items-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Medical Image Viewer</h1>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">No Job Selected</h2>
-            <p className="text-gray-600 mb-6">
-              Please select a completed job to view the 3D medical image visualization.
-            </p>
-            {availableJobs.length > 0 ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Job:</label>
-                <select
-                  value={selectedJobId || ''}
-                  onChange={(e) => setSelectedJobId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                >
-                  <option value="">-- Select a job --</option>
-                  {availableJobs.map(job => (
-                    <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <p className="text-gray-500">No completed jobs available. Please upload and process an MRI scan first.</p>
-            )}
+        <div className="max-w-[1800px] mx-auto px-6 py-4">
+          <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-4">
+            <div className="text-center py-12">
+              <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                {selectedJobId ? 'Loading Visualizations...' : 'No Job Selected'}
+              </h2>
+              <p className="text-gray-600 mb-6">
+                {selectedJobId
+                  ? 'Loading brain slice visualizations for the selected job...'
+                  : 'Please select a completed job to view 2D slice visualizations'
+                }
+              </p>
+              {availableJobs.length > 0 ? (
+                <div className="max-w-md mx-auto">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Job:</label>
+                  <select
+                    value={selectedJobId || ''}
+                    onChange={(e) => setSelectedJobId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                  >
+                    <option value="">-- Select a job --</option>
+                    {availableJobs.map(job => (
+                      <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p className="text-gray-500">No completed jobs available. Please upload and process an MRI scan first.</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -200,18 +251,13 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-
-        {/* Header */}
-        <div className="flex justify-center items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Medical Image Viewer</h1>
-        </div>
+        <div className="max-w-7xl mx-auto px-6 py-4">
 
         <div className="grid md:grid-cols-1 gap-8">
           {/* Main Viewer */}
           <div className="md:col-span-1">
             {/* Controls at the top */}
-            <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-6 mb-6">
+            <div className="bg-white rounded-xl shadow-sm border border-blue-100 p-3 mb-4">
               <div className="flex flex-wrap items-center gap-6">
                 {/* Orientation Selection */}
                 <div className="flex items-center gap-3">
@@ -219,9 +265,16 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                     Orientation:
                   </label>
                   <select
+                    id="orientation-select"
                     value={orientation}
                     onChange={(e) => setOrientation(e.target.value)}
-                    className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-medium focus:ring-2 focus:ring-blue-800 focus:border-blue-900"
+                    className="rounded-lg px-4 py-2 text-sm font-semibold bg-blue-50 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 appearance-none"
+                    style={{
+                      color: '#003d7a',
+                      borderColor: '#003d7a',
+                      border: '1px solid #003d7a',
+                      backgroundColor: '#f8fafc'
+                    }}
                   >
                     <option value="coronal">Coronal</option>
                     <option value="axial">Axial</option>
@@ -235,7 +288,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                   </label>
                   <button
                     onClick={handleZoomReset}
-                    className="px-3 py-2 hover:bg-blue-100 rounded-md transition text-sm font-semibold text-blue-900 min-w-[60px]"
+                    className="px-3 py-2 hover:bg-blue-100 rounded-md transition text-sm font-semibold text-[#003d7a] min-w-[60px]"
                     title="Click to reset zoom"
                   >
                     {Math.round(zoomLevel * 100)}%
@@ -243,7 +296,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                   <button
                     onClick={handleZoomIn}
                     disabled={zoomLevel >= 3.0}
-                    className={`p-2 rounded-md transition ${zoomLevel >= 3.0 ? 'opacity-30 cursor-not-allowed text-gray-400' : 'hover:bg-blue-100 text-blue-800'}`}
+                    className={`p-2 rounded-md transition ${zoomLevel >= 3.0 ? 'opacity-30 cursor-not-allowed text-gray-400' : 'hover:bg-blue-100 text-[#003d7a]'}`}
                     title="Zoom In"
                   >
                     <ZoomIn className="w-5 h-5" />
@@ -261,10 +314,10 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                     max="100"
                     value={overlayOpacity * 100}
                     onChange={(e) => setOverlayOpacity(parseInt(e.target.value) / 100)}
-                    className="w-32 h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-800"
+                    className="w-32 h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-[#003d7a]"
                     title={`Opacity: ${Math.round(overlayOpacity * 100)}%`}
                   />
-                  <span className="text-sm font-semibold text-blue-900 min-w-[48px] text-right">
+                  <span className="text-sm font-semibold text-[#003d7a] min-w-[48px] text-right">
                     {Math.round(overlayOpacity * 100)}%
                   </span>
                 </div>
@@ -276,21 +329,21 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                   </label>
                   <button
                     onClick={handleRotateCounterClockwise}
-                    className="p-2 hover:bg-blue-100 rounded-md transition text-blue-800"
+                    className="p-2 hover:bg-blue-100 rounded-md transition text-[#003d7a]"
                     title="Rotate Counter-Clockwise (-90°)"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button
                     onClick={handleRotateReset}
-                    className="px-3 py-2 hover:bg-blue-100 rounded-md transition text-sm font-semibold text-blue-900 min-w-[60px]"
+                    className="px-3 py-2 hover:bg-blue-100 rounded-md transition text-sm font-semibold text-[#003d7a] min-w-[60px]"
                     title="Reset Rotation (0°)"
                   >
                     {rotation}°
                   </button>
                   <button
                     onClick={handleRotateClockwise}
-                    className="p-2 hover:bg-blue-100 rounded-md transition text-blue-800"
+                    className="p-2 hover:bg-blue-100 rounded-md transition text-[#003d7a]"
                     title="Rotate Clockwise (+90°)"
                   >
                     <ChevronRight className="w-5 h-5" />
@@ -298,7 +351,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                 </div>
               </div>
             </div>
-            <div className="relative bg-black rounded-xl overflow-auto mb-6" style={{ height: '650px' }}>
+            <div className="relative bg-black rounded-xl overflow-auto mb-4" style={{ height: '600px' }}>
               {loading ? (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center text-white">
@@ -377,7 +430,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                   console.log(`PREV BUTTON: current activeView=${activeView}, setting to ${Math.max(0, activeView - 1)}`);
                   setActiveView(Math.max(0, activeView - 1));
                 }}
-                className="p-3 bg-blue-800 hover:bg-blue-900 text-white rounded-lg transition"
+                className="p-3 bg-[#003d7a] hover:bg-[#002b55] text-white rounded-lg transition"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -392,7 +445,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                     console.log(`Range slider: current activeView=${activeView}, setting to ${newValue}`);
                     setActiveView(newValue);
                   }}
-                  className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-800"
+                  className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-[#003d7a]"
                 />
               </div>
               <button
@@ -400,7 +453,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                   console.log(`NEXT BUTTON: current activeView=${activeView}, setting to ${Math.min(maxSlice, activeView + 1)}`);
                   setActiveView(Math.min(maxSlice, activeView + 1));
                 }}
-                className="p-3 bg-blue-800 hover:bg-blue-900 text-white rounded-lg transition"
+                className="p-3 bg-[#003d7a] hover:bg-[#002b55] text-white rounded-lg transition"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -417,103 +470,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId }) {
                       key={slice}
                       onClick={() => setActiveView(slice)}
                       className={`relative bg-black rounded-lg overflow-hidden cursor-pointer transition transform hover:scale-105 ${
-                        activeView === slice ? 'ring-4 ring-blue-800 shadow-xl' : 'hover:ring-2 hover:ring-blue-300'
-                      }`}
-                    >
-                      <div className="w-24 h-24 flex items-center justify-center overflow-hidden relative">
-                        {/* Base anatomical layer */}
-                        <img
-                          src={sliceUrls.anatomical}
-                          alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Anatomical`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                        {/* Overlay layer with opacity */}
-                        <img
-                          src={sliceUrls.overlay}
-                          alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Overlay`}
-                          className="absolute top-0 left-0 w-full h-full object-cover"
-                          style={{
-                            opacity: overlayOpacity,
-                            pointerEvents: 'none'
-                          }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-2">
-                        <p className="text-white text-xs font-semibold text-center">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default ViewerPage;
-
-                    <div
-                      key={slice}
-                      onClick={() => setActiveView(slice)}
-                      className={`relative bg-black rounded-lg overflow-hidden cursor-pointer transition transform hover:scale-105 ${
-                        activeView === slice ? 'ring-4 ring-blue-800 shadow-xl' : 'hover:ring-2 hover:ring-blue-300'
-                      }`}
-                    >
-                      <div className="w-24 h-24 flex items-center justify-center overflow-hidden relative">
-                        {/* Base anatomical layer */}
-                        <img
-                          src={sliceUrls.anatomical}
-                          alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Anatomical`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                        {/* Overlay layer with opacity */}
-                        <img
-                          src={sliceUrls.overlay}
-                          alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Overlay`}
-                          className="absolute top-0 left-0 w-full h-full object-cover"
-                          style={{
-                            opacity: overlayOpacity,
-                            pointerEvents: 'none'
-                          }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-2">
-                        <p className="text-white text-xs font-semibold text-center">{orientation.charAt(0).toUpperCase() + orientation.slice(1)} {slice}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default ViewerPage;
-
-                    <div
-                      key={slice}
-                      onClick={() => setActiveView(slice)}
-                      className={`relative bg-black rounded-lg overflow-hidden cursor-pointer transition transform hover:scale-105 ${
-                        activeView === slice ? 'ring-4 ring-blue-800 shadow-xl' : 'hover:ring-2 hover:ring-blue-300'
+                        activeView === slice ? 'ring-4 ring-[#003d7a] shadow-xl' : 'hover:ring-2 hover:ring-blue-300'
                       }`}
                     >
                       <div className="w-24 h-24 flex items-center justify-center overflow-hidden relative">

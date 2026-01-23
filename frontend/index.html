@@ -1,15 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
-  <title>NeuroInsight-CACHE-BUST-1768940401-CACHE-BUST-1768940397 - Hippocampal Analysis Platform (v20251217170200) - ROTATION ENABLED</title>
+  <title>NeuroInsight-CACHE-BUST-1769124326-CACHE-BUST-1769124327 - Hippocampal Analysis Platform (v20251217170402) - CLEAN UI</title>
+  <style>
+    /* Custom NeuroInsight Theme - #003d7a Blue Theme */
+    .bg-blue-50 { background-color: #f8fafc !important; }
+    .bg-blue-100 { background-color: #f1f5f9 !important; }
+    .bg-blue-200 { background-color: #003d7a !important; }
+    .bg-blue-300 { background-color: #003d7a !important; }
+    .bg-blue-400 { background-color: #00264d !important; }
+    .bg-blue-500 { background-color: #00264d !important; }
+    .bg-blue-600 { background-color: #003d7a !important; }
+    .bg-blue-700 { background-color: #0054a7 !important; }
+    .bg-blue-800 { background-color: #006bd4 !important; }
+    .bg-blue-900 { background-color: #3382ff !important; }
+
+    .text-blue-50 { color: #f8fafc !important; }
+    .text-blue-100 { color: #f1f5f9 !important; }
+    .text-blue-200 { color: #003d7a !important; }
+    .text-blue-300 { color: #003d7a !important; }
+    .text-blue-400 { color: #00264d !important; }
+    .text-blue-500 { color: #00264d !important; }
+    .text-blue-600 { color: #003d7a !important; }
+    .text-blue-700 { color: #0054a7 !important; }
+    .text-blue-800 { color: #006bd4 !important; }
+    .text-blue-900 { color: #3382ff !important; }
+
+    .border-blue-50 { border-color: #f8fafc !important; }
+    .border-blue-100 { border-color: #f1f5f9 !important; }
+    .border-blue-200 { border-color: #003d7a !important; }
+    .border-blue-300 { border-color: #003d7a !important; }
+    .border-blue-400 { border-color: #00264d !important; }
+    .border-blue-500 { border-color: #00264d !important; }
+    .border-blue-600 { border-color: #003d7a !important; }
+    .border-blue-700 { border-color: #0054a7 !important; }
+    .border-blue-800 { border-color: #006bd4 !important; }
+    .border-blue-900 { border-color: #3382ff !important; }
+
+    .hover\:bg-blue-50:hover { background-color: #f8fafc !important; }
+    .hover\:bg-blue-100:hover { background-color: #f1f5f9 !important; }
+    .hover\:bg-blue-200:hover { background-color: #003d7a !important; }
+    .hover\:bg-blue-300:hover { background-color: #003d7a !important; }
+    .hover\:bg-blue-400:hover { background-color: #00264d !important; }
+    .hover\:bg-blue-500:hover { background-color: #00264d !important; }
+    .hover\:bg-blue-600:hover { background-color: #003d7a !important; }
+    .hover\:bg-blue-700:hover { background-color: #0054a7 !important; }
+    .hover\:bg-blue-800:hover { background-color: #006bd4 !important; }
+    .hover\:bg-blue-900:hover { background-color: #3382ff !important; }
+
+    .hover\:text-blue-50:hover { color: #f8fafc !important; }
+    .hover\:text-blue-100:hover { color: #f1f5f9 !important; }
+    .hover\:text-blue-200:hover { color: #003d7a !important; }
+    .hover\:text-blue-300:hover { color: #003d7a !important; }
+    .hover\:text-blue-400:hover { color: #00264d !important; }
+    .hover\:text-blue-500:hover { color: #00264d !important; }
+    .hover\:text-blue-600:hover { color: #003d7a !important; }
+    .hover\:text-blue-700:hover { color: #0054a7 !important; }
+    .hover\:text-blue-800:hover { color: #006bd4 !important; }
+    .hover\:text-blue-900:hover { color: #3382ff !important; }
+
+    /* Form focus and accent colors */
+    input:focus, select:focus, textarea:focus {
+      --tw-ring-color: rgb(0 61 122 / var(--tw-ring-opacity)) !important;
+      --tw-border-color: rgb(0 61 122 / var(--tw-border-opacity)) !important;
+    }
+
+    /* Force dropdown colors */
+    select[value*="coronal"], select[value*="axial"],
+    .force-blue-colors {
+      color: #003d7a !important;
+      border-color: #003d7a !important;
+      border: 1px solid #003d7a !important;
+      background-color: #f8fafc !important;
+    }
+
+    /* Override focus ring colors for orientation select */
+    #orientation-select:focus {
+      --tw-ring-color: rgb(0 61 122 / var(--tw-ring-opacity)) !important;
+      box-shadow: 0 0 0 2px rgb(0 61 122 / 0.2) !important;
+    }
+
+    /* Range slider accent color */
+    input[type="range"]::-webkit-slider-thumb {
+      accent-color: #003d7a !important;
+    }
+    input[type="range"]::-moz-range-thumb {
+      accent-color: #003d7a !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
   <script src="/static/js/react.production.min.js"></script>
   <script src="/static/js/react-dom.production.min.js"></script>
   <script src="/static/js/babel.min.js"></script>
@@ -2177,9 +2267,9 @@
     }
 
     // Viewer Page
-    function ViewerPage({ selectedJobId, setSelectedJobId }) {
+    function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
       // FORCE CACHE BUST TEST - If you see this, you have NEW CODE
-      console.log('🚨🚨🚨 NEW CODE LOADED - SLICE NAVIGATION FIX ACTIVE 🚨🚨🚨');
+      console.log('🚨🚨🚨 NEW CODE LOADED - DYNAMIC URL FIX ACTIVE - VERSION 2 🚨🚨🚨');
       console.log('Current selectedJobId:', selectedJobId);
       const [activeView, setActiveView] = useState(0);
 
@@ -2198,6 +2288,7 @@
       const [imageLoadError, setImageLoadError] = useState(false);  // Track if current slice image failed to load
       const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
       const [rotation, setRotation] = useState(90); // Rotation: 0, 90, 180, 270 degrees (works for both axial and coronal)
+      const [jobVisualizations, setJobVisualizations] = useState(null); // Store visualization data from API
       // No flip needed; backend overlays saved with correct orientation
       const FLIP_VERTICAL = false;
 
@@ -2247,11 +2338,60 @@
         console.log('🔄 ROTATION: Reset to 0°');
       };
       
-      // Load available completed jobs
+      // Load available completed jobs from props and auto-select first job
       useEffect(() => {
-        loadAvailableJobs();
-      }, []);
-      
+        if (jobs && jobs.length > 0) {
+          const completedJobs = jobs.filter(j =>
+            normalizeStatus(j.status) === 'completed'
+          ).map(toUiJob);
+          setAvailableJobs(completedJobs);
+
+          // Auto-select first completed job if none selected and load its visualizations
+          if (!selectedJobId && completedJobs.length > 0) {
+            const firstJobId = completedJobs[0].id;
+            console.log('ViewerPage: Auto-selecting first completed job:', firstJobId);
+            setSelectedJobId(firstJobId);
+
+            // Load visualizations immediately for the auto-selected job
+            const loadJobVisualizations = async () => {
+              try {
+                console.log(`🔄 Loading visualizations for auto-selected job ${firstJobId}...`);
+
+                const baseUrl = CONFIG.api.baseUrl || window.location.origin;
+                const fullUrl = `${baseUrl}/api/jobs/${firstJobId}`;
+                console.log(`🔗 Final fetch URL: ${fullUrl}`);
+
+                const response = await fetch(fullUrl);
+                console.log(`📡 Response status: ${response.status}`);
+
+                if (response.ok) {
+                  const jobData = await response.json();
+                  console.log('📦 Full job data received:', jobData);
+                  console.log('🎨 Visualizations in job data:', jobData.visualizations);
+
+                  if (jobData.visualizations) {
+                    console.log('✅ Setting jobVisualizations state for auto-selected job...');
+                    setJobVisualizations(jobData.visualizations);
+                    console.log('✅ SUCCESS: jobVisualizations state set to:', jobData.visualizations);
+                  } else {
+                    console.log('⚠️ WARNING: Auto-selected job has no visualizations field');
+                    setJobVisualizations(null);
+                  }
+                } else {
+                  console.error('❌ ERROR: Failed to load job data for auto-selected job, status:', response.status);
+                  setJobVisualizations(null);
+                }
+              } catch (error) {
+                console.error('💥 ERROR: Exception in loadJobVisualizations for auto-selected job:', error);
+                setJobVisualizations(null);
+              }
+            };
+
+            loadJobVisualizations();
+          }
+        }
+      }, [jobs, selectedJobId]);
+
       // Load slices when job or orientation changes
       const prevSelectedJobId = useRef(selectedJobId);
       const prevOrientation = useRef(orientation);
@@ -2279,6 +2419,43 @@
         prevOrientation.current = orientation;
 
         if (selectedJobId) {
+          // Load job visualizations if not already loaded
+          if (!jobVisualizations) {
+            console.log(`🔄 Loading visualizations for selected job ${selectedJobId}...`);
+            const loadJobVisualizationsForSelected = async () => {
+              try {
+                const baseUrl = CONFIG.api.baseUrl || window.location.origin;
+                const fullUrl = `${baseUrl}/api/jobs/${selectedJobId}`;
+                console.log(`🔗 Fetching job details from: ${fullUrl}`);
+
+                const response = await fetch(fullUrl);
+                console.log(`📡 Response status: ${response.status}`);
+
+                if (response.ok) {
+                  const jobData = await response.json();
+                  console.log('📦 Job details received:', jobData);
+                  console.log('🎨 Visualizations data:', jobData.visualizations);
+
+                  if (jobData.visualizations) {
+                    console.log('✅ Setting jobVisualizations state...');
+                    setJobVisualizations(jobData.visualizations);
+                    console.log('✅ SUCCESS: jobVisualizations state set');
+                  } else {
+                    console.log('⚠️ No visualizations in job data');
+                    setJobVisualizations(null);
+                  }
+                } else {
+                  console.error('❌ Failed to load job details, status:', response.status);
+                  setJobVisualizations(null);
+                }
+              } catch (error) {
+                console.error('💥 Error loading job visualizations:', error);
+                setJobVisualizations(null);
+              }
+            };
+            loadJobVisualizationsForSelected();
+          }
+
           loadSlices();
           setImageLoadError(false); // Reset error state when switching slices/orientation
         }
@@ -2300,24 +2477,6 @@
         console.log(`Stack trace:`, new Error().stack);
       }, [activeView]);
 
-      const loadAvailableJobs = async () => {
-        try {
-          const data = await ApiService.getJobs();
-          // Handle new API response format with pagination
-          const jobsArray = (data && typeof data === 'object' && data.jobs) ? data.jobs : (data || []);
-          const completedJobs = jobsArray.filter(j =>
-            normalizeStatus(j.status) === 'completed'
-          ).map(toUiJob);
-          setAvailableJobs(completedJobs);
-          
-          // Auto-select first completed job if none selected
-          if (!selectedJobId && completedJobs.length > 0) {
-            setSelectedJobId(completedJobs[0].id);
-          }
-        } catch (error) {
-          console.error('Failed to load jobs:', error);
-        }
-      };
       
       const loadSlices = async () => {
         if (!selectedJobId) return;
@@ -2387,20 +2546,35 @@
       const getSliceUrls = (sliceIndex) => {
         if (!selectedJobId) return { anatomical: '', overlay: '' };
 
-        // Generate URL based on slice index and orientation
-        // Format: slice_00, slice_01, ..., slice_99, slice_100, etc.
+        console.log(`🔍 getSliceUrls called for slice ${sliceIndex}, orientation: ${orientation}`);
+        console.log(`📊 jobVisualizations state:`, jobVisualizations);
+        console.log(`🔍 Checking jobVisualizations.overlays[${orientation}]:`, jobVisualizations && jobVisualizations.overlays ? jobVisualizations.overlays[orientation] : 'jobVisualizations.overlays is null/undefined');
+
+        // Use actual visualization URLs from job data if available - construct dynamic URLs
+        if (jobVisualizations && jobVisualizations.overlays && jobVisualizations.overlays[orientation]) {
+          const ts = Date.now() + Math.random(); // Cache busting
+          const sliceId = `slice_${String(sliceIndex).padStart(2, '0')}`;
+          const basePath = `/outputs/${selectedJobId}/visualizations/overlays/${orientation}`;
+          const urls = {
+            anatomical: `${basePath}/anatomical_${sliceId}.png?v=${ts}`,
+            overlay: `${basePath}/hippocampus_overlay_${sliceId}.png?v=${ts}`
+          };
+          console.log(`✅ USING REAL VISUALIZATION URLS for slice ${sliceIndex} (${orientation}):`, urls);
+          return urls;
+        }
+
+        // Fallback: construct URL using old format (for compatibility)
         const sliceId = sliceIndex < 100
           ? `slice_${String(sliceIndex).padStart(2, '0')}`
           : `slice_${sliceIndex}`;
-        // Add aggressive cache-busting to avoid stale cached PNGs
         const ts = Date.now() + Math.random();
 
         const urls = {
-        anatomical: `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=anatomical&v=${ts}`,
-        overlay: `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=overlay&v=${ts}`
+          anatomical: `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=anatomical&v=${ts}`,
+          overlay: `${CONFIG.api.baseUrl}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=overlay&v=${ts}`
         };
 
-        console.log(`🔄 GENERATED URLS for slice ${sliceIndex} (${orientation}):`, urls);
+        console.log(`🔄 FALLBACK URLS for slice ${sliceIndex} (${orientation}):`, urls);
         return urls;
       };
 
@@ -2688,6 +2862,7 @@
                   <ChevronRight className="w-5 h-5" />
                 </button>
               </div>
+
 
               <div className="border-t border-blue-100 pt-4">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Multi-Slice Overview (All 10 {getDisplayOrientation(orientation)} Slices)</h3>
@@ -2981,131 +3156,32 @@
     function NeuroInsightApp() {
       const [activePage, setActivePage] = useState('home');
       const [selectedJobId, setSelectedJobId] = useState(null);
+      const [jobs, setJobs] = useState([]);
+      const [jobsLoading, setJobsLoading] = useState(true);
 
-      return (
-        <div className="min-h-screen flex flex-col">
-          <Navigation activePage={activePage} setActivePage={setActivePage} />
-          <div className="flex-grow">
-          {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
-          {activePage === 'jobs' && <JobsPage setActivePage={setActivePage} setSelectedJobId={setSelectedJobId} />}
-          {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
-          {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
-          </div>
-          <Footer />
-        </div>
-      );
-    }
+      // Load jobs globally for the app
+      useEffect(() => {
+        loadJobs();
 
-    // ============================================================================
-    // MODULE: Application Initialization
-    // ============================================================================
-    /**
-     * Initialize and render the React application
-     * Wraps the app in ErrorBoundary for error handling
-     */
-    async function initializeApp() {
-      // Wait longer for Electron to inject window.BACKEND_URL
-      // Some Macs need more time for executeJavaScript to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // If running in Electron desktop mode, use injected backend URL
-      if (window.BACKEND_URL) {
-        CONFIG.api.baseUrl = window.BACKEND_URL;
-        console.log('[Desktop] Backend URL set to:', window.BACKEND_URL);
-        console.log('[Desktop] CONFIG.api.baseUrl is now:', CONFIG.api.baseUrl);
-      } else if (window.electronAPI && window.electronAPI.getBackendURL) {
-        // Fallback to IPC method if available
+        // Auto-refresh jobs every 15 seconds
+        const interval = setInterval(() => {
+          loadJobs();
+        }, 15000);
+
+        return () => clearInterval(interval);
+      }, []);
+
+      const loadJobs = async () => {
         try {
-          const backendURL = await window.electronAPI.getBackendURL();
-          CONFIG.api.baseUrl = backendURL;
-          console.log('[Desktop] Backend URL set via IPC to:', backendURL);
+          const response = await fetch('/api/jobs/');
+          const data = await response.json();
+          setJobs(data.jobs || []);
+          setJobsLoading(false);
         } catch (error) {
-          console.error('[Desktop] Failed to get backend URL:', error);
+          console.error('Failed to load jobs:', error);
+          setJobsLoading(false);
         }
-      } else {
-        console.log('[Web] Using default backend URL:', CONFIG.api.baseUrl);
-        console.warn('[Web] window.BACKEND_URL was undefined!');
-      }
-      
-      // Render the app
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(
-        <ErrorBoundary>
-          <NeuroInsightApp />
-        </ErrorBoundary>
-      );
-    }
-    
-    // Start the app
-    initializeApp();
-  </script>
-</body>
-</html>
-<!-- CACHE BUST v20251217170000 -->
-<!-- FORCE RELOAD TEST - Wed Dec 17 17:26:41 EST 2025 -->
-
-      },
-
-      /**
-       * Show success toast
-       * @param {string} message - Message to display
-       */
-      success(message) {
-        this.show(message, 'success');
-      },
-
-      /**
-       * Show error toast
-       * @param {string} message - Message to display
-       */
-      error(message) {
-        this.show(message, 'error', 5000);
-      },
-
-      /**
-       * Show warning toast
-       * @param {string} message - Message to display
-       */
-      warning(message) {
-        this.show(message, 'warning');
-      },
-
-      /**
-       * Show info toast
-       * @param {string} message - Message to display
-       */
-      info(message) {
-        this.show(message, 'info');
-      }
-    };
-
-    // ============================================================================
-    // MODULE: Main App
-    // ============================================================================
-    /**
-     * Footer Component - Displays copyright information
-     * @returns {React.ReactElement}
-     */
-    function Footer() {
-      return (
-        <footer className="bg-gray-50 border-t border-gray-200 mt-12">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <p className="text-center text-sm text-gray-600">
-              © 2025 University of Rochester. All rights reserved.
-            </p>
-          </div>
-        </footer>
-      );
-    }
-
-    /**
-     * Main App Component - Root component of the application
-     * Manages page routing and global state
-     * @returns {React.ReactElement}
-     */
-    function NeuroInsightApp() {
-      const [activePage, setActivePage] = useState('home');
-      const [selectedJobId, setSelectedJobId] = useState(null);
+      };
 
       return (
         <div className="min-h-screen flex flex-col">
@@ -3114,132 +3190,7 @@
           {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
           {activePage === 'jobs' && <JobsPage setActivePage={setActivePage} setSelectedJobId={setSelectedJobId} />}
           {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
-          {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
-          </div>
-          <Footer />
-        </div>
-      );
-    }
-
-    // ============================================================================
-    // MODULE: Application Initialization
-    // ============================================================================
-    /**
-     * Initialize and render the React application
-     * Wraps the app in ErrorBoundary for error handling
-     */
-    async function initializeApp() {
-      // Wait longer for Electron to inject window.BACKEND_URL
-      // Some Macs need more time for executeJavaScript to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // If running in Electron desktop mode, use injected backend URL
-      if (window.BACKEND_URL) {
-        CONFIG.api.baseUrl = window.BACKEND_URL;
-        console.log('[Desktop] Backend URL set to:', window.BACKEND_URL);
-        console.log('[Desktop] CONFIG.api.baseUrl is now:', CONFIG.api.baseUrl);
-      } else if (window.electronAPI && window.electronAPI.getBackendURL) {
-        // Fallback to IPC method if available
-        try {
-          const backendURL = await window.electronAPI.getBackendURL();
-          CONFIG.api.baseUrl = backendURL;
-          console.log('[Desktop] Backend URL set via IPC to:', backendURL);
-        } catch (error) {
-          console.error('[Desktop] Failed to get backend URL:', error);
-        }
-      } else {
-        console.log('[Web] Using default backend URL:', CONFIG.api.baseUrl);
-        console.warn('[Web] window.BACKEND_URL was undefined!');
-      }
-      
-      // Render the app
-      const root = ReactDOM.createRoot(document.getElementById('root'));
-      root.render(
-        <ErrorBoundary>
-          <NeuroInsightApp />
-        </ErrorBoundary>
-      );
-    }
-    
-    // Start the app
-    initializeApp();
-  </script>
-</body>
-</html>
-<!-- CACHE BUST v20251217170000 -->
-<!-- FORCE RELOAD TEST - Wed Dec 17 17:26:41 EST 2025 -->
-
-      },
-
-      /**
-       * Show success toast
-       * @param {string} message - Message to display
-       */
-      success(message) {
-        this.show(message, 'success');
-      },
-
-      /**
-       * Show error toast
-       * @param {string} message - Message to display
-       */
-      error(message) {
-        this.show(message, 'error', 5000);
-      },
-
-      /**
-       * Show warning toast
-       * @param {string} message - Message to display
-       */
-      warning(message) {
-        this.show(message, 'warning');
-      },
-
-      /**
-       * Show info toast
-       * @param {string} message - Message to display
-       */
-      info(message) {
-        this.show(message, 'info');
-      }
-    };
-
-    // ============================================================================
-    // MODULE: Main App
-    // ============================================================================
-    /**
-     * Footer Component - Displays copyright information
-     * @returns {React.ReactElement}
-     */
-    function Footer() {
-      return (
-        <footer className="bg-gray-50 border-t border-gray-200 mt-12">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <p className="text-center text-sm text-gray-600">
-              © 2025 University of Rochester. All rights reserved.
-            </p>
-          </div>
-        </footer>
-      );
-    }
-
-    /**
-     * Main App Component - Root component of the application
-     * Manages page routing and global state
-     * @returns {React.ReactElement}
-     */
-    function NeuroInsightApp() {
-      const [activePage, setActivePage] = useState('home');
-      const [selectedJobId, setSelectedJobId] = useState(null);
-
-      return (
-        <div className="min-h-screen flex flex-col">
-          <Navigation activePage={activePage} setActivePage={setActivePage} />
-          <div className="flex-grow">
-          {activePage === 'home' && <HomePage setActivePage={setActivePage} />}
-          {activePage === 'jobs' && <JobsPage setActivePage={setActivePage} setSelectedJobId={setSelectedJobId} />}
-          {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
-          {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
+          {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} jobs={jobs} />}
           </div>
           <Footer />
         </div>

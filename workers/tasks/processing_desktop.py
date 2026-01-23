@@ -91,18 +91,12 @@ def process_mri_direct(job_id: str):
     try:
         logger.info("desktop_task_started", job_id=job_id, timeout_seconds=timeout_seconds)
 
-        # Parse job ID - CRITICAL: Ensure UUID string format with dashes
-        # SQLite stores UUID as VARCHAR(36) with dashes like: 'd6615863-f581-467f-b6b2-3e20dcf86a01'
-        # If we pass UUID object to SQLAlchemy, it converts to hex WITHOUT dashes: 'd6615863f581467fb6b23e20dcf86a01'
-        # This causes query mismatch! Solution: Always use string format with dashes
-        job_uuid_str = str(job_id) if not isinstance(job_id, str) else job_id
-        
-        # Ensure it's a valid UUID and get canonical string representation WITH dashes
-        job_uuid_obj = UUID(job_uuid_str)
-        job_uuid_canonical = str(job_uuid_obj)  # Guarantees format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-        
-        # Use canonical string ID for ALL database queries
-        job = JobService.get_job(db, job_uuid_canonical)
+        # Parse job ID - PostgreSQL uses 8-character IDs, not full UUIDs
+        # Convert job_id to string for database queries
+        job_id_str = str(job_id) if not isinstance(job_id, str) else job_id
+
+        # Use 8-character job ID directly (PostgreSQL schema)
+        job = JobService.get_job(db, job_id_str)
         if not job:
             logger.error("job_not_found", job_id=job_id)
             raise ValueError(f"Job {job_id} not found")
@@ -117,14 +111,14 @@ def process_mri_direct(job_id: str):
             }
         
         # Mark job as started
-        job = JobService.start_job(db, job_uuid_canonical)
+        job = JobService.start_job(db, job_id_str)
         if not job:
             logger.error("job_not_found_after_check", job_id=job_id)
             raise ValueError(f"Job {job_id} not found")
 
         # Check timeout after job setup
         if check_timeout():
-            JobService.fail_job(db, job_uuid_canonical, f"Processing timeout after job setup")
+            JobService.fail_job(db, job_id_str, f"Processing timeout after job setup")
             return {
                 "status": "failed",
                 "job_id": job_id,
@@ -133,7 +127,7 @@ def process_mri_direct(job_id: str):
 
         # Update progress: Job started (5%)
         print(f"DEBUG: Updating progress to 5%")
-        update_job_progress(db, job_uuid_canonical, 5, "Job started - preparing file...")
+        update_job_progress(db, job_id_str, 5, "Job started - preparing file...")
         print(f"DEBUG: Progress updated to 5%")
         
         # Get file path from storage
@@ -143,7 +137,7 @@ def process_mri_direct(job_id: str):
         logger.info("processing_started", job_id=job_id, file_path=file_path)
 
         # Update progress: File retrieved (10%)
-        update_job_progress(db, job_uuid_canonical, 10, "File retrieved - initializing processor...")
+        update_job_progress(db, job_id_str, 10, "File retrieved - initializing processor...")
         
         # Define progress callback for detailed tracking (5% increments)
         last_reported_progress = 10
@@ -155,7 +149,7 @@ def process_mri_direct(job_id: str):
             
             # Only update if progress increased by at least 5%
             if progress >= last_reported_progress + 5 or progress >= 100:
-                update_job_progress(db, job_uuid_canonical, progress, step)
+                update_job_progress(db, job_id_str, progress, step)
                 last_reported_progress = progress
                 logger.info(
                     "processing_progress",
@@ -165,10 +159,17 @@ def process_mri_direct(job_id: str):
                 )
         
         # Initialize processor with progress callback and database session (needs UUID object)
+        # MRIProcessor expects UUID, so create one from our job ID using a deterministic approach
+        import hashlib
+        # Create a deterministic UUID from the job_id_str
+        hash_obj = hashlib.md5(job_id_str.encode('utf-8'))
+        hex_hash = hash_obj.hexdigest()
+        uuid_str = f"{hex_hash[:8]}-{hex_hash[8:12]}-{hex_hash[12:16]}-{hex_hash[16:20]}-{hex_hash[20:32]}"
+        job_uuid_obj = UUID(uuid_str)
         processor = MRIProcessor(job_uuid_obj, progress_callback=progress_callback, db_session=db)
 
         # Update progress: Starting brain segmentation (15%)
-        update_job_progress(db, job_uuid_canonical, 15, "Starting brain segmentation (FreeSurfer)...")
+        update_job_progress(db, job_id_str, 15, "Starting brain segmentation (FreeSurfer)...")
         last_reported_progress = 15
         
         # Run processing pipeline
@@ -178,7 +179,7 @@ def process_mri_direct(job_id: str):
                 """Check if job was cancelled during processing."""
                 db_check = SessionLocal()
                 try:
-                    current_job = JobService.get_job(db_check, job_uuid_canonical)
+                    current_job = JobService.get_job(db_check, job_id_str)
                     if current_job and current_job.status == JobStatus.CANCELLED:
                         logger.info("job_cancelled_during_processing", job_id=job_id)
                         return True
@@ -197,7 +198,7 @@ def process_mri_direct(job_id: str):
 
             # Check timeout before processing
             if check_timeout():
-                JobService.fail_job(db, job_uuid_canonical, f"Processing timeout before starting pipeline")
+                JobService.fail_job(db, job_id_str, f"Processing timeout before starting pipeline")
                 return {
                     "status": "failed",
                     "job_id": job_id,
@@ -222,7 +223,7 @@ def process_mri_direct(job_id: str):
                 }
             
             # Update progress: Processing complete, saving results (85%)
-            update_job_progress(db, job_uuid_canonical, 85, "Processing complete - saving metrics...")
+            update_job_progress(db, job_id_str, 85, "Processing complete - saving metrics...")
             
             logger.info(
                 "processing_completed",
@@ -235,7 +236,7 @@ def process_mri_direct(job_id: str):
             from backend.models.metric import Metric
             
             # Delete existing metrics for this job (in case of reprocessing)
-            existing_metrics_count = db.query(Metric).filter(Metric.job_id == job_uuid_canonical).count()
+            existing_metrics_count = db.query(Metric).filter(Metric.job_id == job_id_str).count()
             if existing_metrics_count > 0:
                 logger.info(
                     "clearing_existing_metrics",
@@ -243,12 +244,12 @@ def process_mri_direct(job_id: str):
                     count=existing_metrics_count,
                     reason="Job is being reprocessed"
                 )
-                db.query(Metric).filter(Metric.job_id == job_uuid_canonical).delete()
+                db.query(Metric).filter(Metric.job_id == job_id_str).delete()
                 db.commit()
             
             metrics_data = [
                 MetricCreate(
-                    job_id=job_uuid_canonical,
+                    job_id=job_id_str,
                     region=metric["region"],
                     left_volume=metric["left_volume"],
                     right_volume=metric["right_volume"],
@@ -260,16 +261,16 @@ def process_mri_direct(job_id: str):
             MetricService.create_metrics_bulk(db, metrics_data)
             
             # Update progress: Finalizing (95%)
-            update_job_progress(db, job_uuid_canonical, 95, "Finalizing results...")
+            update_job_progress(db, job_id_str, 95, "Finalizing results...")
             
             # Mark job as completed (this will set progress to 100)
-            JobService.complete_job(db, job_uuid_canonical, results["output_dir"])
+            JobService.complete_job(db, job_id_str, results["output_dir"], results.get("visualizations"))
 
             # Check if there are pending jobs and start the next one
             _start_next_pending_job(db)
 
             # Update progress: Complete (100%)
-            update_job_progress(db, job_uuid_canonical, 100, "Complete")
+            update_job_progress(db, job_id_str, 100, "Complete")
             
             logger.info("desktop_task_completed", job_id=job_id)
             
@@ -283,7 +284,7 @@ def process_mri_direct(job_id: str):
         except Exception as e:
             # Mark job as failed
             error_message = f"Processing failed: {str(e)}"
-            JobService.fail_job(db, job_uuid_canonical, error_message)
+            JobService.fail_job(db, job_id_str, error_message)
             
             logger.error(
                 "processing_failed",

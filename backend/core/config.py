@@ -104,7 +104,7 @@ class Settings(BaseSettings):
 
     # Processing Configuration
     fastsurfer_container: str = Field(
-        default="fastsurfer/fastsurfer:latest",
+        default="deepmi/fastsurfer:latest",
         env="FASTSURFER_CONTAINER"
     )
     processing_timeout: int = Field(default=36000, env="PROCESSING_TIMEOUT")  # 10 hours

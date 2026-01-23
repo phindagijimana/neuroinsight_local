@@ -28,8 +28,8 @@ from pipeline.utils import asymmetry, file_utils, segmentation, visualization
 logger = get_logger(__name__)
 settings = get_settings()
 
-# FreeSurfer fallback constants
-FREESURFER_CONTAINER_IMAGE = "freesurfer/freesurfer:7.4.1"  # Use direct FreeSurfer, not BIDS App
+# FreeSurfer fallback constants - use traditional FreeSurfer with recon-all support
+FREESURFER_CONTAINER_IMAGE = "freesurfer/freesurfer:7.4.1"  # Use traditional FreeSurfer for recon-all compatibility
 FREESURFER_CONTAINER_SIZE_GB = 20  # Updated for freesurfer/freesurfer:7.4.1
 FREESURFER_PROCESSING_TIMEOUT_MINUTES = 300  # Extended for primary FreeSurfer usage (5 hours)
 FREESURFER_DOWNLOAD_TIMEOUT_MINUTES = 20
@@ -180,7 +180,8 @@ class MRIProcessor:
             progress: Progress percentage (0-100)
             step: Current processing step description
         """
-        self._current_progress = progress
+        # Cap progress at 100%
+        self._current_progress = min(progress, 100)
 
         # Update database if we're in a worker context (has db_session)
         if hasattr(self, 'db_session') and self.db_session:
@@ -1800,10 +1801,12 @@ class MRIProcessor:
             "--bind", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
             "--env", f"FS_LICENSE=/usr/local/freesurfer/license.txt",
             "--env", f"SUBJECTS_DIR=/subjects",
+            "--env", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
+            "--env", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
+            "--env", "FS_THREADED=1",  # Enable FreeSurfer threading
             str(abs_sif_path),  # Local .sif file
-            "recon-all",
-            "-i", f"/input/{nifti_path.name}",
-            "-s", subject_id,
+            "/bin/bash", "-c",
+            " recon-all -i /input/{nifti_path.name} -s {subject_id}",
             "-autorecon1",
                 "-autorecon2-volonly",
         ]
@@ -1859,12 +1862,12 @@ class MRIProcessor:
                     "--bind", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
                     "--env", f"FS_LICENSE=/usr/local/freesurfer/license.txt",
                     "--env", f"SUBJECTS_DIR=/subjects",
+            "--env", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
+            "--env", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
+            "--env", "FS_THREADED=1",  # Enable FreeSurfer threading
                     str(abs_sif_path),
-                    "mri_segstats",
-                    "--seg", f"/subjects/{subject_id}/mri/aseg.auto.mgz",
-                    "--excludeid", "0",
-                    "--sum", f"/subjects/{subject_id}/stats/aseg.stats",
-                    "--i", f"/subjects/{subject_id}/mri/brain.mgz"
+                    "/bin/bash", "-c",
+                    f" mri_segstats --seg /subjects/{subject_id}/mri/aseg.auto.mgz --excludeid 0 --sum /subjects/{subject_id}/stats/aseg.stats --i /subjects/{subject_id}/mri/brain.mgz"
                 ]
 
                 logger.info("running_mri_segstats_after_combined_autorecon", command=" ".join(segstats_cmd))
@@ -1946,6 +1949,7 @@ class MRIProcessor:
             raise RuntimeError("Neither apptainer nor singularity found")
 
     def _run_freesurfer_docker(self, nifti_path: Path, output_dir: Path, license_path: Path) -> Path:
+        print("DEBUG: ENTERING _run_freesurfer_docker method")
 
         # Check Docker availability before proceeding
         if not self._check_docker_available():
@@ -2016,29 +2020,31 @@ class MRIProcessor:
             print(f"DEBUG: Input dir: {abs_input_dir}")
             print(f"DEBUG: Output dir: {abs_freesurfer_dir}")
 
-            # For testing: Use simpler recon-all command without ANTs to avoid hanging
+            # Use traditional FreeSurfer recon-all command format
             docker_cmd = [
-                "docker", "run", "--rm",  # Removed user mapping - FreeSurfer needs to run as root
+                "docker", "run", "--rm", "--user", "root",  # Run as root to avoid nonroot user issues
                 "--name", container_name,  # Named container for tracking
                 # Removed memory limits - let FreeSurfer use what it needs (system has 30GB available)
                 "-v", f"{abs_freesurfer_dir}:/subjects",
                 "-v", f"{abs_input_dir}:/input:ro",
                 "-v", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
-                "-v", "/tmp/hostname_script.sh:/usr/bin/hostname:ro",
                 "-e", "FS_LICENSE=/usr/local/freesurfer/license.txt",
                 "-e", "SUBJECTS_DIR=/subjects",
                 "-e", "PATH=/usr/bin:/usr/local/bin:$PATH",
                 "-e", "ANTSPATH=/usr/local/freesurfer/bin",
                 "-e", "HOSTNAME=localhost",  # Set hostname environment variable
+                "-e", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
+                "-e", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
+                "-e", "FS_THREADED=1",  # Enable FreeSurfer threading
                 FREESURFER_CONTAINER_IMAGE,
-                "recon-all",
-                "-i", f"/input/{nifti_path.name}",
-                "-s", subject_id,
-                "-autorecon1",
-                "-autorecon2-volonly",
+                "/bin/bash", "-c",
+                f" source /usr/local/freesurfer/FreeSurferEnv.sh && recon-all -i /input/{nifti_path.name} -s {subject_id} -autorecon1 -autorecon2-volonly",
             ]
 
             print(f"DEBUG: Full Docker command: {' '.join(docker_cmd)}")
+            print(f"DEBUG: About to execute Docker command...")
+            print(f"DEBUG: Input file exists: {nifti_path.exists()}")
+            print(f"DEBUG: License file exists: {abs_license_path.exists()}")
 
             # Store container name in database for cancellation support
             self._store_container_id(container_name)
@@ -2067,12 +2073,19 @@ class MRIProcessor:
             except Exception as cleanup_error:
                 print(f"DEBUG: Cleanup warning: {cleanup_error}")
 
-            # Don't capture output to avoid memory issues with large FreeSurfer logs
-            result = subprocess_module.run(
-                docker_cmd,
-                timeout=FREESURFER_PROCESSING_TIMEOUT_MINUTES*60,
-                env=self._get_extended_env()
-            )
+            # Capture output to debug Docker issues
+            print(f"DEBUG: Executing Docker command now...")
+            try:
+                result = subprocess_module.run(
+                    docker_cmd,
+                    capture_output=True,  # Capture output for debugging
+                    timeout=FREESURFER_PROCESSING_TIMEOUT_MINUTES*60,
+                    env=self._get_extended_env()
+                )
+                print(f"DEBUG: Docker command completed with return code: {result.returncode}")
+            except Exception as docker_exec_error:
+                print(f"DEBUG: Docker command execution failed: {docker_exec_error}")
+                raise docker_exec_error
 
             print(f"DEBUG: Docker command completed with exit code: {result.returncode}")
             print(f"DEBUG: Command executed successfully (output not captured to avoid memory issues)")
@@ -2097,6 +2110,11 @@ class MRIProcessor:
                 error_msg = f"FreeSurfer Docker failed (exit code: {result.returncode}). {detailed_error}"
                 if stderr_output:
                     error_msg += f" STDERR: {stderr_output[:300]}..."
+
+                # DEBUG: Print stderr to console
+                print(f"DEBUG: Docker stderr: {stderr_output}")
+                print(f"DEBUG: Docker stdout: {stdout_output}")
+                print(f"DEBUG: Return code: {result.returncode}")
 
                 logger.error("freesurfer_docker_combined_autorecon_failed",
                            returncode=result.returncode,
@@ -2144,12 +2162,9 @@ class MRIProcessor:
                     "-v", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
                     "-e", "FS_LICENSE=/usr/local/freesurfer/license.txt",
                     "-e", "SUBJECTS_DIR=/subjects",
-                    FREESURFER_CONTAINER_IMAGE,
-                    "mri_segstats",
-                    "--seg", f"/subjects/{subject_id}/mri/aseg.auto.mgz",
-                    "--excludeid", "0",
-                    "--sum", f"/subjects/{subject_id}/stats/aseg.stats",
-                    "--i", f"/subjects/{subject_id}/mri/brain.mgz"
+                FREESURFER_CONTAINER_IMAGE,
+                "/bin/bash", "-c",
+                f" source /usr/local/freesurfer/FreeSurferEnv.sh && mri_segstats --seg /subjects/{subject_id}/mri/aseg.auto.mgz --excludeid 0 --sum /subjects/{subject_id}/stats/aseg.stats --i /subjects/{subject_id}/mri/brain.mgz"
                 ]
 
                 logger.info("running_docker_mri_segstats_after_combined_autorecon", command=" ".join(segstats_cmd))
@@ -2438,10 +2453,12 @@ class MRIProcessor:
                 "-B", f"{license_path}:/usr/local/freesurfer/license.txt:ro",
                 "--env", f"FS_LICENSE=/usr/local/freesurfer/license.txt",
                 "--env", f"SUBJECTS_DIR=/subjects",
+            "--env", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
+            "--env", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
+            "--env", "FS_THREADED=1",  # Enable FreeSurfer threading
                 str(singularity_image),
-                "recon-all",
-                "-i", f"/input/{nifti_path.name}",
-                "-s", subject_id,
+                "/bin/bash", "-c",
+                f" recon-all -i /input/{nifti_path.name} -s {subject_id}",
                 "-autorecon1",
                 "-autorecon2-volonly",
             ]
@@ -2494,12 +2511,12 @@ class MRIProcessor:
                     "-B", f"{license_path}:/usr/local/freesurfer/license.txt:ro",
                     "--env", f"FS_LICENSE=/usr/local/freesurfer/license.txt",
                     "--env", f"SUBJECTS_DIR=/subjects",
+            "--env", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
+            "--env", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
+            "--env", "FS_THREADED=1",  # Enable FreeSurfer threading
                     str(singularity_image),
-                    "mri_segstats",
-                    "--seg", f"/subjects/{subject_id}/mri/aseg.auto.mgz",
-                    "--excludeid", "0",
-                    "--sum", f"/subjects/{subject_id}/stats/aseg.stats",
-                    "--i", f"/subjects/{subject_id}/mri/brain.mgz"
+                    "/bin/bash", "-c",
+                    f" mri_segstats --seg /subjects/{subject_id}/mri/aseg.auto.mgz --excludeid 0 --sum /subjects/{subject_id}/stats/aseg.stats --i /subjects/{subject_id}/mri/brain.mgz"
                 ]
 
                 logger.info("running_singularity_mri_segstats_after_combined_autorecon", command=" ".join(segstats_cmd))
@@ -3643,14 +3660,12 @@ class MRIProcessor:
             "--bind", f"{license_path}:/usr/local/freesurfer/license.txt:ro",
             "--env", f"FS_LICENSE=/usr/local/freesurfer/license.txt",
             "--env", f"SUBJECTS_DIR=/subjects",
+            "--env", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
+            "--env", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
+            "--env", "FS_THREADED=1",  # Enable FreeSurfer threading
             str(sif_path),
-            "mri_segstats",
-            "--seg", "/subjects/mri/aseg.mgz",  # Use absolute path inside container
-            "--sum", "/subjects/stats/aseg.stats",
-            "--pv", "/subjects/mri/norm.mgz",
-            "--empty",
-            "--brain-vol",
-            "--subject", subject_dir.name
+            "/bin/bash", "-c",
+            f" mri_segstats --seg /subjects/mri/aseg.mgz --sum /subjects/stats/aseg.stats --pv /subjects/mri/norm.mgz --empty --brain-vol --subject {subject_dir.name}"
         ]
 
         logger.info("running_mri_segstats", command=" ".join(segstats_cmd))
@@ -4241,26 +4256,30 @@ class MRIProcessor:
         import time
 
         def monitor_progress():
-            """Monitor the status log file and update progress."""
+            """Monitor the status log file and update progress with fixed percentages per phase."""
             last_line_count = 0
-            last_detected_phase = None
-            phase_progress_map = {
-                # Map actual FreeSurfer phases to progress percentages
-                # Based on actual recon-all-status.log entries
-                "motioncor": base_progress + 5,
-                "talairach": base_progress + 10,
-                "nu intensity correction": base_progress + 15,
-                "intensity normalization": base_progress + 20,
-                "skull stripping": base_progress + 25,
-                "em registration": base_progress + 35,
-                "ca normalize": base_progress + 45,
-                "ca reg": base_progress + 55,
-                "subcort seg": base_progress + 65,
-                "wm segmentation": base_progress + 75,
-                "fill": base_progress + 85,
-                "cc seg": base_progress + 90,
-                "finished": 100
+            current_phase = None
+
+            # Fixed percentage allocation based on phase complexity/duration
+            # Total: 100% distributed across FreeSurfer autorecon1 + autorecon2-volonly phases
+            phase_info = {
+                "motioncor": {"completion_percent": min(base_progress + 8, 100), "estimated_duration": 60},         # Basic correction: 8%
+                "nu intensity correction": {"completion_percent": min(base_progress + 18, 100), "estimated_duration": 180}, # N4 bias correction: 10%
+                "talairach": {"completion_percent": min(base_progress + 45, 100), "estimated_duration": 240},       # Registration (longest): 27%
+                "intensity normalization": {"completion_percent": min(base_progress + 55, 100), "estimated_duration": 120}, # Normalization: 10%
+                "skull stripping": {"completion_percent": min(base_progress + 70, 100), "estimated_duration": 90},   # EM + watershed: 15%
+                "em registration": {"completion_percent": min(base_progress + 80, 100), "estimated_duration": 180},  # CA registration: 10%
+                "ca normalize": {"completion_percent": min(base_progress + 85, 100), "estimated_duration": 120},    # CA normalize: 5%
+                "ca reg": {"completion_percent": min(base_progress + 88, 100), "estimated_duration": 90},           # CA reg: 3%
+                "subcort seg": {"completion_percent": min(base_progress + 92, 100), "estimated_duration": 60},      # Subcortical: 4%
+                "wm segmentation": {"completion_percent": min(base_progress + 95, 100), "estimated_duration": 60},  # WM seg: 3%
+                "fill": {"completion_percent": min(base_progress + 97, 100), "estimated_duration": 45},             # Filling: 2%
+                "cc seg": {"completion_percent": min(base_progress + 99, 100), "estimated_duration": 30},           # CC seg: 2%
+                "cortical parcellation": {"completion_percent": min(base_progress + 100, 100), "estimated_duration": 60}, # Parcellation: 1%
             }
+
+            # Create reverse mapping for progress lookup
+            phase_progress_map = {phase: info["completion_percent"] for phase, info in phase_info.items()}
             
             logger.info("freesurfer_progress_monitor_thread_started", 
                        log_path=str(status_log_path), 
@@ -4298,29 +4317,65 @@ class MRIProcessor:
                                 line_lower = original_line.lower()
                                 
                                 # Check for FreeSurfer status markers: #@# PhaseName
+                                # NOTE: #@# markers indicate PHASE START, not completion
                                 if line_lower.startswith("#@#"):
                                     logger.info("freesurfer_log_line_found", line=original_line, job_id=str(self.job_id))
-                                    
+
                                     # Try to match with known phases
                                     matched = False
-                                    for phase, progress in phase_progress_map.items():
+                                    for phase in phase_info.keys():
                                         if phase in line_lower:
-                                            if last_detected_phase != phase:  # Only update if it's a new phase
-                                                self._update_progress(progress, f"FreeSurfer: {phase.title()} completed")
-                                            logger.info("freesurfer_phase_completed",
+                                            if current_phase != phase:  # Only update if it's a new phase
+                                                # Set completion progress for previous phase if it exists
+                                                if current_phase and current_phase in phase_info:
+                                                    completion_progress = phase_info[current_phase]["completion_percent"]
+                                                    prev_phase_display_name = current_phase.replace('_', ' ').title()
+                                                    self._update_progress(completion_progress, f"Completed...({prev_phase_display_name})")
+                                                    logger.info("freesurfer_phase_completed",
+                                                               phase=current_phase,
+                                                               progress=completion_progress,
+                                                               job_id=str(self.job_id))
+
+                                                # Start new phase - jump to start percentage
+                                                current_phase = phase
+                                                phase_start_time = time.time()
+
+                                                # Calculate start progress (previous phase completion + small increment)
+                                                if current_phase == "motioncor":
+                                                    start_progress = base_progress + 1  # Start at 1% for first phase
+                                                else:
+                                                    # Find previous phase completion percentage
+                                                    prev_completion = base_progress
+                                                    phase_keys = list(phase_info.keys())
+                                                    current_idx = phase_keys.index(phase)
+                                                    if current_idx > 0:
+                                                        prev_phase = phase_keys[current_idx - 1]
+                                                        prev_completion = phase_info[prev_phase]["completion_percent"]
+
+                                                    start_progress = prev_completion + 1  # Start 1% after previous completion
+
+                                                phase_display_name = phase.replace('_', ' ').title()
+                                                self._update_progress(start_progress, f"Processing...({phase_display_name})")
+                                                logger.info("freesurfer_phase_started",
                                                            phase=phase,
-                                                           progress=progress,
-                                                           line=original_line,
+                                                           progress=start_progress,
+                                                           target_progress=phase_info[phase]["completion_percent"],
                                                            job_id=str(self.job_id))
-                                            last_detected_phase = phase
                                             matched = True
                                             break
-                                    
+
                                     if not matched:
                                         logger.debug("freesurfer_phase_not_matched", line=original_line)
+
+                    # Fixed percentage system: Progress only updates when phases start and complete
+                    # No incremental time-based updates within phases for simplicity
                     else:
                         # Status log no longer exists, processing might be complete
                         logger.info("status_log_disappeared", path=str(status_log_path))
+                        # Set final progress to 100% if we were in a phase
+                        if current_phase and current_phase in phase_info:
+                            final_progress = phase_info[current_phase]["completion_percent"]
+                            self._update_progress(final_progress, f"FreeSurfer: {current_phase.replace('_', ' ').title()} completed")
                         break
 
                     # Wait before checking again
@@ -4342,6 +4397,67 @@ class MRIProcessor:
         monitor_thread = threading.Thread(target=monitor_progress, daemon=True, name="FreeSurferProgressMonitor")
         monitor_thread.start()
         logger.info("freesurfer_progress_monitor_started", log_path=str(status_log_path), thread_name=monitor_thread.name)
+
+    def _get_current_freesurfer_command(self) -> Optional[str]:
+        """Get the current FreeSurfer command being executed in the container.
+
+        Returns:
+            Command name (e.g., 'EM Registration', 'Normalization') or None if not found
+        """
+        try:
+            # Get container ID from instance or database
+            container_id = getattr(self, 'container_id', None)
+            if not container_id:
+                # Try to get from database
+                job = self.db_session.query(Job).filter(Job.id == self.job_id).first()
+                container_id = job.docker_container_id if job else None
+
+            if not container_id:
+                return None
+
+            # Run docker exec to check running processes
+            import subprocess
+            result = subprocess.run([
+                'docker', 'exec', container_id,
+                'ps', 'aux'
+            ], capture_output=True, text=True, timeout=10)
+
+            if result.returncode == 0:
+                lines = result.stdout.split('\n')
+                for line in lines:
+                    # Look for FreeSurfer commands (exclude recon-all itself)
+                    if 'mri_' in line and 'recon-all' not in line:
+                        # Extract the command name (first word after mri_)
+                        parts = line.split()
+                        for part in parts:
+                            if part.startswith('mri_'):
+                                command = part.split('/')[-1]  # Remove path if present
+                                # Map to more readable names
+                                command_map = {
+                                    'mri_em_register': 'EM Registration',
+                                    'mri_normalize': 'Normalization',
+                                    'mri_watershed': 'Watershed Algorithm',
+                                    'mri_ca_normalize': 'CA Normalization',
+                                    'mri_ca_register': 'CA Registration',
+                                    'mri_segstats': 'Segmentation Stats',
+                                    'mri_fill': 'Filling',
+                                    'mri_cc': 'Corpus Callosum',
+                                    'mri_pretess': 'Pre-Tessellation',
+                                    'mri_tessellate': 'Tessellation',
+                                    'mri_smooth': 'Smoothing',
+                                    'mri_inflate': 'Inflation',
+                                    'mri_sphere': 'Spherical Mapping',
+                                    'mri_fix': 'Topology Fix',
+                                    'mri_surf2surf': 'Surface Mapping',
+                                    'mri_label': 'Labeling'
+                                }
+                                return command_map.get(command, command.replace('mri_', '').replace('_', ' ').title())
+
+            return None
+
+        except Exception as e:
+            logger.debug("failed_to_get_freesurfer_command", error=str(e), job_id=str(self.job_id))
+            return None
 
     def _api_bridge_process(self, input_path: str) -> Dict:
         """

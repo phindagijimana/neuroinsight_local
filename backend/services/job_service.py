@@ -6,7 +6,7 @@ and updating jobs in the system.
 """
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -107,6 +107,15 @@ class JobService:
         if not job:
             return None
 
+        # Parse visualizations JSON if present
+        visualizations = None
+        if job.visualizations:
+            try:
+                import json
+                visualizations = json.loads(job.visualizations)
+            except:
+                visualizations = None
+
         # Convert to dict for modification
         job_dict = {
             'id': job.id,
@@ -127,6 +136,7 @@ class JobService:
             'scanner_info': job.scanner_info,
             'sequence_info': job.sequence_info,
             'notes': job.notes,
+            'visualizations': visualizations,
             'metrics': []
         }
 
@@ -473,16 +483,18 @@ class JobService:
     def complete_job(
         db: Session,
         job_id,
-        result_path: str
+        result_path: str,
+        visualizations: Optional[Dict] = None
     ) -> Optional[Job]:
         """
         Mark a job as completed.
-        
+
         Args:
             db: Database session
             job_id: Job identifier (UUID or string - will be converted to string for SQLite)
             result_path: Path to processing results
-        
+            visualizations: Dictionary of visualization paths (optional)
+
         Returns:
             Updated job instance if found, None otherwise
         """
@@ -496,7 +508,12 @@ class JobService:
         job.status = JobStatus.COMPLETED
         job.completed_at = datetime.utcnow()
         job.result_path = result_path
-        
+
+        # Save visualizations if provided
+        if visualizations is not None:
+            import json
+            job.visualizations = json.dumps(visualizations)
+
         db.commit()
         db.refresh(job)
         
@@ -569,21 +586,28 @@ class JobService:
                 ).order_by(Job.created_at.asc()).first()
                 
                 if pending_job:
-                    logger.info("starting_queued_job", 
-                              job_id=str(pending_job.id), 
-                              queue_position="next_pending")
-                    
-                    # Start the job
+                    logger.info("starting_queued_job",
+                              job_id=str(pending_job.id),
+                              queue_position="next_pending",
+                              environment=settings.environment)
+
+                    # Start the job using the appropriate method for the environment
                     try:
-                        # Import here to avoid circular imports
-                        from workers.tasks.processing_web import process_mri_task
-                        task = process_mri_task.delay(str(pending_job.id))
-                        logger.info("queued_job_task_submitted", 
-                                  job_id=str(pending_job.id), 
-                                  celery_task_id=task.id)
+                        if settings.environment in ["development", "desktop"]:
+                            # Use desktop-specific queue processing (development = desktop mode)
+                            from workers.tasks.processing_desktop import _start_next_pending_job
+                            _start_next_pending_job(db)
+                        else:
+                            # Use web/Celery version
+                            from workers.tasks.processing_web import process_mri_task
+                            task = process_mri_task.delay(str(pending_job.id))
+                            logger.info("queued_job_task_submitted",
+                                      job_id=str(pending_job.id),
+                                      celery_task_id=task.id)
                     except Exception as e:
-                        logger.error("failed_to_start_queued_job", 
-                                   job_id=str(pending_job.id), 
+                        logger.error("failed_to_start_queued_job",
+                                   job_id=str(pending_job.id),
+                                   environment=settings.environment,
                                    error=str(e))
         except Exception as e:
             logger.error("job_queue_processing_failed", error=str(e))
@@ -616,183 +640,29 @@ class JobService:
                 return
             
             # Start the pending job
-            logger.info("auto_starting_next_pending_job_after_completion", 
-                       job_id=str(pending_job.id), 
+            logger.info("auto_starting_next_pending_job_after_completion",
+                       job_id=str(pending_job.id),
                        filename=pending_job.filename)
-            
-            # Submit to Celery queue
-            from workers.tasks.processing_web import process_mri_task
-            task = process_mri_task.delay(str(pending_job.id))
-            logger.info("auto_started_pending_job_from_service", 
-                       job_id=str(pending_job.id), 
-                       celery_task_id=task.id,
-                       filename=pending_job.filename)
-            
-        except Exception as e:
-            logger.error("failed_to_auto_start_pending_job_from_service", error=str(e), exc_info=True)
 
-
-
-    @staticmethod
-    def process_job_queue(db: Session) -> None:
-        """
-        Check for pending jobs and start the next one if capacity allows.
-        
-        This should be called whenever a job completes or fails.
-        """
-        try:
-            # Check current running jobs
-            running_jobs = db.query(Job).filter(Job.status == JobStatus.RUNNING).count()
-            # Import settings properly
+            # Use the appropriate processing method based on environment
             from backend.core.config import Settings
             settings = Settings()
-            if running_jobs < settings.max_concurrent_jobs:
-                pending_job = db.query(Job).filter(
-                    Job.status == JobStatus.PENDING
-                ).order_by(Job.created_at.asc()).first()
-                
-                if pending_job:
-                    logger.info("starting_queued_job", 
-                              job_id=str(pending_job.id), 
-                              queue_position="next_pending")
-                    
-                    # Start the job
-                    try:
-                        # Import here to avoid circular imports
-                        from workers.tasks.processing_web import process_mri_task
-                        task = process_mri_task.delay(str(pending_job.id))
-                        logger.info("queued_job_task_submitted", 
-                                  job_id=str(pending_job.id), 
-                                  celery_task_id=task.id)
-                    except Exception as e:
-                        logger.error("failed_to_start_queued_job", 
-                                   job_id=str(pending_job.id), 
-                                   error=str(e))
-        except Exception as e:
-            logger.error("job_queue_processing_failed", error=str(e))
-    
-    @staticmethod
-    def _start_next_pending_job(db: Session):
-        """
-        Check for pending jobs and start the next one if no jobs are currently running.
-        
-        This is called automatically after a job completes, fails, or is deleted.
-        
-        Args:
-            db: Database session
-        """
-        try:
-            # Check if there are any running jobs
-            running_count = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
-            
-            if running_count > 0:
-                logger.info("job_already_running_skipping_auto_start", running_count=running_count)
-                return
-            
-            # Get the oldest pending job (FIFO queue)
-            pending_job = db.query(Job).filter(
-                Job.status == JobStatus.PENDING
-            ).order_by(Job.created_at.asc()).first()
-            
-            if not pending_job:
-                logger.info("no_pending_jobs_to_auto_start")
-                return
-            
-            # Start the pending job
-            logger.info("auto_starting_next_pending_job_after_completion", 
-                       job_id=str(pending_job.id), 
-                       filename=pending_job.filename)
-            
-            # Submit to Celery queue
-            from workers.tasks.processing_web import process_mri_task
-            task = process_mri_task.delay(str(pending_job.id))
-            logger.info("auto_started_pending_job_from_service", 
-                       job_id=str(pending_job.id), 
-                       celery_task_id=task.id,
-                       filename=pending_job.filename)
+
+            if settings.environment in ["development", "desktop"]:
+                # Use desktop-specific queue processing
+                from workers.tasks.processing_desktop import _start_next_pending_job
+                _start_next_pending_job(db)
+            else:
+                # Submit to Celery queue
+                from workers.tasks.processing_web import process_mri_task
+                task = process_mri_task.delay(str(pending_job.id))
+                logger.info("auto_started_pending_job_from_service",
+                           job_id=str(pending_job.id),
+                           celery_task_id=task.id,
+                           filename=pending_job.filename)
             
         except Exception as e:
             logger.error("failed_to_auto_start_pending_job_from_service", error=str(e), exc_info=True)
 
 
 
-    @staticmethod
-    def process_job_queue(db: Session) -> None:
-        """
-        Check for pending jobs and start the next one if capacity allows.
-        
-        This should be called whenever a job completes or fails.
-        """
-        try:
-            # Check current running jobs
-            running_jobs = db.query(Job).filter(Job.status == JobStatus.RUNNING).count()
-            # Import settings properly
-            from backend.core.config import Settings
-            settings = Settings()
-            if running_jobs < settings.max_concurrent_jobs:
-                pending_job = db.query(Job).filter(
-                    Job.status == JobStatus.PENDING
-                ).order_by(Job.created_at.asc()).first()
-                
-                if pending_job:
-                    logger.info("starting_queued_job", 
-                              job_id=str(pending_job.id), 
-                              queue_position="next_pending")
-                    
-                    # Start the job
-                    try:
-                        # Import here to avoid circular imports
-                        from workers.tasks.processing_web import process_mri_task
-                        task = process_mri_task.delay(str(pending_job.id))
-                        logger.info("queued_job_task_submitted", 
-                                  job_id=str(pending_job.id), 
-                                  celery_task_id=task.id)
-                    except Exception as e:
-                        logger.error("failed_to_start_queued_job", 
-                                   job_id=str(pending_job.id), 
-                                   error=str(e))
-        except Exception as e:
-            logger.error("job_queue_processing_failed", error=str(e))
-    
-    @staticmethod
-    def _start_next_pending_job(db: Session):
-        """
-        Check for pending jobs and start the next one if no jobs are currently running.
-        
-        This is called automatically after a job completes, fails, or is deleted.
-        
-        Args:
-            db: Database session
-        """
-        try:
-            # Check if there are any running jobs
-            running_count = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
-            
-            if running_count > 0:
-                logger.info("job_already_running_skipping_auto_start", running_count=running_count)
-                return
-            
-            # Get the oldest pending job (FIFO queue)
-            pending_job = db.query(Job).filter(
-                Job.status == JobStatus.PENDING
-            ).order_by(Job.created_at.asc()).first()
-            
-            if not pending_job:
-                logger.info("no_pending_jobs_to_auto_start")
-                return
-            
-            # Start the pending job
-            logger.info("auto_starting_next_pending_job_after_completion", 
-                       job_id=str(pending_job.id), 
-                       filename=pending_job.filename)
-            
-            # Submit to Celery queue
-            from workers.tasks.processing_web import process_mri_task
-            task = process_mri_task.delay(str(pending_job.id))
-            logger.info("auto_started_pending_job_from_service", 
-                       job_id=str(pending_job.id), 
-                       celery_task_id=task.id,
-                       filename=pending_job.filename)
-            
-        except Exception as e:
-            logger.error("failed_to_auto_start_pending_job_from_service", error=str(e), exc_info=True)

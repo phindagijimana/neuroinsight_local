@@ -270,8 +270,13 @@ def process_mri_task(self, job_id: str):
         update_job_progress(db, job_id, 95, "Finalizing results")
 
 
-        # Update job with results
-        JobService.complete_job(db, job_id, results.get("output_dir"))
+        # Update job with results and visualization URLs
+        JobService.complete_job(
+            db,
+            job_id,
+            results.get("output_dir"),
+            JobService.build_visualization_payload(job_id)
+        )
 
         update_job_progress(db, job_id, 100, "Processing completed successfully")
 

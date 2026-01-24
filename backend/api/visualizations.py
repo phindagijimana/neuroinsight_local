@@ -163,7 +163,7 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
         return False
 
     # Find output directory - check both FastSurfer and FreeSurfer locations
-    base_output_dir = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / str(job_id)
+    base_output_dir = Path(settings.output_dir) / str(job_id)
 
     # Try FastSurfer first (preferred)
     job_output_dir = base_output_dir / "fastsurfer"
@@ -410,7 +410,7 @@ def get_anatomical_t1(
         raise HTTPException(status_code=400, detail="Job not yet completed")
 
     # Construct path to T1 file
-    viz_dir = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / str(job_id) / "visualizations" / "whole_hippocampus"
+    viz_dir = Path(settings.output_dir) / str(job_id) / "visualizations" / "whole_hippocampus"
     t1_path = viz_dir / "anatomical.nii.gz"
 
     logger.info(f"Looking for file at: {t1_path}")
@@ -461,7 +461,7 @@ def get_whole_hippocampus_nifti(
         raise HTTPException(status_code=400, detail="Job not yet completed")
     
     # Construct path to visualization files
-    viz_dir = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / str(job_id) / "visualizations" / "whole_hippocampus"
+    viz_dir = Path(settings.output_dir) / str(job_id) / "visualizations" / "whole_hippocampus"
     nifti_path = viz_dir / "segmentation.nii.gz"
     
     if not nifti_path.exists():
@@ -504,7 +504,7 @@ def get_whole_hippocampus_metadata(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    viz_dir = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / str(job_id) / "visualizations" / "whole_hippocampus"
+    viz_dir = Path(settings.output_dir) / str(job_id) / "visualizations" / "whole_hippocampus"
     metadata_path = viz_dir / "segmentation_metadata.json"
     
     if not metadata_path.exists():
@@ -542,7 +542,7 @@ def get_subfields_nifti(
     if job.status != JobStatus.COMPLETED:
         raise HTTPException(status_code=400, detail="Job not yet completed")
     
-    viz_dir = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / str(job_id) / "visualizations" / "subfields"
+    viz_dir = Path(settings.output_dir) / str(job_id) / "visualizations" / "subfields"
     nifti_path = viz_dir / "segmentation.nii.gz"
     
     if not nifti_path.exists():
@@ -585,7 +585,7 @@ def get_subfields_metadata(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    viz_dir = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / str(job_id) / "visualizations" / "subfields"
+    viz_dir = Path(settings.output_dir) / str(job_id) / "visualizations" / "subfields"
     metadata_path = viz_dir / "segmentation_metadata.json"
     
     if not metadata_path.exists():
@@ -643,7 +643,7 @@ def get_overlay_image(
         raise HTTPException(status_code=400, detail="Job not yet completed")
 
     # Try to find existing PNG first, then generate on-demand
-    viz_dir = Path(Path(__file__).parent.parent.parent / "data" / "outputs") / str(job_id) / "visualizations" / "overlays" / orientation
+    viz_dir = Path(settings.output_dir) / str(job_id) / "visualizations" / "overlays" / orientation
     viz_dir.mkdir(parents=True, exist_ok=True)
 
     # Extract slice number from slice_id (format: "slice_00" -> 0)

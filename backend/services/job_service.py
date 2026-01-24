@@ -480,6 +480,37 @@ class JobService:
         return job
     
     @staticmethod
+    def build_visualization_payload(job_id: str) -> Dict:
+        """
+        Build visualization URLs for the frontend viewer.
+
+        Uses API endpoints so the UI can load overlays without needing file paths.
+        """
+        base = f"/api/visualizations/{job_id}"
+        overlay_base = f"{base}/overlay/slice_00"
+        return {
+            "overlays": {
+                "axial": {
+                    "anatomical": f"{overlay_base}?orientation=axial&layer=anatomical",
+                    "hippocampus": f"{overlay_base}?orientation=axial&layer=overlay",
+                },
+                "coronal": {
+                    "anatomical": f"{overlay_base}?orientation=coronal&layer=anatomical",
+                    "hippocampus": f"{overlay_base}?orientation=coronal&layer=overlay",
+                },
+            },
+            "whole_hippocampus": {
+                "anatomical": f"{base}/whole-hippocampus/anatomical",
+                "segmentation": f"{base}/whole-hippocampus/nifti",
+                "metadata": f"{base}/whole-hippocampus/metadata",
+            },
+            "subfields": {
+                "segmentation": f"{base}/subfields/nifti",
+                "metadata": f"{base}/subfields/metadata",
+            },
+        }
+
+    @staticmethod
     def complete_job(
         db: Session,
         job_id,
@@ -509,10 +540,11 @@ class JobService:
         job.completed_at = datetime.utcnow()
         job.result_path = result_path
 
-        # Save visualizations if provided
-        if visualizations is not None:
-            import json
-            job.visualizations = json.dumps(visualizations)
+        # Save visualizations (default to API URLs if none provided)
+        if visualizations is None:
+            visualizations = JobService.build_visualization_payload(job_id_str)
+        import json
+        job.visualizations = json.dumps(visualizations)
 
         db.commit()
         db.refresh(job)

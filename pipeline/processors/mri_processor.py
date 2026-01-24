@@ -171,6 +171,32 @@ class MRIProcessor:
         """
         return getattr(self, '_current_progress', 0)
 
+    def _get_freesurfer_thread_count(self) -> int:
+        """
+        Get a safe thread count for FreeSurfer inside Docker.
+
+        Keep the previous behavior (CPU count minus 2) but cap at 7 cores.
+        """
+        cpu_count = os.cpu_count() or 4
+        return max(1, min(7, cpu_count - 2))
+
+    def _get_freesurfer_thread_env(self, flag: str = "-e") -> list:
+        """
+        Build Docker env args for FreeSurfer threading/OpenMP.
+
+        These apply globally inside the container; steps that support OpenMP
+        will use them (e.g., CA Reg, SubCort Seg, Skull Stripping).
+        """
+        threads = self._get_freesurfer_thread_count()
+        return [
+            flag, f"OMP_NUM_THREADS={threads}",
+            flag, f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={threads}",
+            flag, "FS_THREADED=1",
+            flag, "OMP_DYNAMIC=FALSE",
+            flag, "OMP_PROC_BIND=TRUE",
+            flag, "OMP_PLACES=cores",
+        ]
+
     def _update_progress(self, progress: int, step: str):
         """
         Update current progress and notify callback if available.
@@ -581,24 +607,16 @@ class MRIProcessor:
         print(f"DEBUG: Network validation passed")
 
         # Step 1: Convert to NIfTI if needed
-        self._update_progress(17, "Preparing input file...")
+        self._update_progress(10, "Preparing input file...")
         nifti_path = self._prepare_input(input_path)
 
-        # Step 2: Run mock processing (simulates FreeSurfer)
-        self._update_progress(30, "Mock processing step 1...")
-        # Processing happens in container
-
-        self._update_progress(60, "Mock processing step 2...")
-        # Container continues processing
-
-        self._update_progress(90, "Finalizing results...")
-        # Processing completes
-        
         # Step 2: Run FreeSurfer segmentation (whole brain) - LONGEST STEP
+        # Allocate the weighted FreeSurfer phases to 20-90%
+        self._update_progress(20, "Starting FreeSurfer segmentation...")
         freesurfer_output = self._run_freesurfer_primary(nifti_path)
         
         # Step 3: Extract hippocampal volumes (from FreeSurfer outputs)
-        self._update_progress(65, "Extracting hippocampal volumes...")
+        self._update_progress(92, "Extracting hippocampal volumes...")
         logger.info("extracting_hippocampal_data_from_freesurfer_output", freesurfer_output=str(freesurfer_output))
         hippocampal_stats = self._extract_hippocampal_data(freesurfer_output)
         logger.info("hippocampal_stats_extracted", stats=hippocampal_stats)
@@ -616,17 +634,17 @@ class MRIProcessor:
             raise RuntimeError(f"Hippocampal segmentation failed: {error_msg}")
 
         # Step 4: Calculate asymmetry indices
-        self._update_progress(70, "Calculating asymmetry indices...")
+        self._update_progress(95, "Calculating asymmetry indices...")
         logger.info("calculating_asymmetry_from_stats", hippocampal_stats=hippocampal_stats)
         metrics = self._calculate_asymmetry(hippocampal_stats)
         logger.info("asymmetry_metrics_calculated", metrics=metrics, metrics_count=len(metrics))
         
         # Step 5: Generate segmentation visualizations
-        self._update_progress(75, "Generating visualizations...")
+        self._update_progress(97, "Generating visualizations...")
         visualization_paths = self._generate_visualizations(nifti_path, freesurfer_output)
         
         # Step 6: Save results
-        self._update_progress(82, "Saving results...")
+        self._update_progress(99, "Saving results...")
         self._save_results(metrics)
         
         logger.info(
@@ -1829,9 +1847,7 @@ class MRIProcessor:
             "--bind", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
             "--env", f"FS_LICENSE=/usr/local/freesurfer/license.txt",
             "--env", f"SUBJECTS_DIR=/subjects",
-            "--env", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
-            "--env", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
-            "--env", "FS_THREADED=1",  # Enable FreeSurfer threading
+            *self._get_freesurfer_thread_env("--env"),
             str(abs_sif_path),  # Local .sif file
             "/bin/bash", "-c",
             " recon-all -i /input/{nifti_path.name} -s {subject_id}",
@@ -1890,9 +1906,7 @@ class MRIProcessor:
                     "--bind", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
                     "--env", f"FS_LICENSE=/usr/local/freesurfer/license.txt",
                     "--env", f"SUBJECTS_DIR=/subjects",
-            "--env", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
-            "--env", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
-            "--env", "FS_THREADED=1",  # Enable FreeSurfer threading
+            *self._get_freesurfer_thread_env("--env"),
                     str(abs_sif_path),
                     "/bin/bash", "-c",
                     f" mri_segstats --seg /subjects/{subject_id}/mri/aseg.auto.mgz --excludeid 0 --sum /subjects/{subject_id}/stats/aseg.stats --i /subjects/{subject_id}/mri/brain.mgz"
@@ -2077,9 +2091,7 @@ class MRIProcessor:
                 "-e", "PATH=/usr/bin:/usr/local/bin:$PATH",
                 "-e", "ANTSPATH=/usr/local/freesurfer/bin",
                 "-e", "HOSTNAME=localhost",  # Set hostname environment variable
-                "-e", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
-                "-e", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
-                "-e", "FS_THREADED=1",  # Enable FreeSurfer threading
+                *self._get_freesurfer_thread_env("-e"),
                 FREESURFER_CONTAINER_IMAGE,
                 "/bin/bash", "-c",
                 f"source /usr/local/freesurfer/FreeSurferEnv.sh && recon-all -i /input/{nifti_path.name} -s {subject_id} -autorecon1 -autorecon2-volonly",
@@ -2102,7 +2114,11 @@ class MRIProcessor:
             status_log_path = subject_output_dir / "scripts" / "recon-all-status.log"
             # Convert to absolute path so monitor thread can find it reliably
             abs_status_log_path = status_log_path.resolve()
-            progress_monitor = self._start_freesurfer_progress_monitor(abs_status_log_path, base_progress=self._get_current_progress())
+            progress_monitor = self._start_freesurfer_progress_monitor(
+                abs_status_log_path,
+                base_progress=self._get_current_progress(),
+                end_progress=90
+            )
 
             logger.info("freesurfer_docker_starting_combined_autorecon",
                        command=" ".join(docker_cmd))
@@ -2498,9 +2514,7 @@ class MRIProcessor:
                 "-B", f"{license_path}:/usr/local/freesurfer/license.txt:ro",
                 "--env", f"FS_LICENSE=/usr/local/freesurfer/license.txt",
                 "--env", f"SUBJECTS_DIR=/subjects",
-            "--env", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
-            "--env", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
-            "--env", "FS_THREADED=1",  # Enable FreeSurfer threading
+            *self._get_freesurfer_thread_env("--env"),
                 str(singularity_image),
                 "/bin/bash", "-c",
                 f" recon-all -i /input/{nifti_path.name} -s {subject_id}",
@@ -2517,7 +2531,11 @@ class MRIProcessor:
             # Start progress monitoring
             status_log_path = subject_output_dir / "scripts" / "recon-all-status.log"
             logger.info("starting_progress_monitor", log_path=str(status_log_path), log_exists=status_log_path.exists(), subject_dir=str(subject_output_dir))
-            progress_monitor = self._start_freesurfer_progress_monitor(status_log_path, base_progress=self._get_current_progress())
+            progress_monitor = self._start_freesurfer_progress_monitor(
+                status_log_path,
+                base_progress=self._get_current_progress(),
+                end_progress=90
+            )
 
             logger.info("freesurfer_singularity_starting_combined_autorecon",
                        command=" ".join(singularity_cmd))
@@ -2556,9 +2574,7 @@ class MRIProcessor:
                     "-B", f"{license_path}:/usr/local/freesurfer/license.txt:ro",
                     "--env", f"FS_LICENSE=/usr/local/freesurfer/license.txt",
                     "--env", f"SUBJECTS_DIR=/subjects",
-            "--env", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
-            "--env", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
-            "--env", "FS_THREADED=1",  # Enable FreeSurfer threading
+            *self._get_freesurfer_thread_env("--env"),
                     str(singularity_image),
                     "/bin/bash", "-c",
                     f" mri_segstats --seg /subjects/{subject_id}/mri/aseg.auto.mgz --excludeid 0 --sum /subjects/{subject_id}/stats/aseg.stats --i /subjects/{subject_id}/mri/brain.mgz"
@@ -3707,9 +3723,7 @@ class MRIProcessor:
             "--bind", f"{license_path}:/usr/local/freesurfer/license.txt:ro",
             "--env", f"FS_LICENSE=/usr/local/freesurfer/license.txt",
             "--env", f"SUBJECTS_DIR=/subjects",
-            "--env", f"OMP_NUM_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # Enable OpenMP parallelization
-            "--env", f"ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS={max(1, (os.cpu_count() or 4) - 2)}",  # ANTs thread count
-            "--env", "FS_THREADED=1",  # Enable FreeSurfer threading
+            *self._get_freesurfer_thread_env("--env"),
             str(sif_path),
             "/bin/bash", "-c",
             f" mri_segstats --seg /subjects/mri/aseg.mgz --sum /subjects/stats/aseg.stats --pv /subjects/mri/norm.mgz --empty --brain-vol --subject {subject_dir.name}"
@@ -4289,7 +4303,12 @@ class MRIProcessor:
         app_root = current_file.parent.parent.parent  # Go up from pipeline/processors/mri_processor.py
         return app_root
 
-    def _start_freesurfer_progress_monitor(self, status_log_path: Path, base_progress: int = 20) -> None:
+    def _start_freesurfer_progress_monitor(
+        self,
+        status_log_path: Path,
+        base_progress: int = 20,
+        end_progress: int = 100
+    ) -> None:
         """Start monitoring FreeSurfer progress by parsing recon-all-status.log.
 
         This runs in a separate thread and updates progress based on FreeSurfer's
@@ -4310,31 +4329,37 @@ class MRIProcessor:
             # Fixed percentage allocation based on phase complexity/duration.
             # Weights are mapped into the remaining range [base_progress, 100]
             # so percentages never exceed 100 even when base_progress > 0.
+            # Weights below are derived from the last completed job's phase durations
+            # (minutes rounded). This keeps percentages aligned with actual runtimes.
             phase_weights = {
-                "motioncor": 5,                 # Motion correction
-                "nu intensity correction": 15,  # N4 bias correction (long)
-                "talairach": 25,                # Atlas registration (long)
-                "intensity normalization": 10,  # Intensity normalization
-                "skull stripping": 12,          # Brain extraction
-                "em registration": 12,          # EM registration (long)
-                "ca normalize": 6,              # CA normalize
-                "ca reg": 5,                    # CA registration
-                "subcort seg": 5,               # Subcortical segmentation
-                "wm segmentation": 3,           # WM segmentation
-                "fill": 1,                      # Surface filling
-                "cc seg": 1,                    # Corpus callosum
-                "cortical parcellation": 0,     # Not usually reached in volonly
+                "motioncor": 1,                  # ~0.3 min
+                "talairach": 4,                  # ~3.9 min
+                "talairach failure detection": 0,
+                "nu intensity correction": 4,    # ~4.0 min
+                "intensity normalization": 2,    # ~1.6 min
+                "skull stripping": 16,           # ~15.8 min
+                "em registration": 12,           # ~11.8 min
+                "ca normalize": 1,               # ~1.0 min
+                "ca reg": 127,                   # ~127 min
+                "subcort seg": 32,               # ~32 min
+                "cc seg": 1,                     # ~0.8 min
+                "merge aseg": 0,
+                "intensity normalization2": 2,   # ~2.4 min
+                "mask bfs": 0,
+                "wm segmentation": 3,            # ~2.5 min
+                "fill": 2,                       # ~2+ min (end marker not logged)
+                "cortical parcellation": 0,      # Not usually reached in volonly
             }
 
             total_weight = sum(phase_weights.values()) or 1
-            remaining_range = max(0, 100 - base_progress)
+            remaining_range = max(0, end_progress - base_progress)
             cumulative = 0
             phase_info = {}
             for phase, weight in phase_weights.items():
                 cumulative += weight
                 completion = base_progress + int((remaining_range * cumulative) / total_weight)
                 phase_info[phase] = {
-                    "completion_percent": min(completion, 100),
+                    "completion_percent": min(completion, end_progress),
                     "estimated_duration": 0
                 }
 
@@ -4402,7 +4427,7 @@ class MRIProcessor:
 
                                                 # Calculate start progress (previous phase completion + small increment)
                                                 if current_phase == "motioncor":
-                                                    start_progress = base_progress + 1  # Start at 1% for first phase
+                                                    start_progress = min(base_progress + 1, end_progress)
                                                 else:
                                                     # Find previous phase completion percentage
                                                     prev_completion = base_progress
@@ -4412,7 +4437,7 @@ class MRIProcessor:
                                                         prev_phase = phase_keys[current_idx - 1]
                                                         prev_completion = phase_info[prev_phase]["completion_percent"]
 
-                                                    start_progress = prev_completion + 1  # Start 1% after previous completion
+                                                    start_progress = min(prev_completion + 1, end_progress)
 
                                                 phase_display_name = phase.replace('_', ' ').title()
                                                 self._update_progress(start_progress, f"Processing...({phase_display_name})")

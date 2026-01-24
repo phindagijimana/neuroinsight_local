@@ -263,8 +263,13 @@ def process_mri_direct(job_id: str):
             # Update progress: Finalizing (95%)
             update_job_progress(db, job_id_str, 95, "Finalizing results...")
             
-            # Mark job as completed (this will set progress to 100)
-            JobService.complete_job(db, job_id_str, results["output_dir"], results.get("visualizations"))
+            # Mark job as completed with visualization URLs (this will set progress to 100)
+            JobService.complete_job(
+                db,
+                job_id_str,
+                results["output_dir"],
+                JobService.build_visualization_payload(job_id_str)
+            )
 
             # Check if there are pending jobs and start the next one
             _start_next_pending_job(db)

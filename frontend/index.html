@@ -151,11 +151,18 @@
           if (window.electronAPI && window.electronAPI.getBackendURL) {
             // We'll fetch this asynchronously, but for now return a placeholder
             // The actual URL will be fetched when needed
-            return 'http://localhost:8001'; // Placeholder, will be replaced
+            return 'http://localhost:8001/api'; // Placeholder, will be replaced
           }
           
-          // Since frontend is served by FastAPI backend, API is on the same port
-          let apiUrl = `${window.location.protocol}//${window.location.hostname}:${window.location.port || (window.location.protocol === 'https:' ? '443' : '80')}`;
+          // For Vite dev server on 5173, use the dev backend on 8001
+          let apiUrl;
+          if (window.location.port === '5173') {
+            apiUrl = `${window.location.protocol}//${window.location.hostname}:8001/api`;
+          } else {
+            // For backend-served frontend, API is on the same origin under /api
+            const port = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+            apiUrl = `${window.location.protocol}//${window.location.hostname}:${port}/api`;
+          }
           
           // Allow override via query parameter: ?api=http://localhost:8000
           const urlParams = new URLSearchParams(window.location.search);
@@ -212,8 +219,8 @@
        */
       async getJobs() {
         try {
-          console.log('Fetching jobs from:', `${CONFIG.api.baseUrl}/jobs/delete/`);
-          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/`);
+          console.log('Fetching jobs from:', `${CONFIG.api.baseUrl}/jobs/`);
+          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/`);
           console.log('Response status:', response.status, response.statusText);
           if (!response.ok) {
             const errorText = await response.text();
@@ -304,7 +311,7 @@
        */
       async getJob(jobId) {
         try {
-          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/?job_id=${jobId}`);
+          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/${jobId}`);
           if (!response.ok) throw new Error('Failed to fetch job');
           return await response.json();
         } catch (error) {
@@ -320,11 +327,8 @@
        */
       async getMetrics(jobId) {
         try {
-          // Try /jobs/delete/{jobId}/metrics first, fallback to /metrics/{jobId}
-          let response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/?job_id=${jobId}/metrics`);
-          if (!response.ok) {
-            response = await fetch(`${CONFIG.api.baseUrl}/metrics/${jobId}`);
-          }
+          // Try /metrics?job_id={jobId} first, fallback to job data
+          let response = await fetch(`${CONFIG.api.baseUrl}/metrics?job_id=${jobId}`);
           if (!response.ok) {
             // If metrics endpoint doesn't exist, get metrics from job data
             const jobData = await this.getJob(jobId);
@@ -350,7 +354,7 @@
        */
       async deleteJob(jobId) {
         try {
-          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/?job_id=${jobId}`, { method: 'DELETE' });
+          const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/${jobId}`, { method: 'DELETE' });
           if (!response.ok) throw new Error('Failed to delete job');
           return true;
         } catch (error) {
@@ -841,8 +845,8 @@
             console.log('Trying direct fetch fallback...');
             // Fallback: Try direct fetch with credentials
             try {
-              console.log('Making direct fetch request to:', `${CONFIG.api.baseUrl}/jobs/delete/`);
-              const response = await fetch(`${CONFIG.api.baseUrl}/jobs/delete/`, {
+              console.log('Making direct fetch request to:', `${CONFIG.api.baseUrl}/jobs/`);
+              const response = await fetch(`${CONFIG.api.baseUrl}/jobs/`, {
                 method: 'GET',
                 headers: {
                   'Accept': 'application/json',

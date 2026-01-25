@@ -319,7 +319,11 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 ```bash
 ./neuroinsight stop
 ```
-**What it does:** Gracefully shuts down all NeuroInsight services. This ensures proper cleanup of running processes and prevents data corruption. Wait for confirmation that all services have stopped.
+**What it does:** Gracefully shuts down all NeuroInsight services and **disables no‑sleep mode** if it is active. This ensures proper cleanup of running processes and returns the system to normal sleep behavior. Wait for confirmation that all services have stopped.
+
+**Container handling:** Stopping the app stops any running FreeSurfer containers, but does not immediately remove stopped containers. Maintenance cleans stopped FreeSurfer containers older than 5 days.
+
+**Note:** The stop script removes the PostgreSQL/Redis/MinIO containers. If you want job data to persist across restarts, configure persistent volumes or external services.
 
 ### Check Status
 ```bash
@@ -349,6 +353,49 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 - Docker container health
 - System logs and error tracking
 - Performance metrics and alerts
+
+### Failure Handling and Queue Behavior
+When a job fails:
+- The job is marked **failed** with an error message.
+- The FreeSurfer container is **stopped** (not removed).
+- The queue immediately starts the next pending job if capacity allows.
+
+Stopped FreeSurfer containers are cleaned up automatically by maintenance after **5 days**. Job result cleanup is still controlled by the user via `./neuroinsight clean`.
+
+### Prevent System Sleep
+```bash
+./neuroinsight nosleep
+```
+**What it does:** Uses `systemd-inhibit` to prevent the machine from sleeping while jobs run. Run this after `./neuroinsight start`. It will be stopped automatically when you run `./neuroinsight stop`.
+
+### Clean Old Jobs
+```bash
+./neuroinsight clean
+```
+Use the default 90-day retention when you want routine cleanup without fine-tuning.
+
+```bash
+./neuroinsight clean --days 30
+```
+Use a short retention window when storage is tight or you only need recent results.
+
+```bash
+./neuroinsight clean --months 6
+```
+Use month-based retention for scheduled or quarterly cleanup policies.
+
+```bash
+./neuroinsight clean --days 30 --keep d56a321c
+```
+Use this when you want aggressive cleanup but must preserve a specific job.
+
+**What it does:** Removes completed/failed jobs older than the retention window and deletes their files. Use `--keep` to preserve specific jobs.
+
+### Recover a Completed Job
+```bash
+./neuroinsight bring <job_id>
+```
+**What it does:** Reconstructs a completed job from on-disk output files. If no outputs exist for the ID, the script reports that it cannot recover the job.
 
 ### Additional Commands
 

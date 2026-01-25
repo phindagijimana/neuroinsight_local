@@ -5,13 +5,12 @@ This service provides business logic for creating, retrieving,
 and updating jobs in the system.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 from uuid import UUID
+import subprocess as subprocess_module
 
 from sqlalchemy.orm import Session
-
-from datetime import datetime
 
 from backend.core.logging import get_logger
 from backend.models import Job, Metric
@@ -384,6 +383,13 @@ class JobService:
         """
         try:
             import subprocess
+            from backend.core.database import SessionLocal
+            from sqlalchemy.orm import Session as OrmSession
+
+            owns_session = False
+            if db is None:
+                db = SessionLocal()
+                owns_session = True
 
             # Get all running FreeSurfer containers
             result = subprocess.run(
@@ -409,13 +415,33 @@ class JobService:
                     job_id_part = container_name.replace('freesurfer-job-', '')
                     job = JobService.get_job(db, job_id_part)
 
-                    if not job:
-                        # Job doesn't exist in database - orphaned container
-                        logger.warning("found_orphaned_container",
-                                     container_name=container_name,
-                                     job_id=job_id_part)
+                    should_stop = False
+                    stop_reason = None
 
-                        # Stop the orphaned container
+                    if not job:
+                        should_stop = True
+                        stop_reason = "job_missing"
+                    else:
+                        job_status = job.status.value if hasattr(job.status, "value") else str(job.status)
+                        if job_status in ["failed", "cancelled", "completed"]:
+                            should_stop = True
+                            stop_reason = f"job_{job_status}"
+                        elif job_status == "pending":
+                            # Avoid race conditions: only treat as stale if it has been pending for a while
+                            if job.started_at:
+                                elapsed_seconds = (datetime.utcnow() - job.started_at).total_seconds()
+                                if elapsed_seconds > 120:
+                                    should_stop = True
+                                    stop_reason = "pending_with_running_container"
+
+                    if should_stop:
+                        logger.warning(
+                            "found_orphaned_or_stale_container",
+                            container_name=container_name,
+                            job_id=job_id_part,
+                            reason=stop_reason,
+                        )
+
                         stop_result = subprocess.run(
                             ["docker", "stop", container_name],
                             capture_output=True,
@@ -423,19 +449,30 @@ class JobService:
                         )
 
                         if stop_result.returncode == 0:
-                            logger.info("stopped_orphaned_container",
-                                       container_name=container_name,
-                                       job_id=job_id_part)
+                            logger.info(
+                                "stopped_orphaned_or_stale_container",
+                                container_name=container_name,
+                                job_id=job_id_part,
+                                reason=stop_reason,
+                            )
                             cleaned_count += 1
+
+                            if job and job.docker_container_id == container_name:
+                                job.docker_container_id = None
+                                db.commit()
                         else:
-                            logger.error("failed_to_stop_orphaned_container",
-                                       container_name=container_name,
-                                       error=stop_result.stderr.decode())
+                            logger.error(
+                                "failed_to_stop_orphaned_or_stale_container",
+                                container_name=container_name,
+                                error=stop_result.stderr.decode(),
+                            )
                     else:
-                        logger.debug("container_has_valid_job",
-                                   container_name=container_name,
-                                   job_id=str(job.id),
-                                   job_status=job.status.value)
+                        logger.debug(
+                            "container_has_active_job",
+                            container_name=container_name,
+                            job_id=str(job.id) if job else None,
+                            job_status=job.status.value if job else None,
+                        )
                 except Exception as e:
                     logger.error("error_processing_container",
                                container_name=container_name,
@@ -449,6 +486,71 @@ class JobService:
         except Exception as e:
             logger.error("orphaned_container_cleanup_failed", error=str(e))
             return 0
+
+    @staticmethod
+    def cleanup_stopped_containers(logger, retention_days: int = 5) -> int:
+        """
+        Remove stopped FreeSurfer containers older than retention_days.
+        """
+        try:
+            result = subprocess_module.run(
+                ["docker", "ps", "-a", "--filter", "name=freesurfer-job-", "--format", "{{.Names}}"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                logger.warning("failed_to_list_all_containers", error=result.stderr.strip())
+                return 0
+
+            container_names = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+            removed = 0
+            now = datetime.now(timezone.utc)
+
+            for container_name in container_names:
+                inspect = subprocess_module.run(
+                    ["docker", "inspect", "--format", "{{.State.Status}} {{.State.FinishedAt}}", container_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if inspect.returncode != 0:
+                    continue
+                parts = inspect.stdout.strip().split(" ", 1)
+                if len(parts) != 2:
+                    continue
+                status, finished_at = parts
+                if status not in ("exited", "dead"):
+                    continue
+                try:
+                    finished_time = datetime.fromisoformat(finished_at.replace("Z", "+00:00"))
+                except Exception:
+                    continue
+                if now - finished_time < timedelta(days=retention_days):
+                    continue
+
+                rm_result = subprocess_module.run(
+                    ["docker", "rm", container_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if rm_result.returncode == 0:
+                    removed += 1
+                    logger.info("removed_stopped_container", container_name=container_name)
+
+            if removed:
+                logger.info("stopped_container_cleanup_completed", removed=removed, retention_days=retention_days)
+            return removed
+        except Exception as e:
+            logger.error("stopped_container_cleanup_failed", error=str(e))
+            return 0
+        finally:
+            try:
+                if 'owns_session' in locals() and owns_session:
+                    db.close()
+            except Exception:
+                pass
     
     @staticmethod
     def start_job(db: Session, job_id) -> Optional[Job]:
@@ -583,6 +685,16 @@ class JobService:
         job.status = JobStatus.FAILED
         job.completed_at = datetime.utcnow()
         job.error_message = error_message
+
+        if job.docker_container_id:
+            try:
+                subprocess_module.run(
+                    ["docker", "stop", job.docker_container_id],
+                    capture_output=True,
+                    timeout=30,
+                )
+            except Exception as e:
+                logger.warning("failed_to_stop_container_on_failure", job_id=str(job.id), error=str(e))
         
         db.commit()
         db.refresh(job)

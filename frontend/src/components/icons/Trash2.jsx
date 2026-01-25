@@ -5,3 +5,4 @@ const Trash2 = (props) => (
 );
 
 export default Trash2;
+

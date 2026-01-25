@@ -6,3 +6,4 @@ const Clock = (props) => (
 );
 
 export default Clock;
+

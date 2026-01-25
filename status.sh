@@ -71,16 +71,18 @@ echo
 
 # Get system status from API
 log_info "Fetching system status..."
-if curl -s http://localhost:8000/api/status > /dev/null 2>&1; then
-    STATUS_JSON=$(curl -s http://localhost:8000/api/status)
+if curl -s http://localhost:8000/api/jobs/stats > /dev/null 2>&1; then
+    STATUS_JSON=$(curl -s http://localhost:8000/api/jobs/stats)
     echo "System Status:"
     echo "$STATUS_JSON" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 print(f'  Status: {data.get(\"status\", \"unknown\")}')
-print(f'  Jobs - Total: {data.get(\"jobs\", {}).get(\"total\", 0)}, Running: {data.get(\"jobs\", {}).get(\"running\", 0)}, Pending: {data.get(\"jobs\", {}).get(\"pending\", 0)}')
-print(f'  Memory: {data.get(\"system\", {}).get(\"memory_usage_percent\", 0)}% used')
-print(f'  Disk: {data.get(\"system\", {}).get(\"disk_usage_percent\", 0)}% used')
+print(f'  Jobs - Total: {data.get(\"jobs\", {}).get(\"total\", 0)}, Running: {data.get(\"jobs\", {}).get(\"running\", 0)}, Pending: {data.get(\"jobs\", {}).get(\"pending\", 0)}, Failed: {data.get(\"jobs\", {}).get(\"failed\", 0)}')
+print(f'  Success rate: {data.get(\"jobs\", {}).get(\"success_rate\", 0)}%')
+print(f'  Avg processing time: {data.get(\"performance\", {}).get(\"avg_processing_time_seconds\", \"n/a\")}s')
+print(f'  Queue size: {data.get(\"system\", {}).get(\"queue_size\", 0)}')
+print(f'  Storage used: {data.get(\"system\", {}).get(\"storage_used_mb\", 0)} MB')
 "
 else
     log_warning "Could not fetch detailed system status"

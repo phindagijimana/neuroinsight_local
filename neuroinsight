@@ -16,62 +16,61 @@ if [[ "$TERM_PROGRAM" == "vscode" ]] || [[ "$TERM_PROGRAM" == "vscode-insiders" 
     echo "Using Python-based startup to avoid corruption issues..."
     echo ""
 
-    # Use Python directly to avoid terminal issues
-    exec python3 start.py "$@"
+    PYTHON_BIN="python3"
 else
-    # Use Python-based scripts for consistency
-    case "$1" in
-        start)
-            echo "Starting NeuroInsight..."
-            # Check if virtual environment exists
-            if [ -f "venv/bin/activate" ]; then
-                echo "Activating Python virtual environment..."
-                exec venv/bin/python start.py
-            else
-                echo "Warning: Python virtual environment not found. Running with system Python..."
-                exec python3 start.py
-            fi
-            ;;
-        dev-start)
-            echo "Starting NeuroInsight (dev backend)..."
-            if [ -f "venv/bin/activate" ]; then
-                exec venv/bin/python start_dev.py
-            else
-                exec python3 start_dev.py
-            fi
-            ;;
-        stop)
-            echo "Stopping NeuroInsight..."
-            # Check if virtual environment exists
-            if [ -f "venv/bin/activate" ]; then
-                exec venv/bin/python stop.py "${@:2}"
-            else
-                exec python3 stop.py "${@:2}"
-            fi
-            ;;
-        dev-stop)
-            echo "Stopping NeuroInsight (dev backend)..."
-            if [ -f "venv/bin/activate" ]; then
-                exec venv/bin/python stop_dev.py "${@:2}"
-            else
-                exec python3 stop_dev.py "${@:2}"
-            fi
-            ;;
-        status)
-            echo "NeuroInsight Status..."
-            exec ./status.sh
-            ;;
-        dev-status)
-            echo "NeuroInsight Dev Status..."
-            exec ./status_dev.sh
-            ;;
-        monitor)
-            echo "NeuroInsight Monitoring..."
-            exec ./monitor.sh "${@:2}"
-            ;;
-        health)
-            echo "[HEALTH] NeuroInsight System Health Check"
-            echo "=========================================="
+    if [ -f "venv/bin/activate" ]; then
+        PYTHON_BIN="venv/bin/python"
+    else
+        PYTHON_BIN="python3"
+    fi
+fi
+
+# Use Python-based scripts for consistency
+case "$1" in
+    start)
+        echo "Starting NeuroInsight..."
+        exec "$PYTHON_BIN" start.py
+        ;;
+    dev-start)
+        echo "Starting NeuroInsight (dev backend)..."
+        exec "$PYTHON_BIN" start_dev.py
+        ;;
+    stop)
+        echo "Stopping NeuroInsight..."
+        "$PYTHON_BIN" nosleep.py stop >/dev/null 2>&1 || true
+        exec "$PYTHON_BIN" stop.py "${@:2}"
+        ;;
+    dev-stop)
+        echo "Stopping NeuroInsight (dev backend)..."
+        exec "$PYTHON_BIN" stop_dev.py "${@:2}"
+        ;;
+    status)
+        echo "NeuroInsight Status..."
+        exec ./status.sh
+        ;;
+    dev-status)
+        echo "NeuroInsight Dev Status..."
+        exec ./status_dev.sh
+        ;;
+    monitor)
+        echo "NeuroInsight Monitoring..."
+        exec ./monitor.sh "${@:2}"
+        ;;
+    nosleep)
+        echo "NeuroInsight No-Sleep..."
+        exec "$PYTHON_BIN" nosleep.py start
+        ;;
+    clean)
+        echo "NeuroInsight Cleanup..."
+        exec "$PYTHON_BIN" clean.py "${@:2}"
+        ;;
+    bring)
+        echo "NeuroInsight Job Recovery..."
+        exec "$PYTHON_BIN" bring_job.py "${@:2}"
+        ;;
+    health)
+        echo "[HEALTH] NeuroInsight System Health Check"
+        echo "=========================================="
 
             # Check system resources
             echo "[HEALTH] System Resources:"
@@ -114,44 +113,44 @@ else
                 echo "  [WARN] ISSUES DETECTED - Some services may be down"
                 echo "  [ACTION] Run './neuroinsight start' to restart services"
             fi
-            ;;
-        license)
-            echo "FreeSurfer License Management"
-            if [ -f "license.txt" ]; then
-                echo "License file found: license.txt"
-                # Basic validation - check if it has content
-                if [ $(wc -l < license.txt) -ge 4 ] && ! grep -q "REPLACE THIS EXAMPLE CONTENT" license.txt 2>/dev/null; then
-                    echo "License appears to be valid"
-                    echo ""
-                    echo "To update license:"
-                    echo "1. Replace license.txt with new license file"
-                    echo "2. Restart NeuroInsight: ./neuroinsight stop && ./neuroinsight start"
-                else
-                    echo "Warning: License file exists but may contain example content"
-                    echo ""
-                    echo "To fix:"
-                    echo "1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
-                    echo "2. Download the real license.txt file"
-                    echo "3. Replace the current license.txt file"
-                fi
+        ;;
+    license)
+        echo "FreeSurfer License Management"
+        if [ -f "license.txt" ]; then
+            echo "License file found: license.txt"
+            # Basic validation - check if it has content
+            if [ $(wc -l < license.txt) -ge 4 ] && ! grep -q "REPLACE THIS EXAMPLE CONTENT" license.txt 2>/dev/null; then
+                echo "License appears to be valid"
+                echo ""
+                echo "To update license:"
+                echo "1. Replace license.txt with new license file"
+                echo "2. Restart NeuroInsight: ./neuroinsight stop && ./neuroinsight start"
             else
-                echo "No license file found"
+                echo "Warning: License file exists but may contain example content"
                 echo ""
-                echo "To set up FreeSurfer license:"
+                echo "To fix:"
                 echo "1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
-                echo "2. Register with your research email"
-                echo "3. Download the license.txt file"
-                echo "4. Place license.txt in this directory (same folder as NeuroInsight)"
-                echo "5. Restart NeuroInsight: ./neuroinsight stop && ./neuroinsight start"
-                echo ""
-                echo "Note: Without license, NeuroInsight will use mock processing for demonstrations"
+                echo "2. Download the real license.txt file"
+                echo "3. Replace the current license.txt file"
             fi
-            ;;
-        reinstall)
-            echo "[REINSTALL] NeuroInsight Complete Reinstallation Guide"
+        else
+            echo "No license file found"
             echo ""
-            echo "This will completely remove NeuroInsight and allow a fresh installation."
+            echo "To set up FreeSurfer license:"
+            echo "1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
+            echo "2. Register with your research email"
+            echo "3. Download the license.txt file"
+            echo "4. Place license.txt in this directory (same folder as NeuroInsight)"
+            echo "5. Restart NeuroInsight: ./neuroinsight stop && ./neuroinsight start"
             echo ""
+            echo "Note: Without license, NeuroInsight will use mock processing for demonstrations"
+        fi
+        ;;
+    reinstall)
+        echo "[REINSTALL] NeuroInsight Complete Reinstallation Guide"
+        echo ""
+        echo "This will completely remove NeuroInsight and allow a fresh installation."
+        echo ""
 
             # Automated cleanup section
             echo "[CLEANUP] AUTOMATED CLEANUP (Running now...):"
@@ -216,44 +215,56 @@ else
             echo ""
             echo "[TIP] Automated cleanup handled containers and temporary files."
             echo "[TIP] This is useful if you encounter persistent issues or want a completely clean setup."
-            ;;
-        install)
-            echo "NeuroInsight Installation"
-            if [ -f "install.sh" ]; then
-                echo "Running installation script..."
-                exec ./install.sh
-            else
-                echo "Error: install.sh not found in current directory"
-                echo "Please ensure you're in the NeuroInsight project directory"
-                exit 1
-            fi
-            ;;
-        *)
-            echo "NeuroInsight Control Script"
-            echo ""
-            echo "Usage: $0 {install|reinstall|start|stop|status|monitor|health|license}"
-            echo ""
-            echo "Commands:"
-            echo "  install   - Run NeuroInsight installation"
-            echo "  reinstall - Complete reinstallation guide (removes everything)"
-            echo "  start     - Start all NeuroInsight services"
-            echo "  stop      - Stop all NeuroInsight services"
-            echo "  status    - Show system status"
-            echo "  monitor   - Advanced monitoring options"
-            echo "  health    - Quick system health check"
-            echo "  license   - FreeSurfer license management"
-            echo ""
-            echo "Examples:"
-            echo "  $0 install         # Install NeuroInsight"
-            echo "  $0 reinstall       # Get complete reinstallation steps"
-            echo "  $0 start           # Start NeuroInsight"
-            echo "  $0 stop            # Stop NeuroInsight"
-            echo "  $0 stop --clear-stuck  # Stop and clear stuck jobs"
-            echo "  $0 status          # Show system status"
-            echo "  $0 health          # Quick health check"
-            echo "  $0 license         # Check/setup FreeSurfer license"
-            echo "  $0 monitor cleanup # Clean up orphaned processes"
+        ;;
+    install)
+        echo "NeuroInsight Installation"
+        if [ -f "install.sh" ]; then
+            echo "Running installation script..."
+            exec ./install.sh
+        else
+            echo "Error: install.sh not found in current directory"
+            echo "Please ensure you're in the NeuroInsight project directory"
             exit 1
-            ;;
-    esac
-fi
+        fi
+        ;;
+    *)
+        echo "NeuroInsight Control Script"
+        echo ""
+        echo "Usage: $0 {install|reinstall|start|stop|status|monitor|nosleep|clean|bring|health|license|dev-start|dev-stop|dev-status}"
+        echo ""
+        echo "Commands:"
+        echo "  install    - Run NeuroInsight installation"
+        echo "  reinstall  - Complete reinstallation guide (removes everything)"
+        echo "  start      - Start all NeuroInsight services"
+        echo "  stop       - Stop all NeuroInsight services"
+        echo "  status     - Show system status"
+        echo "  monitor    - Advanced monitoring options"
+        echo "  nosleep    - Prevent system sleep while jobs run"
+        echo "  clean      - Remove old completed/failed jobs"
+        echo "  bring      - Recover a completed job by ID"
+        echo "  health     - Quick system health check"
+        echo "  license    - FreeSurfer license management"
+        echo "  dev-start  - Start dev backend services"
+        echo "  dev-stop   - Stop dev backend services"
+        echo "  dev-status - Show dev backend status"
+        echo ""
+        echo "Examples:"
+        echo "  $0 install            # Install NeuroInsight"
+        echo "  $0 reinstall          # Get complete reinstallation steps"
+        echo "  $0 start              # Start NeuroInsight"
+        echo "  $0 stop               # Stop NeuroInsight"
+        echo "  $0 stop --clear-stuck # Stop and clear stuck jobs"
+        echo "  $0 status             # Show system status"
+        echo "  $0 health             # Quick health check"
+        echo "  $0 license            # Check/setup FreeSurfer license"
+        echo "  $0 dev-start          # Start dev backend"
+        echo "  $0 dev-stop           # Stop dev backend"
+        echo "  $0 dev-status         # Dev status"
+        echo "  $0 nosleep            # Prevent sleep (run after start)"
+        echo "  $0 clean --days 90 --keep d56a321c  # Cleanup but keep job"
+        echo "  $0 clean --months 6               # Cleanup jobs older than 6 months"
+        echo "  $0 bring <job_id>      # Recover job from outputs"
+        echo "  $0 monitor cleanup     # Clean up orphaned processes"
+        exit 1
+        ;;
+esac

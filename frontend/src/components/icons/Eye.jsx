@@ -6,3 +6,4 @@ const Eye = (props) => (
 );
 
 export default Eye;
+

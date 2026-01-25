@@ -247,10 +247,13 @@ def start_job_monitor():
                 sys.executable, '-c',
                 """
 import sys
+import time
 sys.path.insert(0, '.')
 from backend.services.job_monitor import JobMonitor
 monitor = JobMonitor()
 monitor.start_background_monitoring()
+while True:
+    time.sleep(60)
 """
             ],
             env=env,
@@ -357,4 +360,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

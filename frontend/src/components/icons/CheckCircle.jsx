@@ -5,3 +5,4 @@ const CheckCircle = (props) => (
 );
 
 export default CheckCircle;
+

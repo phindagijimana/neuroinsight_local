@@ -175,10 +175,10 @@ class MRIProcessor:
         """
         Get a safe thread count for FreeSurfer inside Docker.
 
-        Keep the previous behavior (CPU count minus 2) but cap at 7 cores.
+        Keep the previous behavior (CPU count minus 3) but cap at 3 cores.
         """
         cpu_count = os.cpu_count() or 4
-        return max(1, min(7, cpu_count - 2))
+        return max(1, min(3, cpu_count - 3))
 
     def _get_freesurfer_thread_env(self, flag: str = "-e") -> list:
         """
@@ -196,6 +196,89 @@ class MRIProcessor:
             flag, "OMP_PROC_BIND=TRUE",
             flag, "OMP_PLACES=cores",
         ]
+
+    def _capture_container_failure_artifacts(self, container_name: str, subject_output_dir: Path) -> None:
+        """
+        Capture Docker container logs and state for post-failure diagnostics.
+        """
+        try:
+            artifacts_dir = subject_output_dir / "scripts"
+            artifacts_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+
+            inspect_path = artifacts_dir / f"docker-inspect-{container_name}-{timestamp}.json"
+            logs_path = artifacts_dir / f"docker-logs-{container_name}-{timestamp}.log"
+            state_path = artifacts_dir / f"docker-state-{container_name}-{timestamp}.txt"
+
+            inspect_result = subprocess_module.run(
+                ["docker", "inspect", container_name],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if inspect_result.returncode == 0:
+                inspect_path.write_text(inspect_result.stdout)
+
+            logs_result = subprocess_module.run(
+                ["docker", "logs", container_name],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if logs_result.returncode == 0:
+                logs_path.write_text(logs_result.stdout)
+
+            state_result = subprocess_module.run(
+                ["docker", "inspect", "--format", "{{.State.Status}} {{.State.ExitCode}} {{.State.OOMKilled}} {{.State.Error}} {{.State.FinishedAt}}", container_name],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if state_result.returncode == 0:
+                state_path.write_text(state_result.stdout.strip() + "\n")
+
+            logger.info(
+                "docker_failure_artifacts_captured",
+                container=container_name,
+                inspect_path=str(inspect_path),
+                logs_path=str(logs_path),
+                state_path=str(state_path),
+            )
+        except Exception as exc:
+            logger.warning("docker_failure_artifacts_capture_failed", container=container_name, error=str(exc))
+
+    def _write_docker_failure_output(
+        self,
+        subject_output_dir: Path,
+        container_name: str,
+        stdout_output: str,
+        stderr_output: str,
+    ) -> None:
+        """Persist docker run stdout/stderr for failure diagnostics."""
+        try:
+            artifacts_dir = subject_output_dir / "scripts"
+            artifacts_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+            stdout_path = artifacts_dir / f"docker-run-stdout-{container_name}-{timestamp}.log"
+            stderr_path = artifacts_dir / f"docker-run-stderr-{container_name}-{timestamp}.log"
+            if stdout_output:
+                stdout_path.write_text(stdout_output)
+            if stderr_output:
+                stderr_path.write_text(stderr_output)
+        except Exception as exc:
+            logger.warning("docker_failure_output_capture_failed", container=container_name, error=str(exc))
+
+    def _cleanup_named_container(self, container_name: str) -> None:
+        """Best-effort stop for a named Docker container."""
+        try:
+            subprocess_module.run(
+                ["docker", "stop", container_name],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except Exception as exc:
+            logger.warning("docker_container_cleanup_failed", container=container_name, error=str(exc))
 
     def _update_progress(self, progress: int, step: str):
         """
@@ -247,10 +330,9 @@ class MRIProcessor:
 
     def _cleanup_job_containers(self) -> None:
         """
-        Clean up any running Docker containers for this job.
+        Stop any running Docker containers for this job.
 
-        This ensures containers don't remain running after job completion,
-        preventing concurrency limit exhaustion.
+        Containers are left stopped for maintenance cleanup.
         """
         try:
             container_name = f"freesurfer-job-{self.job_id}"
@@ -271,23 +353,6 @@ class MRIProcessor:
                            job_id=str(self.job_id),
                            container_name=container_name,
                            stderr=result.stderr.decode() if result.stderr else "")
-
-            # Ensure the container is removed to avoid name conflicts
-            try:
-                rm_result = subprocess_module.run(
-                    ["docker", "rm", "-f", container_name],
-                    capture_output=True,
-                    timeout=30
-                )
-                if rm_result.returncode == 0:
-                    logger.info("removed_job_container", job_id=str(self.job_id), container_name=container_name)
-                else:
-                    logger.debug("container_remove_failed_or_not_found",
-                               job_id=str(self.job_id),
-                               container_name=container_name,
-                               stderr=rm_result.stderr.decode() if rm_result.stderr else "")
-            except Exception as rm_error:
-                logger.warning("container_remove_exception", job_id=str(self.job_id), error=str(rm_error))
 
         except subprocess_module.TimeoutExpired:
             logger.warning("container_stop_timeout", job_id=str(self.job_id), container_name=container_name)
@@ -2079,7 +2144,7 @@ class MRIProcessor:
 
             # Use traditional FreeSurfer recon-all command format
             docker_cmd = [
-                "docker", "run", "--rm", "--user", "root",  # Run as root to avoid nonroot user issues
+                "docker", "run", "--user", "root",  # Run as root to avoid nonroot user issues
                 "--name", container_name,  # Named container for tracking
                 # Removed memory limits - let FreeSurfer use what it needs (system has 30GB available)
                 "-v", f"{abs_freesurfer_dir}:/subjects",
@@ -2145,6 +2210,8 @@ class MRIProcessor:
                 print(f"DEBUG: Docker command completed with return code: {result.returncode}")
             except Exception as docker_exec_error:
                 print(f"DEBUG: Docker command execution failed: {docker_exec_error}")
+                # Attempt to capture container artifacts before raising
+                self._capture_container_failure_artifacts(container_name, subject_output_dir)
                 raise docker_exec_error
 
             print(f"DEBUG: Docker command completed with exit code: {result.returncode}")
@@ -2171,6 +2238,16 @@ class MRIProcessor:
                 if stderr_output:
                     error_msg += f" STDERR: {stderr_output[:300]}..."
 
+                self._write_docker_failure_output(
+                    subject_output_dir,
+                    container_name,
+                    stdout_output,
+                    stderr_output,
+                )
+
+                # Capture container logs/state before cleanup
+                self._capture_container_failure_artifacts(container_name, subject_output_dir)
+
                 # DEBUG: Print stderr to console
                 print(f"DEBUG: Docker stderr: {stderr_output}")
                 print(f"DEBUG: Docker stdout: {stdout_output}")
@@ -2188,7 +2265,12 @@ class MRIProcessor:
                 except Exception as cleanup_error:
                     logger.warning("failed_to_cleanup_container_on_error", error=str(cleanup_error))
 
+                # Cleanup container after capturing artifacts
+                self._cleanup_named_container(container_name)
                 raise RuntimeError(error_msg)
+
+            # Cleanup container on success
+            self._cleanup_named_container(container_name)
 
             logger.info("freesurfer_docker_combined_autorecon_completed")
 

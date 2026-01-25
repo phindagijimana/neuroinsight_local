@@ -247,7 +247,7 @@ def main():
 
     print()
     print("=" * 50)
-    print("To restart: python3 start.sh")
+    print("To restart: python3 start.py")
     print("To check status: ./status.sh")
     print("=" * 50)
 

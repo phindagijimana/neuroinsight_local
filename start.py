@@ -259,10 +259,13 @@ def start_job_monitor():
             sys.executable, '-c',
             """
 import sys
+import time
 sys.path.insert(0, '.')
 from backend.services.job_monitor import JobMonitor
 monitor = JobMonitor()
 monitor.start_background_monitoring()
+while True:
+    time.sleep(60)
 """
         ], env=env, stdout=open('job_monitor.log', 'w'),
            stderr=subprocess.STDOUT)
@@ -337,86 +340,6 @@ def main():
     if not port:
         log_error("No available ports found in range 8000-8050")
         sys.exit(1)
-
-    log_success(f"Selected port: {port}")
-
-    # Start backend
-    backend_proc = start_backend(port)
-    if not backend_proc:
-        log_error("Failed to start backend")
-        sys.exit(1)
-
-    # Start Celery worker
-    celery_proc = start_celery()
-    if not celery_proc:
-        log_warning("Celery worker failed to start - continuing anyway")
-
-    # Start job monitor
-    monitor_proc = start_job_monitor()
-    if not monitor_proc:
-        log_warning("Job monitor failed to start - continuing anyway")
-
-    # Start job queue processor
-    queue_proc = start_job_queue_processor()
-    if not queue_proc:
-        log_warning("Job queue processor failed to start - continuing anyway")
-
-    print()
-    print("=" * 50)
-    log_success("NeuroInsight is running!")
-    print(f"   Web Interface: http://localhost:{port}")
-    print(f"   API Docs: http://localhost:{port}/docs")
-    print(f"   Health Check: http://localhost:{port}/health")
-    print()
-    print("Management commands:")
-    print("  ./status.sh    # Check system status")
-    print("  ./stop.sh      # Stop all services")
-    print("  ./monitor.sh   # Advanced monitoring")
-    print("=" * 50)
-
-if __name__ == "__main__":
-    main()
-
-
-    log_success(f"Selected port: {port}")
-
-    # Start backend
-    backend_proc = start_backend(port)
-    if not backend_proc:
-        log_error("Failed to start backend")
-        sys.exit(1)
-
-    # Start Celery worker
-    celery_proc = start_celery()
-    if not celery_proc:
-        log_warning("Celery worker failed to start - continuing anyway")
-
-    # Start job monitor
-    monitor_proc = start_job_monitor()
-    if not monitor_proc:
-        log_warning("Job monitor failed to start - continuing anyway")
-
-    # Start job queue processor
-    queue_proc = start_job_queue_processor()
-    if not queue_proc:
-        log_warning("Job queue processor failed to start - continuing anyway")
-
-    print()
-    print("=" * 50)
-    log_success("NeuroInsight is running!")
-    print(f"   Web Interface: http://localhost:{port}")
-    print(f"   API Docs: http://localhost:{port}/docs")
-    print(f"   Health Check: http://localhost:{port}/health")
-    print()
-    print("Management commands:")
-    print("  ./status.sh    # Check system status")
-    print("  ./stop.sh      # Stop all services")
-    print("  ./monitor.sh   # Advanced monitoring")
-    print("=" * 50)
-
-if __name__ == "__main__":
-    main()
-
 
     log_success(f"Selected port: {port}")
 

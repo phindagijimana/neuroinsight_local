@@ -6,3 +6,4 @@ const AlertCircle = (props) => (
 );
 
 export default AlertCircle;
+

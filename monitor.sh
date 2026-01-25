@@ -265,8 +265,8 @@ check_jobs() {
     log_info "Checking job health and stuck jobs..."
 
     # Check if we can connect to the API
-    if curl -s --max-time 5 http://localhost:8000/api/status > /dev/null 2>&1; then
-        local status_json=$(curl -s http://localhost:8000/api/status)
+    if curl -s --max-time 5 http://localhost:8000/api/jobs/stats > /dev/null 2>&1; then
+        local status_json=$(curl -s http://localhost:8000/api/jobs/stats)
 
         # Extract job counts
         local running=$(echo "$status_json" | python3 -c "import sys, json; print(json.load(sys.stdin).get('jobs', {}).get('running', 0))" 2>/dev/null || echo "0")

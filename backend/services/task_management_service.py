@@ -475,6 +475,9 @@ class TaskManagementService:
             from backend.services.job_service import JobService
             orphaned_containers_cleaned = JobService.cleanup_orphaned_containers(db_session, logger)
 
+            # Clean up stopped containers older than retention window
+            stopped_containers_cleaned = JobService.cleanup_stopped_containers(logger, retention_days=5)
+
             # Log system stats
             stats = TaskManagementService.get_system_stats()
             logger.info("maintenance_completed",
@@ -488,6 +491,7 @@ class TaskManagementService:
                 "stuck_jobs": stuck_jobs,
                 "cleaned_jobs": cleaned_count,
                 "orphaned_containers_cleaned": orphaned_containers_cleaned,
+                "stopped_containers_cleaned": stopped_containers_cleaned,
                 "system_stats": stats
             }
 

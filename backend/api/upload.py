@@ -45,7 +45,7 @@ async def upload_mri(
 ):
     """Upload an MRI scan for processing (T1-only).
 
-    - Accepts NIfTI files (.nii, .nii.gz) or ZIP archives containing DICOM slices for T1 images
+    - Accepts NIfTI files (.nii, .nii.gz)
     - Strict pre-validation: size, readability, voxel/header sanity, and T1 markers
     - Creates a new job and enqueues background processing task
 
@@ -79,7 +79,7 @@ async def upload_mri(
         raise HTTPException(status_code=400, detail="File is too large (limit 1 GB)")
     
     # Validate file extension
-    valid_extensions = [".nii", ".nii.gz", ".zip"]
+    valid_extensions = [".nii", ".nii.gz"]
     file_path = Path(file.filename)
     
     if not any(file.filename.endswith(ext) for ext in valid_extensions):

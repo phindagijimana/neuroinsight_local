@@ -40,7 +40,8 @@ def find_and_kill_processes():
     patterns = [
         "python3.*backend/main.py",
         "python3.*celery.*processing_web",
-        "python3.*job_monitor"
+        "python3.*job_monitor",
+        "python3.*job_queue_processor"
     ]
 
     for pattern in patterns:
@@ -66,6 +67,7 @@ def find_and_kill_processes():
         subprocess.run(['pkill', '-9', '-f', 'neuroinsight'], check=False)
         subprocess.run(['pkill', '-9', '-f', 'celery'], check=False)
         subprocess.run(['pkill', '-9', '-f', 'backend/main.py'], check=False)
+        subprocess.run(['pkill', '-9', '-f', 'job_queue_processor'], check=False)
     except Exception:
         pass
 
@@ -82,17 +84,12 @@ def check_port_available(port):
         result = sock.connect_ex(('localhost', port))
         return result != 0  # True if available
 
-def find_available_port(start_port=8000, end_port=8050):
-    """Find an available port in the range, preferring port 8000"""
-    # First, try port 8000 specifically
-    if check_port_available(8000):
-        return 8000
-
-    # If 8000 is not available, find any available port in range
-    for port in range(start_port, end_port + 1):
-        if check_port_available(port):
-            return port
-    return None
+def require_port_available(port):
+    """Require a specific port to be available."""
+    if not check_port_available(port):
+        log_error(f"Port {port} is already in use. Stop the service using it first.")
+        return False
+    return True
 
 def start_docker_services():
     """Start Docker services individually (bypassing docker-compose issues)"""
@@ -225,6 +222,9 @@ def start_celery():
         # Set environment
         env = os.environ.copy()
         env['PYTHONPATH'] = str(Path.cwd())
+        env['ENVIRONMENT'] = 'production'
+        env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
+        env['FREESURFER_CONTAINER_PREFIX'] = 'freesurfer-job-'
 
         # Start celery
         proc = subprocess.Popen([
@@ -253,6 +253,9 @@ def start_job_monitor():
         # Set environment
         env = os.environ.copy()
         env['PYTHONPATH'] = str(Path.cwd())
+        env['ENVIRONMENT'] = 'production'
+        env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
+        env['FREESURFER_CONTAINER_PREFIX'] = 'freesurfer-job-'
 
         # Start monitor
         proc = subprocess.Popen([
@@ -284,11 +287,16 @@ while True:
 def start_job_queue_processor():
     """Start job queue processor service"""
     try:
+        if os.environ.get("ENVIRONMENT", "production") == "production":
+            log_info("Skipping job queue processor in production")
+            return None
+
         log_info("Starting job queue processor...")
 
         # Set environment
         env = os.environ.copy()
         env['PYTHONPATH'] = str(Path.cwd())
+        env['ENVIRONMENT'] = os.environ.get("ENVIRONMENT", "production")
 
         # Start job queue processor
         proc = subprocess.Popen([
@@ -335,12 +343,10 @@ def main():
         log_error("Failed to start Docker services")
         sys.exit(1)
 
-    # Find available port
-    port = find_available_port()
-    if not port:
-        log_error("No available ports found in range 8000-8050")
+    # Require production to run on port 8000
+    if not require_port_available(8000):
         sys.exit(1)
-
+    port = 8000
     log_success(f"Selected port: {port}")
 
     # Start backend
@@ -359,9 +365,9 @@ def main():
     if not monitor_proc:
         log_warning("Job monitor failed to start - continuing anyway")
 
-    # Start job queue processor
+    # Start job queue processor only outside production
     queue_proc = start_job_queue_processor()
-    if not queue_proc:
+    if not queue_proc and os.environ.get("ENVIRONMENT", "production") != "production":
         log_warning("Job queue processor failed to start - continuing anyway")
 
     print()

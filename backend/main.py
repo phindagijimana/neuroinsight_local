@@ -100,7 +100,9 @@ async def lifespan(app: FastAPI):
     @app.get("/working")
     async def working_page():
         frontend_dir = Path(__file__).parent.parent / "frontend"
-        working_file = frontend_dir / "index.html"
+        working_file = frontend_dir / "index.dev.html"
+        if not working_file.exists():
+            working_file = frontend_dir / "index.html"
         if working_file.exists():
             return FileResponse(str(working_file), media_type="text/html")
         return JSONResponse({"error": "Working file not found"}, status_code=404)
@@ -112,7 +114,7 @@ async def lifespan(app: FastAPI):
 
     # Mount static files for web frontend from dist directory
     # Mount outputs directory FIRST (before frontend to take precedence)
-    outputs_dir = Path.home() / ".local" / "share" / "neuroinsight" / "outputs"
+    outputs_dir = Path(settings.output_dir)
     if outputs_dir.exists():
         app.mount("/outputs", StaticFiles(directory=str(outputs_dir)), name="outputs")
         logger.info("outputs_static_files_enabled", path=str(outputs_dir))
@@ -120,15 +122,16 @@ async def lifespan(app: FastAPI):
         logger.warning("outputs_directory_not_found", path=str(outputs_dir))
 
     # Mount frontend static files (after outputs so /outputs takes precedence)
-    frontend_dir = Path(__file__).parent.parent / "frontend" / "dist"
-    if frontend_dir.exists():
-        index_file = frontend_dir / "index.html"
-        if index_file.exists():
-            logger.info("serving_index_html_from", path=str(index_file))
-        app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
-        logger.info("frontend_static_files_enabled", path=str(frontend_dir))
-    else:
-        logger.warning("frontend_directory_not_found", path=str(frontend_dir))
+    if settings.environment == "production":
+        frontend_dir = Path(__file__).parent.parent / "frontend" / "dist"
+        if frontend_dir.exists():
+            index_file = frontend_dir / "index.html"
+            if index_file.exists():
+                logger.info("serving_index_html_from", path=str(index_file))
+            app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+            logger.info("frontend_static_files_enabled", path=str(frontend_dir))
+        else:
+            logger.warning("frontend_directory_not_found", path=str(frontend_dir))
 
     yield
 
@@ -276,9 +279,13 @@ async def root():
     """
     Root endpoint - serves the React frontend for web deployment.
     """
-    # Serve the React frontend directly
+    # Serve the React frontend directly based on environment
     from pathlib import Path
-    frontend_path = Path(__file__).parent.parent / "frontend" / "dist" / "index.html"
+    if settings.environment == "production":
+        frontend_path = Path(__file__).parent.parent / "frontend" / "dist" / "index.html"
+    else:
+        frontend_path = Path(__file__).parent.parent / "frontend" / "index.dev.html"
+
     if frontend_path.exists():
         with open(frontend_path, "r", encoding="utf-8") as f:
             content = f.read()
@@ -292,23 +299,7 @@ async def root():
                 "Expires": "0"
             }
         )
-    else:
-        # Fallback to inline JSX version
-        inline_frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
-        if inline_frontend_path.exists():
-            with open(inline_frontend_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            return HTMLResponse(
-                content=content,
-                status_code=200,
-                headers={
-                    "Cache-Control": "no-cache, no-store, must-revalidate",
-                    "Pragma": "no-cache",
-                    "Expires": "0"
-                }
-            )
-        else:
-            return {"error": "Frontend not found", "path": str(frontend_path)}
+    return {"error": "Frontend not found", "path": str(frontend_path)}
 
 
 # Exception handlers
@@ -340,7 +331,7 @@ async def global_exception_handler(request, exc):
 @app.get("/outputs/{job_id}/{file_path:path}")
 async def serve_visualization(job_id: str, file_path: str):
     """Serve visualization files directly."""
-    outputs_dir = Path.home() / ".local" / "share" / "neuroinsight" / "outputs"
+    outputs_dir = Path(settings.output_dir)
     file_path_obj = (outputs_dir / job_id / file_path).resolve()
 
     # Security check: ensure the file is within the outputs directory

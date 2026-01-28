@@ -73,7 +73,8 @@ def process_mri_direct(job_id: str):
 
     # Track processing start time for timeout monitoring
     start_time = time.time()
-    timeout_seconds = getattr(settings, 'processing_timeout', 10800)  # Default 3 hours
+    # Enforce 5-hour timeout for running jobs in desktop mode
+    timeout_seconds = min(getattr(settings, 'processing_timeout', 21600), 18000)
 
     def check_timeout():
         """Check if processing has exceeded timeout"""

@@ -12,6 +12,9 @@ import time
 import psutil
 from pathlib import Path
 
+# Ensure prod stop uses production settings (dev has its own stop_dev.py)
+os.environ.setdefault("ENVIRONMENT", "production")
+
 # Colors for output
 RED = '\033[0;31m'
 GREEN = '\033[0;32m'
@@ -177,10 +180,10 @@ def clear_stuck_jobs():
         db = next(get_db())
         now = datetime.utcnow()
 
-        # Clear running jobs stuck for >2 hours
+        # Clear running jobs stuck for >5 hours
         stuck_running = db.query(Job).filter(
             Job.status == JobStatus.RUNNING,
-            Job.started_at < (now - timedelta(hours=2))
+            Job.started_at < (now - timedelta(hours=5))
         ).all()
 
         cleared = 0
@@ -230,6 +233,7 @@ def main():
     kill_processes_by_pattern("python3.*backend/main.py", "backend")
     kill_processes_by_pattern("python3.*celery.*processing_web", "Celery")
     kill_processes_by_pattern("python3.*job_monitor", "job monitor")
+    kill_processes_by_pattern("python3.*job_queue_processor", "job queue processor")
     kill_processes_by_pattern("python3.*monitor.sh", "system monitor")
 
     # Stop Docker services

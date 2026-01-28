@@ -6,7 +6,11 @@ from DICOM conversion through hippocampal asymmetry calculation.
 """
 
 import json
+import threading
+import time
 import os
+import json
+from datetime import datetime
 import platform
 import re
 import shutil
@@ -31,7 +35,7 @@ settings = get_settings()
 # FreeSurfer fallback constants - use traditional FreeSurfer with recon-all support
 FREESURFER_CONTAINER_IMAGE = "freesurfer/freesurfer:7.4.1"  # Use traditional FreeSurfer for recon-all compatibility
 FREESURFER_CONTAINER_SIZE_GB = 20  # Updated for freesurfer/freesurfer:7.4.1
-FREESURFER_PROCESSING_TIMEOUT_MINUTES = 300  # Extended for primary FreeSurfer usage (5 hours)
+FREESURFER_PROCESSING_TIMEOUT_MINUTES = 420  # Extended for primary FreeSurfer usage (7 hours)
 FREESURFER_DOWNLOAD_TIMEOUT_MINUTES = 20
 
 # FreeSurfer Singularity constants (if available)
@@ -175,10 +179,9 @@ class MRIProcessor:
         """
         Get a safe thread count for FreeSurfer inside Docker.
 
-        Keep the previous behavior (CPU count minus 3) but cap at 3 cores.
+        Use a fixed thread count for predictable parallelization.
         """
-        cpu_count = os.cpu_count() or 4
-        return max(1, min(3, cpu_count - 3))
+        return 5
 
     def _get_freesurfer_thread_env(self, flag: str = "-e") -> list:
         """
@@ -199,50 +202,206 @@ class MRIProcessor:
 
     def _capture_container_failure_artifacts(self, container_name: str, subject_output_dir: Path) -> None:
         """
-        Capture Docker container logs and state for post-failure diagnostics.
+        Capture deterministic Docker/container/host diagnostics for post-failure analysis.
         """
         try:
-            artifacts_dir = subject_output_dir / "scripts"
-            artifacts_dir.mkdir(parents=True, exist_ok=True)
+            artifacts_dir = self._get_failure_artifacts_dir(subject_output_dir)
             timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
 
-            inspect_path = artifacts_dir / f"docker-inspect-{container_name}-{timestamp}.json"
-            logs_path = artifacts_dir / f"docker-logs-{container_name}-{timestamp}.log"
-            state_path = artifacts_dir / f"docker-state-{container_name}-{timestamp}.txt"
+            def _write_command_output(filename: str, command: list, timeout: int = 10) -> tuple[str | None, str | None]:
+                result_path = artifacts_dir / filename
+                try:
+                    result = subprocess_module.run(
+                        command,
+                        capture_output=True,
+                        text=True,
+                        timeout=timeout,
+                    )
+                    content = [
+                        f"command: {' '.join(command)}",
+                        f"returncode: {result.returncode}",
+                        "stdout:",
+                        result.stdout or "",
+                        "stderr:",
+                        result.stderr or "",
+                    ]
+                    result_path.write_text("\n".join(content).strip() + "\n")
+                    return result.stdout, result.stderr
+                except Exception as inner_exc:
+                    result_path.write_text(f"command: {' '.join(command)}\nerror: {inner_exc}\n")
+                    return None, None
 
-            inspect_result = subprocess_module.run(
+            inspect_stdout, _ = _write_command_output(
+                f"docker-inspect-{container_name}-{timestamp}.json",
                 ["docker", "inspect", container_name],
-                capture_output=True,
-                text=True,
                 timeout=10,
             )
-            if inspect_result.returncode == 0:
-                inspect_path.write_text(inspect_result.stdout)
-
-            logs_result = subprocess_module.run(
+            _write_command_output(
+                f"docker-logs-{container_name}-{timestamp}.log",
                 ["docker", "logs", container_name],
-                capture_output=True,
-                text=True,
                 timeout=10,
             )
-            if logs_result.returncode == 0:
-                logs_path.write_text(logs_result.stdout)
-
-            state_result = subprocess_module.run(
+            _write_command_output(
+                f"docker-state-{container_name}-{timestamp}.txt",
                 ["docker", "inspect", "--format", "{{.State.Status}} {{.State.ExitCode}} {{.State.OOMKilled}} {{.State.Error}} {{.State.FinishedAt}}", container_name],
-                capture_output=True,
-                text=True,
                 timeout=5,
             )
-            if state_result.returncode == 0:
-                state_path.write_text(state_result.stdout.strip() + "\n")
+            _write_command_output(
+                f"docker-stats-{container_name}-{timestamp}.txt",
+                ["docker", "stats", "--no-stream", container_name],
+                timeout=5,
+            )
+            _write_command_output(
+                f"docker-top-{container_name}-{timestamp}.txt",
+                ["docker", "top", container_name, "-eo", "pid,ppid,cmd,%mem,%cpu"],
+                timeout=5,
+            )
+
+            # Host diagnostics snapshot
+            _write_command_output(
+                f"host-free-{timestamp}.txt",
+                ["free", "-m"],
+                timeout=5,
+            )
+            _write_command_output(
+                f"host-vmstat-{timestamp}.txt",
+                ["vmstat", "1", "1"],
+                timeout=5,
+            )
+            _write_command_output(
+                f"host-uptime-{timestamp}.txt",
+                ["uptime"],
+                timeout=5,
+            )
+            _write_command_output(
+                f"host-df-{timestamp}.txt",
+                ["df", "-h"],
+                timeout=10,
+            )
+            _write_command_output(
+                f"host-docker-info-{timestamp}.txt",
+                ["docker", "info"],
+                timeout=10,
+            )
+            _write_command_output(
+                f"host-kernel-oom-{timestamp}.txt",
+                ["journalctl", "-k", "--no-pager", "-n", "200"],
+                timeout=10,
+            )
+
+            # Capture docker events for the container lifecycle (best effort).
+            try:
+                if inspect_stdout:
+                    import json
+
+                    inspect_payload = json.loads(inspect_stdout)
+                    if inspect_payload and isinstance(inspect_payload, list):
+                        state = inspect_payload[0].get("State", {})
+                        started_at = state.get("StartedAt")
+                        finished_at = state.get("FinishedAt") or datetime.utcnow().isoformat() + "Z"
+                        if started_at:
+                            _write_command_output(
+                                f"docker-events-{container_name}-{timestamp}.log",
+                                [
+                                    "docker", "events",
+                                    "--since", started_at,
+                                    "--until", finished_at,
+                                    "--filter", f"container={container_name}",
+                                ],
+                                timeout=10,
+                            )
+            except Exception as events_exc:
+                (artifacts_dir / f"docker-events-{container_name}-{timestamp}.log").write_text(
+                    f"error capturing docker events: {events_exc}\n"
+                )
+
+            # Capture /proc snapshots for container process (best effort)
+            container_pid = None
+            if inspect_stdout:
+                try:
+                    import json
+
+                    inspect_payload = json.loads(inspect_stdout)
+                    if inspect_payload and isinstance(inspect_payload, list):
+                        container_pid = inspect_payload[0].get("State", {}).get("Pid")
+                except Exception:
+                    container_pid = None
+
+            if container_pid:
+                for proc_file, suffix in [
+                    ("status", "status"),
+                    ("limits", "limits"),
+                    ("cgroup", "cgroup"),
+                    ("cmdline", "cmdline"),
+                ]:
+                    proc_path = Path(f"/proc/{container_pid}/{proc_file}")
+                    if proc_path.exists():
+                        try:
+                            content = proc_path.read_text()
+                            (artifacts_dir / f"container-proc-{suffix}-{container_name}-{timestamp}.txt").write_text(content)
+                        except Exception as proc_exc:
+                            (artifacts_dir / f"container-proc-{suffix}-{container_name}-{timestamp}.txt").write_text(
+                                f"error reading {proc_path}: {proc_exc}\n"
+                            )
+
+                # cgroup v2 memory metrics if available
+                cgroup_path = Path(f"/proc/{container_pid}/cgroup")
+                try:
+                    if cgroup_path.exists():
+                        cgroup_lines = cgroup_path.read_text().splitlines()
+                        unified = next((line.split("::")[-1] for line in cgroup_lines if "::" in line), None)
+                        if unified:
+                            cgroup_dir = Path("/sys/fs/cgroup") / unified.lstrip("/")
+                            for metric in ["memory.current", "memory.max", "memory.events"]:
+                                metric_path = cgroup_dir / metric
+                                if metric_path.exists():
+                                    (artifacts_dir / f"container-cgroup-{metric}-{container_name}-{timestamp}.txt").write_text(
+                                        metric_path.read_text()
+                                    )
+                except Exception as cgroup_exc:
+                    (artifacts_dir / f"container-cgroup-error-{container_name}-{timestamp}.txt").write_text(
+                        f"error reading cgroup metrics: {cgroup_exc}\n"
+                    )
+
+            # Lightweight failure context
+            try:
+                context_path = artifacts_dir / f"failure-context-{container_name}-{timestamp}.json"
+                context_path.write_text(
+                    json.dumps(
+                        {
+                            "timestamp": timestamp,
+                            "job_id": str(self.job_id),
+                            "container_name": container_name,
+                            "threads": self._get_freesurfer_thread_count(),
+                            "output_dir": str(subject_output_dir),
+                        },
+                        indent=2,
+                    )
+                    + "\n"
+                )
+            except Exception as context_exc:
+                (artifacts_dir / f"failure-context-{container_name}-{timestamp}.txt").write_text(
+                    f"failed to write context: {context_exc}\n"
+                )
+
+            # Snapshot monitoring logs for postmortem analysis.
+            try:
+                project_root = Path(__file__).resolve().parents[2]
+                for log_name in ["job_monitor.log", "dev_job_monitor.log", "neuroinsight.log", "celery_worker.log"]:
+                    log_path = project_root / log_name
+                    if log_path.exists():
+                        (artifacts_dir / f"{log_name}-{timestamp}").write_text(
+                            log_path.read_text()
+                        )
+            except Exception as log_exc:
+                (artifacts_dir / f"log-snapshot-error-{container_name}-{timestamp}.txt").write_text(
+                    f"error capturing monitor logs: {log_exc}\n"
+                )
 
             logger.info(
                 "docker_failure_artifacts_captured",
                 container=container_name,
-                inspect_path=str(inspect_path),
-                logs_path=str(logs_path),
-                state_path=str(state_path),
+                artifacts_dir=str(artifacts_dir),
             )
         except Exception as exc:
             logger.warning("docker_failure_artifacts_capture_failed", container=container_name, error=str(exc))
@@ -256,8 +415,7 @@ class MRIProcessor:
     ) -> None:
         """Persist docker run stdout/stderr for failure diagnostics."""
         try:
-            artifacts_dir = subject_output_dir / "scripts"
-            artifacts_dir.mkdir(parents=True, exist_ok=True)
+            artifacts_dir = self._get_failure_artifacts_dir(subject_output_dir)
             timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
             stdout_path = artifacts_dir / f"docker-run-stdout-{container_name}-{timestamp}.log"
             stderr_path = artifacts_dir / f"docker-run-stderr-{container_name}-{timestamp}.log"
@@ -267,6 +425,199 @@ class MRIProcessor:
                 stderr_path.write_text(stderr_output)
         except Exception as exc:
             logger.warning("docker_failure_output_capture_failed", container=container_name, error=str(exc))
+
+    def _get_failure_artifacts_dir(self, subject_output_dir: Path) -> Path:
+        """
+        Determine a writable directory for failure artifacts.
+
+        Prefer the job output root to avoid root-owned FreeSurfer subdirs.
+        """
+        # outputs/<job_id> is two levels up from the subject dir
+        job_root = subject_output_dir
+        if len(subject_output_dir.parents) > 2:
+            job_root = subject_output_dir.parents[2]
+
+        artifacts_dir = job_root / "diagnostics"
+        artifacts_dir.mkdir(parents=True, exist_ok=True)
+
+        # Best-effort permission fix for root-owned outputs
+        chmod_result = subprocess_module.run(
+            ["chmod", "-R", "777", str(artifacts_dir)],
+            capture_output=True,
+            timeout=15,
+        )
+        if chmod_result.returncode != 0:
+            logger.warning(
+                "failed_to_chmod_artifacts_dir",
+                path=str(artifacts_dir),
+                stderr=(chmod_result.stderr or "").strip(),
+            )
+
+        return artifacts_dir
+
+    def _capture_memory_snapshot(self, subject_output_dir: Path, label: str) -> None:
+        """
+        Capture a one-time snapshot of top memory users on the host.
+        """
+        try:
+            artifacts_dir = self._get_failure_artifacts_dir(subject_output_dir)
+            timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+            snapshot_path = artifacts_dir / f"memory-snapshot-{label}-{timestamp}.log"
+
+            commands = [
+                ["ps", "-eo", "pid,ppid,%mem,%cpu,rss,cmd", "--sort=-%mem"],
+                ["free", "-m"],
+                ["vmstat", "1", "1"],
+                ["docker", "stats", "--no-stream"],
+            ]
+
+            output_lines = []
+            for cmd in commands:
+                try:
+                    result = subprocess_module.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    output_lines.append(f"command: {' '.join(cmd)}")
+                    output_lines.append(f"returncode: {result.returncode}")
+                    if result.stdout:
+                        # Trim ps output to top 30 rows to keep files manageable
+                        if cmd[:2] == ["ps", "-eo"]:
+                            stdout_lines = result.stdout.strip().splitlines()
+                            output_lines.extend(stdout_lines[:31])
+                        else:
+                            output_lines.append(result.stdout.strip())
+                    if result.stderr:
+                        output_lines.append("stderr:")
+                        output_lines.append(result.stderr.strip())
+                    output_lines.append("")
+                except Exception as cmd_exc:
+                    output_lines.append(f"command: {' '.join(cmd)}")
+                    output_lines.append(f"error: {cmd_exc}")
+                    output_lines.append("")
+
+            snapshot_path.write_text("\n".join(output_lines).strip() + "\n")
+        except Exception as exc:
+            logger.warning("memory_snapshot_capture_failed", error=str(exc), label=label)
+
+    def _start_resource_sampling(
+        self,
+        container_name: str,
+        subject_output_dir: Path,
+        interval_seconds: int = 30,
+    ) -> tuple[threading.Event, threading.Thread]:
+        """
+        Periodically sample container/host resources while a job runs.
+        """
+        artifacts_dir = self._get_failure_artifacts_dir(subject_output_dir)
+        timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        sample_path = artifacts_dir / f"resource-samples-{container_name}-{timestamp}.log"
+
+        stop_event = threading.Event()
+
+        def _sampler():
+            cgroup_dir = None
+            while not stop_event.is_set():
+                now = datetime.utcnow().isoformat() + "Z"
+                docker_stats_cmd = [
+                    "docker",
+                    "stats",
+                    "--no-stream",
+                    "--format",
+                    "{{.MemUsage}} {{.MemPerc}} {{.CPUPerc}} {{.PIDs}}",
+                    container_name,
+                ]
+                try:
+                    stats_result = subprocess_module.run(
+                        docker_stats_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                    stats_line = stats_result.stdout.strip() if stats_result.stdout else ""
+                except Exception as exc:
+                    stats_line = f"error: {exc}"
+
+                cgroup_metrics = ""
+                try:
+                    if cgroup_dir is None:
+                        pid_result = subprocess_module.run(
+                            ["docker", "inspect", "--format", "{{.State.Pid}}", container_name],
+                            capture_output=True,
+                            text=True,
+                            timeout=5,
+                        )
+                        if pid_result.returncode == 0:
+                            pid_value = pid_result.stdout.strip()
+                            if pid_value.isdigit() and int(pid_value) > 0:
+                                cgroup_path = Path(f"/proc/{pid_value}/cgroup")
+                                if cgroup_path.exists():
+                                    cgroup_lines = cgroup_path.read_text().splitlines()
+                                    unified = next((line.split("::")[-1] for line in cgroup_lines if "::" in line), None)
+                                    if unified:
+                                        cgroup_dir = Path("/sys/fs/cgroup") / unified.lstrip("/")
+
+                    if cgroup_dir and cgroup_dir.exists():
+                        events_path = cgroup_dir / "memory.events"
+                        current_path = cgroup_dir / "memory.current"
+                        max_path = cgroup_dir / "memory.max"
+                        events_value = events_path.read_text().strip() if events_path.exists() else ""
+                        current_value = current_path.read_text().strip() if current_path.exists() else ""
+                        max_value = max_path.read_text().strip() if max_path.exists() else ""
+                        cgroup_metrics = f" cgroup_current={current_value} cgroup_max={max_value} cgroup_events={events_value.replace(chr(10), ';')}"
+                except Exception:
+                    cgroup_metrics = ""
+
+                try:
+                    free_result = subprocess_module.run(
+                        ["free", "-m"],
+                        capture_output=True,
+                        text=True,
+                        timeout=5,
+                    )
+                    free_line = free_result.stdout.strip().replace("\n", " | ")
+                except Exception as exc:
+                    free_line = f"error: {exc}"
+
+                try:
+                    with sample_path.open("a", encoding="utf-8") as handle:
+                        handle.write(
+                            f"{now} interval={interval_seconds}s docker_stats={stats_line}{cgroup_metrics} host_free={free_line}\n"
+                        )
+                except Exception:
+                    pass
+
+                stop_event.wait(interval_seconds)
+
+        thread = threading.Thread(target=_sampler, daemon=True)
+        thread.start()
+        return stop_event, thread
+
+    def _restart_resource_sampling(
+        self,
+        container_name: str,
+        subject_output_dir: Path,
+        interval_seconds: int,
+    ) -> None:
+        """
+        Restart resource sampling at a new interval.
+        """
+        stop_event = getattr(self, "_resource_sampler_stop_event", None)
+        thread = getattr(self, "_resource_sampler_thread", None)
+        if stop_event is not None:
+            stop_event.set()
+        if thread is not None:
+            thread.join(timeout=2)
+
+        new_stop, new_thread = self._start_resource_sampling(
+            container_name,
+            subject_output_dir,
+            interval_seconds=interval_seconds,
+        )
+        self._resource_sampler_stop_event = new_stop
+        self._resource_sampler_thread = new_thread
 
     def _cleanup_named_container(self, container_name: str) -> None:
         """Best-effort stop for a named Docker container."""
@@ -335,7 +686,7 @@ class MRIProcessor:
         Containers are left stopped for maintenance cleanup.
         """
         try:
-            container_name = f"freesurfer-job-{self.job_id}"
+            container_name = f"{settings.freesurfer_container_prefix}{self.job_id}"
             logger.info("cleaning_up_job_containers", job_id=str(self.job_id), container_name=container_name)
 
             # Stop the container if it's running
@@ -674,7 +1025,7 @@ class MRIProcessor:
         # Step 1: Convert to NIfTI if needed
         self._update_progress(10, "Preparing input file...")
         nifti_path = self._prepare_input(input_path)
-
+        
         # Step 2: Run FreeSurfer segmentation (whole brain) - LONGEST STEP
         # Allocate the weighted FreeSurfer phases to 20-90%
         self._update_progress(20, "Starting FreeSurfer segmentation...")
@@ -1086,7 +1437,7 @@ class MRIProcessor:
         try:
             # Get current running FreeSurfer containers
             result = subprocess_module.run(
-                ["docker", "ps", "--filter", "name=freesurfer-job-", "--format", "{{.Names}}"],
+                ["docker", "ps", "--filter", f"name={settings.freesurfer_container_prefix}", "--format", "{{.Names}}"],
                 capture_output=True,
                 text=True,
                 timeout=10
@@ -1180,7 +1531,9 @@ class MRIProcessor:
                 exited_containers = [c for c in exited_containers if c.strip()]
 
                 # If there are recently exited FreeSurfer containers, cleanup might be happening
-                freesurfer_exited = [c for c in exited_containers if c.startswith('freesurfer-job-')]
+                freesurfer_exited = [
+                    c for c in exited_containers if c.startswith(settings.freesurfer_container_prefix)
+                ]
                 if freesurfer_exited:
                     logger.info("detected_recently_exited_freesurfer_containers",
                               count=len(freesurfer_exited),
@@ -2105,7 +2458,7 @@ class MRIProcessor:
             abs_license_path = license_path.resolve()
             
             # Use a unique container name so we can track and kill it if needed
-            container_name = f"freesurfer-job-{self.job_id}"
+            container_name = f"{settings.freesurfer_container_prefix}{self.job_id}"
 
             # ENFORCE CONTAINER CONCURRENCY LIMIT
             self._check_container_concurrency_limit()
@@ -2163,7 +2516,6 @@ class MRIProcessor:
             ]
 
             print(f"DEBUG: Full Docker command: {' '.join(docker_cmd)}")
-            print(f"DEBUG: About to execute Docker command...")
             print(f"DEBUG: Input file exists: {nifti_path.exists()}")
             print(f"DEBUG: License file exists: {abs_license_path.exists()}")
 
@@ -2191,12 +2543,28 @@ class MRIProcessor:
             print(f"DEBUG: About to run Docker command for job {self.job_id}")
             print(f"DEBUG: Full command: {' '.join(docker_cmd)}")
 
+            logger.info(
+                "freesurfer_container_lifecycle_start",
+                container=container_name,
+                job_id=str(self.job_id),
+                subject_id=subject_id,
+            )
+
             # Clean up any leftover containers from previous failed runs
             try:
                 self._cleanup_job_containers()
                 print(f"DEBUG: Cleaned up any leftover containers")
             except Exception as cleanup_error:
                 print(f"DEBUG: Cleanup warning: {cleanup_error}")
+
+            # Start resource sampling while the container runs
+            sampler_stop_event, sampler_thread = self._start_resource_sampling(
+                container_name,
+                subject_output_dir,
+                interval_seconds=30,
+            )
+            self._resource_sampler_stop_event = sampler_stop_event
+            self._resource_sampler_thread = sampler_thread
 
             # Capture output to debug Docker issues
             print(f"DEBUG: Executing Docker command now...")
@@ -2208,11 +2576,26 @@ class MRIProcessor:
                     env=self._get_extended_env()
                 )
                 print(f"DEBUG: Docker command completed with return code: {result.returncode}")
+                logger.info(
+                    "freesurfer_container_lifecycle_exit",
+                    container=container_name,
+                    job_id=str(self.job_id),
+                    returncode=result.returncode,
+                )
             except Exception as docker_exec_error:
+                sampler_stop_event.set()
+                sampler_thread.join(timeout=2)
+                self._resource_sampler_stop_event = None
+                self._resource_sampler_thread = None
                 print(f"DEBUG: Docker command execution failed: {docker_exec_error}")
                 # Attempt to capture container artifacts before raising
                 self._capture_container_failure_artifacts(container_name, subject_output_dir)
                 raise docker_exec_error
+            finally:
+                sampler_stop_event.set()
+                sampler_thread.join(timeout=2)
+                self._resource_sampler_stop_event = None
+                self._resource_sampler_thread = None
 
             print(f"DEBUG: Docker command completed with exit code: {result.returncode}")
             print(f"DEBUG: Command executed successfully (output not captured to avoid memory issues)")
@@ -2305,7 +2688,7 @@ class MRIProcessor:
                     *hostname_mount,
                     "-e", "FS_LICENSE=/usr/local/freesurfer/license.txt",
                     "-e", "SUBJECTS_DIR=/subjects",
-                FREESURFER_CONTAINER_IMAGE,
+                    FREESURFER_CONTAINER_IMAGE,
                 "/bin/bash", "-c",
                 f" source /usr/local/freesurfer/FreeSurferEnv.sh && mri_segstats --seg /subjects/{subject_id}/mri/aseg.auto.mgz --excludeid 0 --sum /subjects/{subject_id}/stats/aseg.stats --i /subjects/{subject_id}/mri/brain.mgz"
                 ]
@@ -3267,12 +3650,14 @@ class MRIProcessor:
                     extended_path = f"{path}:{extended_path}"
             env['PATH'] = extended_path
 
+            # Use 7-hour timeout for all jobs
+            fastsurfer_timeout = 25200  # 7 hours
             result = subprocess_module.run(
                 cmd,
                 check=True,
                 capture_output=True,
                 text=True,
-                timeout=settings.processing_timeout,
+                timeout=fastsurfer_timeout,
                 env=env
             )
             
@@ -3666,7 +4051,7 @@ class MRIProcessor:
             
             # Wait for process with timeout
             try:
-                stdout, stderr = process.communicate(timeout=7200)
+                stdout, stderr = process.communicate(timeout=25200)
                 returncode = process.returncode
             except subprocess_module.TimeoutExpired:
                 logger.warning("process_timeout_killing_group", pid=process.pid)
@@ -4407,6 +4792,7 @@ class MRIProcessor:
             """Monitor the status log file and update progress with fixed percentages per phase."""
             last_line_count = 0
             current_phase = None
+            ca_reg_snapshot_taken = False
 
             # Fixed percentage allocation based on phase complexity/duration.
             # Weights are mapped into the remaining range [base_progress, 100]
@@ -4487,7 +4873,7 @@ class MRIProcessor:
                                 # NOTE: #@# markers indicate PHASE START, not completion
                                 if line_lower.startswith("#@#"):
                                     logger.info("freesurfer_log_line_found", line=original_line, job_id=str(self.job_id))
-
+                                    
                                     # Try to match with known phases
                                     matched = False
                                     for phase in phase_info.keys():
@@ -4498,13 +4884,34 @@ class MRIProcessor:
                                                     completion_progress = phase_info[current_phase]["completion_percent"]
                                                     prev_phase_display_name = current_phase.replace('_', ' ').title()
                                                     self._update_progress(completion_progress, f"Completed...({prev_phase_display_name})")
-                                                    logger.info("freesurfer_phase_completed",
-                                                               phase=current_phase,
-                                                               progress=completion_progress,
-                                                               job_id=str(self.job_id))
+                                                    logger.info(
+                                                        "freesurfer_phase_completed",
+                                                        phase=current_phase,
+                                                        progress=completion_progress,
+                                                        job_id=str(self.job_id)
+                                                    )
 
                                                 # Start new phase - jump to start percentage
                                                 current_phase = phase
+
+                                                # Capture a one-time memory snapshot and increase sampling rate when CA Reg starts
+                                                if phase == "ca reg" and not ca_reg_snapshot_taken:
+                                                    try:
+                                                        subject_output_dir = status_log_path.parent.parent
+                                                        self._capture_memory_snapshot(subject_output_dir, "ca-reg-start")
+                                                        container_name = f"{settings.freesurfer_container_prefix}{self.job_id}"
+                                                        self._restart_resource_sampling(
+                                                            container_name,
+                                                            subject_output_dir,
+                                                            interval_seconds=1,
+                                                        )
+                                                        ca_reg_snapshot_taken = True
+                                                    except Exception as snapshot_exc:
+                                                        logger.warning(
+                                                            "ca_reg_memory_snapshot_failed",
+                                                            error=str(snapshot_exc),
+                                                            job_id=str(self.job_id),
+                                                        )
                                                 phase_start_time = time.time()
 
                                                 # Calculate start progress (previous phase completion + small increment)
@@ -4530,7 +4937,7 @@ class MRIProcessor:
                                                            job_id=str(self.job_id))
                                             matched = True
                                             break
-
+                                    
                                     if not matched:
                                         logger.debug("freesurfer_phase_not_matched", line=original_line)
 

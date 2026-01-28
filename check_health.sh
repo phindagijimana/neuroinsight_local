@@ -19,6 +19,17 @@ log() {
     echo -e "$1"
 }
 
+get_running_job_count() {
+    # Return running job count; empty if API not reachable
+    local stats
+    stats=$(curl -s --max-time 5 http://localhost:8000/api/jobs/stats 2>/dev/null || true)
+    if [ -z "$stats" ]; then
+        echo ""
+        return
+    fi
+    echo "$stats" | python3 -c "import sys, json; print(json.load(sys.stdin).get('jobs', {}).get('running', 0))" 2>/dev/null || echo ""
+}
+
 alert() {
     local message="$1"
     log "${RED}ALERT: $message${NC}"
@@ -81,6 +92,11 @@ check_containers() {
     fi
 
     if [ "$all_healthy" = false ]; then
+        local running_jobs=$(get_running_job_count)
+        if [ -n "$running_jobs" ] && [ "$running_jobs" -gt 0 ]; then
+            log "${YELLOW}Skipping restart: ${running_jobs} job(s) currently running${NC}"
+            return 0
+        fi
         log "${YELLOW}Attempting to restart services...${NC}"
         cd "$SCRIPT_DIR" && ./neuroinsight start
     fi
@@ -95,6 +111,11 @@ check_processes() {
 
     if [ "$orphaned" -gt 0 ]; then
         log "${YELLOW}Found $orphaned potential orphaned processes${NC}"
+        local running_jobs=$(get_running_job_count)
+        if [ -n "$running_jobs" ] && [ "$running_jobs" -gt 0 ]; then
+            log "${YELLOW}Skipping cleanup: ${running_jobs} job(s) currently running${NC}"
+            return 0
+        fi
         # Run the monitor script to clean up
         cd "$SCRIPT_DIR" && ./neuroinsight monitor cleanup 2>/dev/null || true
     fi

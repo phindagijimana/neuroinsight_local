@@ -10,9 +10,11 @@ import time
 import signal
 import sys
 import os
+import subprocess
 from typing import Optional
 
 from backend.services.task_management_service import TaskManagementService
+from backend.core.config import get_settings
 from backend.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -26,13 +28,13 @@ class JobMonitor:
     handles system interruptions gracefully.
     """
 
-    def __init__(self, check_interval: int = 60, cleanup_grace_period_minutes: int = 180):
+    def __init__(self, check_interval: int = 60, cleanup_grace_period_minutes: int = 0):
         """
         Initialize the job monitor.
 
         Args:
             check_interval: Seconds between maintenance checks (default: 60)
-            cleanup_grace_period_minutes: Minutes to wait before auto-cleanup (default: 60)
+            cleanup_grace_period_minutes: Minutes to wait before auto-cleanup (default: 0)
         """
         self.check_interval = check_interval
         self.cleanup_grace_period_minutes = cleanup_grace_period_minutes
@@ -117,68 +119,63 @@ class JobMonitor:
                                        pending_count=pending_count,
                                        running_count=running_count)
 
-                        # Check for stuck jobs and implement grace period cleanup
+                        # Check for stuck jobs and clean immediately (no grace period)
                         now = datetime.utcnow()
-                        grace_period = timedelta(minutes=self.cleanup_grace_period_minutes)
 
-                        # Find running jobs stuck for > 2 hours
+                        # Find running jobs stuck for > 5 hours
                         stuck_running = db.query(Job).filter(
                             Job.status == JobStatus.RUNNING,
-                            Job.started_at < (now - timedelta(hours=2))
+                            Job.started_at < (now - timedelta(hours=5))
                         ).all()
 
-                        # Find pending jobs stuck for > 24 hours
+                        # Find pending jobs stuck for > 5 hours
                         stuck_pending = db.query(Job).filter(
                             Job.status == JobStatus.PENDING,
-                            Job.created_at < (now - timedelta(hours=24))
+                            Job.created_at < (now - timedelta(hours=5))
                         ).all()
 
                         stuck_jobs = stuck_running + stuck_pending
 
                         for job in stuck_jobs:
                             job_id = str(job.id)
+                            logger.error("auto_cleanup_stuck_job",
+                                         job_id=job_id,
+                                         status=job.status.value,
+                                         tracked_for_minutes=self.cleanup_grace_period_minutes)
 
-                            # Track the job if not already tracked
-                            if job_id not in self.tracked_stuck_jobs:
-                                self.tracked_stuck_jobs[job_id] = {
-                                    'first_detected': now,
-                                    'job_status': job.status.value,
-                                    'last_seen': now
-                                }
-                                logger.warning("tracking_stuck_job_for_cleanup",
-                                             job_id=job_id,
-                                             status=job.status.value,
-                                             grace_period_minutes=self.cleanup_grace_period_minutes)
+                            try:
+                                # Stop any associated container before failing the job
+                                settings = get_settings()
+                                container_name = job.docker_container_id or f"{settings.freesurfer_container_prefix}{job.id}"
+                                if container_name:
+                                    subprocess.run(
+                                        ["docker", "stop", container_name],
+                                        capture_output=True,
+                                        text=True,
+                                        timeout=10
+                                    )
 
-                            # Update last seen time
-                            self.tracked_stuck_jobs[job_id]['last_seen'] = now
+                                # Fail the stuck job
+                                JobService.fail_job(
+                                    db,
+                                    job_id,
+                                    "Auto-cleaned: Stuck job after 5 hours"
+                                )
 
-                            # Check if grace period has expired
-                            first_detected = self.tracked_stuck_jobs[job_id]['first_detected']
-                            if now - first_detected > grace_period:
-                                logger.error("auto_cleanup_stuck_job",
-                                           job_id=job_id,
-                                           status=job.status.value,
-                                           tracked_for_minutes=self.cleanup_grace_period_minutes)
+                                # Process next job in queue
+                                JobService.process_job_queue(db)
 
-                                try:
-                                    # Fail the stuck job
-                                    JobService.fail_job(db, job_id,
-                                                      f'Auto-cleaned: Stuck job after {self.cleanup_grace_period_minutes}min grace period')
-
-                                    # Process next job in queue
-                                    JobService.process_job_queue(db)
-
-                                    # Remove from tracking
+                                # Remove from tracking if present
+                                if job_id in self.tracked_stuck_jobs:
                                     del self.tracked_stuck_jobs[job_id]
 
-                                    logger.info("successfully_auto_cleaned_stuck_job",
-                                              job_id=job_id)
+                                logger.info("successfully_auto_cleaned_stuck_job",
+                                            job_id=job_id)
 
-                                except Exception as cleanup_error:
-                                    logger.error("failed_to_auto_cleanup_stuck_job",
-                                               job_id=job_id,
-                                               error=str(cleanup_error))
+                            except Exception as cleanup_error:
+                                logger.error("failed_to_auto_cleanup_stuck_job",
+                                             job_id=job_id,
+                                             error=str(cleanup_error))
 
                     finally:
                         db.close()

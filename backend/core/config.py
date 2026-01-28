@@ -53,13 +53,6 @@ class Settings(BaseSettings):
         super().__init__(**kwargs)
         # Ensure storage directories exist
         self._ensure_storage_directories()
-        # Update CORS origins to include the current API port
-        if hasattr(self, 'api_port') and self.api_port != 8000:
-            dynamic_origins = f"http://localhost:{self.api_port},http://127.0.0.1:{self.api_port}"
-            if self.cors_origins:
-                self.cors_origins = f"{self.cors_origins},{dynamic_origins}"
-            else:
-                self.cors_origins = dynamic_origins
 
     # Application Metadata
     app_name: str = "NeuroInsight"
@@ -78,6 +71,16 @@ class Settings(BaseSettings):
     # API Bridge Configuration (for real FreeSurfer processing)
     api_bridge_url: str = Field(default="http://localhost:8080", env="API_BRIDGE_URL")
     use_real_freesurfer: bool = Field(default=False, env="USE_REAL_FREESURFER")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Update CORS origins to include the current API port
+        if hasattr(self, 'api_port') and self.api_port != 8000:
+            dynamic_origins = f"http://localhost:{self.api_port},http://127.0.0.1:{self.api_port}"
+            if self.cors_origins:
+                self.cors_origins = f"{self.cors_origins},{dynamic_origins}"
+            else:
+                self.cors_origins = dynamic_origins
 
     # File Storage - Platform-aware defaults (no manual setup required)
     upload_dir: str = Field(default_factory=lambda: get_platform_defaults()["upload_dir"], env="UPLOAD_DIR")
@@ -105,12 +108,21 @@ class Settings(BaseSettings):
 
     # Processing Configuration
     fastsurfer_container: str = Field(
-        default="deepmi/fastsurfer:latest",
+        default="fastsurfer/fastsurfer:latest",
         env="FASTSURFER_CONTAINER"
     )
-    processing_timeout: int = Field(default=36000, env="PROCESSING_TIMEOUT")  # 10 hours
+    processing_timeout: int = Field(default=25200, env="PROCESSING_TIMEOUT")  # 7 hours
     max_concurrent_jobs: int = Field(default=1, env="MAX_CONCURRENT_JOBS")  # Only 1 job running at a time
-    docker_cleanup_wait_timeout: int = Field(default=30, env="DOCKER_CLEANUP_WAIT_TIMEOUT")  # seconds to wait for Docker cleanup
+
+    @property
+    def freesurfer_container_prefix(self) -> str:
+        """Return container name prefix for FreeSurfer jobs (env override supported)."""
+        env_prefix = os.getenv("FREESURFER_CONTAINER_PREFIX")
+        if env_prefix:
+            return env_prefix
+        if self.environment == "development":
+            return "freesurfer-dev-job-"
+        return "freesurfer-job-"
 
     # Security
     secret_key: str = Field(default="dev-secret-key-change-me", env="SECRET_KEY")
@@ -143,6 +155,11 @@ class Settings(BaseSettings):
 
         Tests PostgreSQL connection and falls back to SQLite if unavailable.
         """
+        # Explicit override: respect DATABASE_URL if provided
+        database_url_env = os.getenv('DATABASE_URL', '')
+        if database_url_env and 'postgresql' in database_url_env:
+            return database_url_env
+
         # Production mode: Check if PostgreSQL containers are running
         try:
             import subprocess
@@ -170,15 +187,10 @@ class Settings(BaseSettings):
         # Check if PostgreSQL environment variables are explicitly set or DATABASE_URL contains postgresql
         postgres_env_vars = ['POSTGRES_HOST', 'POSTGRES_PORT', 'POSTGRES_USER', 'POSTGRES_DB']
         postgres_env_set = any(os.getenv(var) for var in postgres_env_vars)
-        database_url_env = os.getenv('DATABASE_URL', '')
-
         postgres_configured = postgres_env_set or 'postgresql' in database_url_env
 
         if postgres_configured:
             # If DATABASE_URL is explicitly set and contains postgresql, use it directly
-            if database_url_env and 'postgresql' in database_url_env:
-                return database_url_env
-
             # Try to construct PostgreSQL URL and test connection
             try:
                 password = self.postgres_password or ""

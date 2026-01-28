@@ -13,6 +13,7 @@ import subprocess as subprocess_module
 from sqlalchemy.orm import Session
 
 from backend.core.logging import get_logger
+from backend.core.config import get_settings
 from backend.models import Job, Metric
 from backend.models.job import JobStatus
 from backend.schemas import JobCreate, JobUpdate, JobResponse
@@ -392,8 +393,10 @@ class JobService:
                 owns_session = True
 
             # Get all running FreeSurfer containers
+            settings = get_settings()
+            prefix = settings.freesurfer_container_prefix
             result = subprocess.run(
-                ["docker", "ps", "--filter", "name=freesurfer-job-", "--format", "{{.Names}}"],
+                ["docker", "ps", "--filter", f"name={prefix}", "--format", "{{.Names}}"],
                 capture_output=True,
                 text=True,
                 timeout=30
@@ -406,13 +409,17 @@ class JobService:
             running_containers = result.stdout.strip().split('\n') if result.stdout.strip() else []
             cleaned_count = 0
 
+            pending_container_grace_seconds = settings.processing_timeout
+
             for container_name in running_containers:
                 if not container_name.strip():
                     continue
 
-                # Extract job ID from container name (format: freesurfer-job-{job_id})
+                # Extract job ID from container name (format: {prefix}{job_id})
                 try:
-                    job_id_part = container_name.replace('freesurfer-job-', '')
+                    if not container_name.startswith(prefix):
+                        continue
+                    job_id_part = container_name.replace(prefix, "", 1)
                     job = JobService.get_job(db, job_id_part)
 
                     should_stop = False
@@ -430,7 +437,7 @@ class JobService:
                             # Avoid race conditions: only treat as stale if it has been pending for a while
                             if job.started_at:
                                 elapsed_seconds = (datetime.utcnow() - job.started_at).total_seconds()
-                                if elapsed_seconds > 120:
+                                if elapsed_seconds > pending_container_grace_seconds:
                                     should_stop = True
                                     stop_reason = "pending_with_running_container"
 
@@ -493,8 +500,10 @@ class JobService:
         Remove stopped FreeSurfer containers older than retention_days.
         """
         try:
+            settings = get_settings()
+            prefix = settings.freesurfer_container_prefix
             result = subprocess_module.run(
-                ["docker", "ps", "-a", "--filter", "name=freesurfer-job-", "--format", "{{.Names}}"],
+                ["docker", "ps", "-a", "--filter", f"name={prefix}", "--format", "{{.Names}}"],
                 capture_output=True,
                 text=True,
                 timeout=30,

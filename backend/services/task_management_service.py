@@ -13,6 +13,7 @@ from typing import Optional, List
 from uuid import UUID
 
 from backend.core.logging import get_logger
+from backend.core.config import get_settings
 # Celery only available in server mode
 try:
     from workers.celery_app import celery_app
@@ -243,6 +244,8 @@ class TaskManagementService:
         from backend.services import JobService
 
         db = db_session or SessionLocal()
+        settings = get_settings()
+        mismatch_grace_seconds = settings.processing_timeout
         try:
             # Find all running jobs
             running_jobs = db.query(Job).filter(Job.status == JobStatus.RUNNING).all()
@@ -250,12 +253,12 @@ class TaskManagementService:
             failed_jobs = []
             for job in running_jobs:
                 # Determine expected container name (stored or derived)
-                container_name = job.docker_container_id or f"freesurfer-job-{job.id}"
+                container_name = job.docker_container_id or f"{settings.freesurfer_container_prefix}{job.id}"
 
                 # Avoid false positives right after job start
                 if job.started_at:
                     elapsed_seconds = (datetime.utcnow() - job.started_at).total_seconds()
-                    if elapsed_seconds < 120:
+                    if elapsed_seconds < mismatch_grace_seconds:
                         continue
 
                 # Check if the container is running
@@ -322,13 +325,13 @@ class TaskManagementService:
                 db.close()
 
     @staticmethod
-    def check_for_stuck_jobs(db_session=None, timeout_minutes: int = 120) -> List[dict]:
+    def check_for_stuck_jobs(db_session=None, timeout_minutes: int = 420) -> List[dict]:
         """
         Check for jobs that have been processing too long and mark them as failed.
 
         Args:
             db_session: Optional database session (will create one if not provided)
-            timeout_minutes: Minutes after which a job is considered stuck (default 2 hours for desktop)
+            timeout_minutes: Minutes after which a job is considered stuck (default 7 hours for desktop)
 
         Returns:
             List of jobs that were marked as failed
@@ -465,8 +468,8 @@ class TaskManagementService:
             # Check for container-job mismatches (jobs running but containers stopped)
             container_mismatches = TaskManagementService.check_for_container_job_mismatches(db_session)
 
-            # Check for stuck jobs (timeout after 2 hours for desktop)
-            stuck_jobs = TaskManagementService.check_for_stuck_jobs(db_session, timeout_minutes=120)
+            # Check for stuck jobs (timeout after 5 hours for desktop)
+            stuck_jobs = TaskManagementService.check_for_stuck_jobs(db_session, timeout_minutes=300)
 
             # Clean up old jobs (keep for 90 days in desktop mode)
             cleaned_count = TaskManagementService.cleanup_old_jobs(db_session, retention_days=90)

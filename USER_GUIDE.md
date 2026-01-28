@@ -9,7 +9,7 @@ Complete guide for deploying and using NeuroInsight for hippocampal MRI analysis
 - 4+ CPU cores, 50GB storage
 - Docker and Docker Compose
 - FreeSurfer license (free for research)
-- **System sleep timeout set to 2-4 hours** (critical for long-running processing)
+- **System sleep timeout set to 7+ hours** (critical for long-running processing)
 
 ### System Verification Commands
 
@@ -192,7 +192,7 @@ exit
 ./neuroinsight license
 
 # IMPORTANT: Configure system sleep settings to prevent processing interruptions
-# System Settings → Power → Set sleep timeout to 2-4 hours when inactive
+# System Settings → Power → Set sleep timeout to 7+ hours when inactive
 
 # Start NeuroInsight
 ./neuroinsight start
@@ -212,7 +212,7 @@ NeuroInsight processes one MRI scan at a time to ensure system stability and pre
 - **Status Monitoring**: Real-time progress updates show current job status and queue position
 
 **Why this limitation?**
-- FreeSurfer processing is computationally intensive (2-4 hours per scan)
+- FreeSurfer processing is computationally intensive (3-7 hours per scan depending on image characteristics)
 - Prevents system overload and ensures accurate results
 - Maintains data integrity during parallel filesystem operations
 
@@ -432,8 +432,8 @@ Use this when you want aggressive cleanup but must preserve a specific job.
 - Clear browser cache
 
 **Jobs interrupted or fail unexpectedly:**
-- **System Sleep/Hibernation**: FreeSurfer processing takes 30-60+ minutes and should complete within 2-4 hours. **Set sleep timeout to 2-4 hours** during processing to prevent interruptions.
-- **Power Settings**: Set power management to 2-4 hours sleep when plugged in
+- **System Sleep/Hibernation**: FreeSurfer processing takes 3-7 hours depending on image characteristics. **Set sleep timeout to 7+ hours** during processing to prevent interruptions.
+- **Power Settings**: Set power management to 7+ hours sleep when plugged in
 - **Screen Lock**: Disable automatic screen lock during long processing jobs
 - **Virtual Machines**: Ensure host system won't sleep while VM is running
 - **Docker Containers**: Containerized processing may be interrupted by system sleep
@@ -441,15 +441,69 @@ Use this when you want aggressive cleanup but must preserve a specific job.
 ### Important System Configuration
 
 #### Sleep/Hibernation Prevention
-**Critical for successful processing:** FreeSurfer jobs run for extended periods (30-120 minutes) and should complete within 2-4 hours. System sleep or hibernation will interrupt processing and cause job failures.
+**Critical for successful processing:** FreeSurfer jobs run for extended periods (3-7 hours) depending on image resolution and quality. System sleep or hibernation will interrupt processing and cause job failures.
 
 **Recommended Settings:**
-- **Ubuntu**: System Settings → Power → Set to 2-4 hours sleep when inactive
-- **VMWare/VirtualBox**: Host power settings to 2-4 hours sleep
+- **Ubuntu**: System Settings → Power → Set to 7+ hours sleep when inactive
+- **VMWare/VirtualBox**: Host power settings to 7+ hours sleep
 - **Laptop Users**: Keep system plugged in and prevent lid close actions
-- **Server Environments**: Configure power management policies for 2-4 hour timeouts
+- **Server Environments**: Configure power management policies for 7+ hour timeouts
 
 **Warning:** Jobs interrupted by sleep/hibernation cannot be resumed and must be restarted from the beginning.
+
+#### Memory Stability Tuning (Recommended)
+These host-level tweaks reduce memory spikes and improve stability during CA Reg and other heavy FreeSurfer steps.
+
+**1) Allow overcommit (helps large allocations succeed):**
+```bash
+sudo sysctl -w vm.overcommit_memory=1
+```
+
+Persist across reboot:
+```bash
+echo 'vm.overcommit_memory=1' | sudo tee /etc/sysctl.d/99-neuroinsight.conf
+sudo sysctl --system
+```
+
+**2) Lower swappiness (use swap only when needed):**
+```bash
+sudo sysctl -w vm.swappiness=10
+```
+
+Persist across reboot:
+```bash
+echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.d/99-neuroinsight.conf
+sudo sysctl --system
+```
+
+**3) Disable Transparent Huge Pages (reduces fragmentation stalls):**
+Immediate (runtime):
+```bash
+echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
+echo never | sudo tee /sys/kernel/mm/transparent_hugepage/defrag
+```
+
+Persist via systemd:
+```bash
+sudo tee /etc/systemd/system/disable-thp.service >/dev/null <<'EOF'
+[Unit]
+Description=Disable Transparent Huge Pages (THP)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'echo never > /sys/kernel/mm/transparent_hugepage/enabled; echo never > /sys/kernel/mm/transparent_hugepage/defrag'
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now disable-thp
+```
+
+**Notes:**
+- `vm.swappiness` is a 0-100 tuning value (not GB or %); 10-20 is a balanced range.
+- Use `sudo sysctl vm.overcommit_memory vm.swappiness` to verify active values.
 
 ## FAQ
 
@@ -460,7 +514,7 @@ Automated platform for hippocampal segmentation and analysis from T1-weighted MR
 Ubuntu 20.04+, 16GB+ RAM, 4+ CPU cores, 50GB storage, Docker, FreeSurfer license.
 
 ### How long does processing take?
-30-60 minutes per scan, depending on hardware and scan quality. **Important:** Set system sleep timeout to 2-4 hours to prevent interruptions during processing.
+3-7 hours per scan, depending on hardware, scan quality, and image resolution. **Important:** Set system sleep timeout to 7+ hours to prevent interruptions during processing.
 
 ### Is it free?
 Yes, MIT licensed. FreeSurfer license is free for research use.
@@ -567,7 +621,7 @@ exit
 ./neuroinsight license
 
 # IMPORTANT: Configure system sleep settings to prevent processing interruptions
-# System Settings → Power → Set sleep timeout to 2-4 hours when inactive
+# System Settings → Power → Set sleep timeout to 7+ hours when inactive
 
 # Start NeuroInsight
 ./neuroinsight start
@@ -587,7 +641,7 @@ NeuroInsight processes one MRI scan at a time to ensure system stability and pre
 - **Status Monitoring**: Real-time progress updates show current job status and queue position
 
 **Why this limitation?**
-- FreeSurfer processing is computationally intensive (2-4 hours per scan)
+- FreeSurfer processing is computationally intensive (3-7 hours per scan depending on image characteristics)
 - Prevents system overload and ensures accurate results
 - Maintains data integrity during parallel filesystem operations
 
@@ -760,8 +814,8 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 - Clear browser cache
 
 **Jobs interrupted or fail unexpectedly:**
-- **System Sleep/Hibernation**: FreeSurfer processing takes 30-60+ minutes and should complete within 2-4 hours. **Set sleep timeout to 2-4 hours** during processing to prevent interruptions.
-- **Power Settings**: Set power management to 2-4 hours sleep when plugged in
+- **System Sleep/Hibernation**: FreeSurfer processing takes 3-7 hours depending on image characteristics. **Set sleep timeout to 7+ hours** during processing to prevent interruptions.
+- **Power Settings**: Set power management to 7+ hours sleep when plugged in
 - **Screen Lock**: Disable automatic screen lock during long processing jobs
 - **Virtual Machines**: Ensure host system won't sleep while VM is running
 - **Docker Containers**: Containerized processing may be interrupted by system sleep
@@ -769,13 +823,13 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 ### Important System Configuration
 
 #### Sleep/Hibernation Prevention
-**Critical for successful processing:** FreeSurfer jobs run for extended periods (30-120 minutes) and should complete within 2-4 hours. System sleep or hibernation will interrupt processing and cause job failures.
+**Critical for successful processing:** FreeSurfer jobs run for extended periods (3-7 hours) depending on image resolution and quality. System sleep or hibernation will interrupt processing and cause job failures.
 
 **Recommended Settings:**
-- **Ubuntu**: System Settings → Power → Set to 2-4 hours sleep when inactive
-- **VMWare/VirtualBox**: Host power settings to 2-4 hours sleep
+- **Ubuntu**: System Settings → Power → Set to 7+ hours sleep when inactive
+- **VMWare/VirtualBox**: Host power settings to 7+ hours sleep
 - **Laptop Users**: Keep system plugged in and prevent lid close actions
-- **Server Environments**: Configure power management policies for 2-4 hour timeouts
+- **Server Environments**: Configure power management policies for 7+ hour timeouts
 
 **Warning:** Jobs interrupted by sleep/hibernation cannot be resumed and must be restarted from the beginning.
 
@@ -788,7 +842,7 @@ Automated platform for hippocampal segmentation and analysis from T1-weighted MR
 Ubuntu 20.04+, 16GB+ RAM, 4+ CPU cores, 50GB storage, Docker, FreeSurfer license.
 
 ### How long does processing take?
-30-60 minutes per scan, depending on hardware and scan quality. **Important:** Set system sleep timeout to 2-4 hours to prevent interruptions during processing.
+3-7 hours per scan, depending on hardware, scan quality, and image resolution. **Important:** Set system sleep timeout to 7+ hours to prevent interruptions during processing.
 
 ### Is it free?
 Yes, MIT licensed. FreeSurfer license is free for research use.
@@ -895,7 +949,7 @@ exit
 ./neuroinsight license
 
 # IMPORTANT: Configure system sleep settings to prevent processing interruptions
-# System Settings → Power → Set sleep timeout to 2-4 hours when inactive
+# System Settings → Power → Set sleep timeout to 7+ hours when inactive
 
 # Start NeuroInsight
 ./neuroinsight start
@@ -915,7 +969,7 @@ NeuroInsight processes one MRI scan at a time to ensure system stability and pre
 - **Status Monitoring**: Real-time progress updates show current job status and queue position
 
 **Why this limitation?**
-- FreeSurfer processing is computationally intensive (2-4 hours per scan)
+- FreeSurfer processing is computationally intensive (3-7 hours per scan depending on image characteristics)
 - Prevents system overload and ensures accurate results
 - Maintains data integrity during parallel filesystem operations
 
@@ -1088,8 +1142,8 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 - Clear browser cache
 
 **Jobs interrupted or fail unexpectedly:**
-- **System Sleep/Hibernation**: FreeSurfer processing takes 30-60+ minutes and should complete within 2-4 hours. **Set sleep timeout to 2-4 hours** during processing to prevent interruptions.
-- **Power Settings**: Set power management to 2-4 hours sleep when plugged in
+- **System Sleep/Hibernation**: FreeSurfer processing takes 3-7 hours depending on image characteristics. **Set sleep timeout to 7+ hours** during processing to prevent interruptions.
+- **Power Settings**: Set power management to 7+ hours sleep when plugged in
 - **Screen Lock**: Disable automatic screen lock during long processing jobs
 - **Virtual Machines**: Ensure host system won't sleep while VM is running
 - **Docker Containers**: Containerized processing may be interrupted by system sleep
@@ -1097,13 +1151,13 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 ### Important System Configuration
 
 #### Sleep/Hibernation Prevention
-**Critical for successful processing:** FreeSurfer jobs run for extended periods (30-120 minutes) and should complete within 2-4 hours. System sleep or hibernation will interrupt processing and cause job failures.
+**Critical for successful processing:** FreeSurfer jobs run for extended periods (3-7 hours) depending on image resolution and quality. System sleep or hibernation will interrupt processing and cause job failures.
 
 **Recommended Settings:**
-- **Ubuntu**: System Settings → Power → Set to 2-4 hours sleep when inactive
-- **VMWare/VirtualBox**: Host power settings to 2-4 hours sleep
+- **Ubuntu**: System Settings → Power → Set to 7+ hours sleep when inactive
+- **VMWare/VirtualBox**: Host power settings to 7+ hours sleep
 - **Laptop Users**: Keep system plugged in and prevent lid close actions
-- **Server Environments**: Configure power management policies for 2-4 hour timeouts
+- **Server Environments**: Configure power management policies for 7+ hour timeouts
 
 **Warning:** Jobs interrupted by sleep/hibernation cannot be resumed and must be restarted from the beginning.
 
@@ -1116,7 +1170,7 @@ Automated platform for hippocampal segmentation and analysis from T1-weighted MR
 Ubuntu 20.04+, 16GB+ RAM, 4+ CPU cores, 50GB storage, Docker, FreeSurfer license.
 
 ### How long does processing take?
-30-60 minutes per scan, depending on hardware and scan quality. **Important:** Set system sleep timeout to 2-4 hours to prevent interruptions during processing.
+3-7 hours per scan, depending on hardware, scan quality, and image resolution. **Important:** Set system sleep timeout to 7+ hours to prevent interruptions during processing.
 
 ### Is it free?
 Yes, MIT licensed. FreeSurfer license is free for research use.

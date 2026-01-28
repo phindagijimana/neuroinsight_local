@@ -228,10 +228,9 @@
             throw new Error(`Failed to fetch jobs: ${response.status} ${response.statusText}`);
           }
           const data = await response.json();
-          const jobsArray = Array.isArray(data) ? data : (data?.jobs || []);
           console.log('API returned jobs:', data);
-          console.log('Number of jobs:', jobsArray.length);
-          return jobsArray;
+          console.log('Number of jobs:', data?.length || 0);
+          return data;
         } catch (error) {
           console.error('Failed to load jobs:', error);
           console.error('Error details:', error.message);
@@ -856,8 +855,7 @@
               });
               console.log('Direct fetch response received:', response.status, response.statusText);
               if (response.ok) {
-                const responseData = await response.json();
-                data = Array.isArray(responseData) ? responseData : (responseData?.jobs || []);
+                data = await response.json();
                 console.log('Direct fetch JSON parsed successfully, data length:', data.length);
               } else {
                 const errorText = await response.text();
@@ -877,15 +875,16 @@
           console.log('Is array:', Array.isArray(data));
           console.log('Data length:', data?.length);
           
-          if (!data || !Array.isArray(data)) {
-            console.error('Invalid data format:', data);
-            console.error('Data type:', typeof data);
-            console.error('Is array:', Array.isArray(data));
+          const jobsArray = Array.isArray(data) ? data : (data?.jobs || []);
+          console.log('Normalized jobs array length:', jobsArray.length);
+          
+          if (!Array.isArray(jobsArray)) {
+            console.error('Invalid data format after normalization:', data);
             setJobs([]);
             return;
           }
           
-          const uiJobs = data.map(toUiJob);
+          const uiJobs = jobsArray.map(toUiJob);
           console.log('Converted UI jobs:', uiJobs);
           console.log('UI jobs count:', uiJobs.length);
           
@@ -895,7 +894,7 @@
               id: job.id,
               filename: job.filename,
               status: job.status,
-              rawStatus: data[idx]?.status
+              rawStatus: jobsArray[idx]?.status
             });
           });
           
@@ -1985,28 +1984,34 @@
                   <h2 className="text-xl font-semibold text-gray-900">Whole Hippocampus Visualization</h2>
                 </div>
                 <div className="flex items-center gap-4">
-                  {availableJobs.length > 0 && (
-                    <>
-                      <select
-                        value={selectedJobId}
-                        onChange={(e) => setSelectedJobId(e.target.value)}
-                        className="border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                      >
-                        {availableJobs.map(job => (
-                          <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
-                        ))}
-                      </select>
-                      
-                      <select
-                        value={orientation}
-                        onChange={(e) => setOrientation(e.target.value)}
-                        className="border border-blue-300 rounded-lg px-4 py-2 text-sm font-semibold text-blue-800 bg-blue-50"
-                      >
-                        <option value="coronal">Coronal (Front View)</option>
-                        <option value="axial">Axial (View from Below)</option>
-                      </select>
-                    </>
+                  {availableJobs.length > 0 ? (
+                    <select
+                      value={selectedJobId}
+                      onChange={(e) => setSelectedJobId(e.target.value)}
+                      className="border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                    >
+                      {availableJobs.map(job => (
+                        <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <select
+                      value=""
+                      disabled
+                      className="border border-gray-200 rounded-lg px-4 py-2 text-sm text-gray-400 bg-gray-50"
+                    >
+                      <option value="">No completed jobs</option>
+                    </select>
                   )}
+
+                  <select
+                    value={orientation}
+                    onChange={(e) => setOrientation(e.target.value)}
+                    className="border border-blue-300 rounded-lg px-4 py-2 text-sm font-semibold text-blue-800 bg-blue-50"
+                  >
+                    <option value="coronal">Coronal (Front View)</option>
+                    <option value="axial">Axial (View from Below)</option>
+                  </select>
                 </div>
               </div>
 

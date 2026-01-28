@@ -45,6 +45,7 @@ class DockerManager:
         # FreeSurfer configuration
         self.freesurfer_image = os.getenv("FREESURFER_IMAGE", "freesurfer/freesurfer:7.4.1")
         self.freesurfer_license_path = os.getenv("FREESURFER_LICENSE", "/usr/local/freesurfer/license.txt")
+        self.container_prefix = os.getenv("FREESURFER_CONTAINER_PREFIX", "freesurfer-job-")
 
         # Resource limits
         self.memory_limit = os.getenv("FREESURFER_MEMORY", "8g")
@@ -107,7 +108,7 @@ class DockerManager:
                 "cpu_period": 100000,
                 "detach": True,  # Run in background
                 "remove": False,  # Keep container for inspection
-                "name": f"freesurfer-job-{job_id}",
+                "name": f"{self.container_prefix}{job_id}",
                 "labels": {
                     "neuroinsight.job_id": job_id,
                     "neuroinsight.type": "freesurfer-processor"

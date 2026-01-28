@@ -28,7 +28,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
   const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
   const [rotation, setRotation] = useState(0); // Rotation: 0, 90, 180, 270 degrees (works for both axial and coronal)
   const [jobVisualizations, setJobVisualizations] = useState(null); // Store visualization data from API
-  const FLIP_VERTICAL = false; // No flip needed; backend overlays saved with correct orientation
+  const shouldFlipVertical = orientation === 'coronal'; // Coronal slices are upside down; flip vertically
 
   // Zoom handlers
   const handleZoomIn = () => {
@@ -163,7 +163,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
         for (let i = 1; i < 10; i++) {
           if (vizData[orientation]) {
             actualSlices.push({
-              slice: i,
+        slice: i,
               anatomical: vizData[orientation].anatomical,
               overlay: vizData[orientation].hippocampus
             });
@@ -171,7 +171,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
         }
 
         setSlices(actualSlices);
-        setSlicesLoaded(prev => new Set([...prev, cacheKey]));
+      setSlicesLoaded(prev => new Set([...prev, cacheKey]));
         console.log(`Loaded ${actualSlices.length} slices for ${cacheKey} using real visualization data`);
         console.log('Visualization URLs:', vizData[orientation]);
       } else {
@@ -219,29 +219,29 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
                 {selectedJobId ? 'Loading Visualizations...' : 'No Job Selected'}
               </h2>
-              <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-6">
                 {selectedJobId
                   ? 'Loading brain slice visualizations for the selected job...'
                   : 'Please select a completed job to view 2D slice visualizations'
                 }
-              </p>
-              {availableJobs.length > 0 ? (
+            </p>
+            {availableJobs.length > 0 ? (
                 <div className="max-w-md mx-auto">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Job:</label>
-                  <select
-                    value={selectedJobId || ''}
-                    onChange={(e) => setSelectedJobId(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                  >
-                    <option value="">-- Select a job --</option>
-                    {availableJobs.map(job => (
-                      <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <p className="text-gray-500">No completed jobs available. Please upload and process an MRI scan first.</p>
-              )}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Job:</label>
+                <select
+                  value={selectedJobId || ''}
+                  onChange={(e) => setSelectedJobId(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                >
+                  <option value="">-- Select a job --</option>
+                  {availableJobs.map(job => (
+                    <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <p className="text-gray-500">No completed jobs available. Please upload and process an MRI scan first.</p>
+            )}
             </div>
           </div>
         </div>
@@ -364,7 +364,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                   <div
                     className="relative max-w-none"
                     style={{
-                      transform: `scale(${zoomLevel})${FLIP_VERTICAL ? ' scaleY(-1)' : ''}${rotation !== 0 ? ` rotate(${rotation}deg)` : ''}`,
+                      transform: `scale(${zoomLevel})${shouldFlipVertical ? ' scaleY(-1)' : ''}${rotation !== 0 ? ` rotate(${rotation}deg)` : ''}`,
                       transformOrigin: 'center center',
                       transition: 'transform 0.2s ease-out',
                       cursor: zoomLevel > 1 ? 'move' : 'default'

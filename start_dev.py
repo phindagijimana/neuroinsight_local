@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """
-NeuroInsight Development Start Script
-Starts a dev backend on port 8001 with Celery/Redis enabled, without touching prod.
+NeuroInsight Dev Start Script (isolated from production).
+Starts backend, Celery, and job monitor on port 8001 with dev-only resources.
 """
 
 import os
 import sys
 import subprocess
 import time
-import signal
-import psutil
 from pathlib import Path
 
 # Colors for output
@@ -36,329 +34,165 @@ def log_error(msg):
     print(f"{RED}[ERROR]{NC} {msg}")
 
 
-def kill_process_by_pid_file(pid_file, process_name):
-    """Kill process using PID file (dev-only)"""
-    if not os.path.exists(pid_file):
-        return False
-
-    try:
-        with open(pid_file, 'r') as f:
-            pid = int(f.read().strip())
-
-        if psutil.pid_exists(pid):
-            log_info(f"Stopping {process_name} (PID: {pid})...")
-            try:
-                os.kill(pid, signal.SIGTERM)
-                for _ in range(10):
-                    if not psutil.pid_exists(pid):
-                        break
-                    time.sleep(1)
-                if psutil.pid_exists(pid):
-                    log_warning(f"{process_name} didn't stop gracefully, forcing...")
-                    os.kill(pid, signal.SIGKILL)
-                else:
-                    log_success(f"{process_name} stopped")
-            except OSError:
-                log_warning(f"{process_name} already stopped")
-        else:
-            log_warning(f"{process_name} PID file exists but process not running")
-    except (ValueError, IOError) as e:
-        log_warning(f"Error reading {process_name} PID file: {e}")
-
-    try:
-        os.remove(pid_file)
-    except OSError:
-        pass
-    return True
-
-
 def check_port_available(port):
-    """Check if a port is available"""
+    """Check if a port is available."""
     import socket
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         result = sock.connect_ex(('localhost', port))
-        return result != 0
+        return result != 0  # True if available
 
 
-def ensure_docker_service(name, run_cmd):
-    """Ensure Docker container is running; start or run as needed."""
-    try:
-        running = subprocess.run(
-            ['docker', 'ps', '-q', '-f', f'name={name}'],
-            capture_output=True, text=True, check=False
-        )
-        if running.returncode == 0 and running.stdout.strip():
-            log_success(f"{name} already running")
-            return True
-
-        exists = subprocess.run(
-            ['docker', 'ps', '-a', '-q', '-f', f'name={name}'],
-            capture_output=True, text=True, check=False
-        )
-        if exists.returncode == 0 and exists.stdout.strip():
-            log_info(f"Starting existing {name} container...")
-            start_result = subprocess.run(['docker', 'start', name], capture_output=True, text=True)
-            if start_result.returncode == 0:
-                log_success(f"{name} started")
-                return True
-            log_error(f"Failed to start {name}: {start_result.stderr}")
-            return False
-
-        log_info(f"Creating and starting {name}...")
-        result = subprocess.run(run_cmd, capture_output=True, text=True)
-        if result.returncode == 0:
-            log_success(f"{name} started")
-            return True
-        log_error(f"{name} startup failed: {result.stderr}")
+def require_port_available(port):
+    """Require a specific port to be available."""
+    if not check_port_available(port):
+        log_error(f"Port {port} is already in use. Stop the service using it first.")
         return False
-    except Exception as e:
-        log_error(f"Docker error for {name}: {e}")
+    return True
+
+
+def ensure_dev_database():
+    """Ensure the dev database exists."""
+    try:
+        import psycopg2
+
+        conn = psycopg2.connect(
+            host='localhost',
+            port=5432,
+            user='neuroinsight',
+            password='JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg',
+            database='postgres',
+        )
+        conn.autocommit = True
+        cur = conn.cursor()
+        cur.execute("SELECT 1 FROM pg_database WHERE datname = 'neuroinsight_dev'")
+        exists = cur.fetchone() is not None
+        if not exists:
+            cur.execute("CREATE DATABASE neuroinsight_dev")
+            log_success("Created dev database neuroinsight_dev")
+        else:
+            log_info("Dev database neuroinsight_dev already exists")
+        cur.close()
+        conn.close()
+        return True
+    except Exception as exc:
+        log_error(f"Failed to ensure dev database: {exc}")
         return False
 
 
-def start_docker_services():
-    """Start Docker services if not already running (dev-safe)."""
-    log_info("Ensuring Docker services are running...")
+def build_dev_env():
+    """Build environment variables for dev services."""
+    base_dir = Path.home() / ".local" / "share" / "neuroinsight_dev"
+    upload_dir = str(base_dir / "uploads")
+    output_dir = str(base_dir / "outputs")
 
-    postgres_cmd = [
-        'docker', 'run', '-d',
-        '--name', 'neuroinsight-postgres',
-        '-e', 'POSTGRES_DB=neuroinsight',
-        '-e', 'POSTGRES_USER=neuroinsight',
-        '-e', 'POSTGRES_PASSWORD=JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg',
-        '-p', '5432:5432',
-        '--restart', 'unless-stopped',
-        'postgres:15-alpine'
-    ]
+    env = os.environ.copy()
+    env['PYTHONPATH'] = str(Path.cwd())
+    env['ENVIRONMENT'] = 'development'
+    env['API_PORT'] = '8001'
+    env['PORT'] = '8001'
+    env['FORCE_CELERY'] = '1'
+    env['DATABASE_URL'] = (
+        'postgresql://neuroinsight:'
+        'JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg'
+        '@localhost:5432/neuroinsight_dev'
+    )
+    env['REDIS_URL'] = 'redis://:redis_secure_password@localhost:6379/1'
+    env['UPLOAD_DIR'] = upload_dir
+    env['OUTPUT_DIR'] = output_dir
+    env['PROCESSING_TIMEOUT'] = '25200'
+    env['MAX_CONCURRENT_JOBS'] = '1'
+    env['FREESURFER_CONTAINER_PREFIX'] = 'freesurfer-dev-job-'
 
-    redis_cmd = [
-        'docker', 'run', '-d',
-        '--name', 'neuroinsight-redis',
-        '-p', '6379:6379',
-        '--restart', 'unless-stopped',
-        'redis:7-alpine',
-        'redis-server', '--appendonly', 'yes', '--requirepass', 'redis_secure_password'
-    ]
-
-    minio_cmd = [
-        'docker', 'run', '-d',
-        '--name', 'neuroinsight-minio',
-        '-e', 'MINIO_ROOT_USER=neuroinsight_minio',
-        '-e', 'MINIO_ROOT_PASSWORD=minio_secure_password',
-        '-p', '9000:9000',
-        '-p', '9001:9001',
-        '--restart', 'unless-stopped',
-        'minio/minio:latest',
-        'server', '/data', '--console-address', ':9001'
-    ]
-
-    ok = True
-    ok &= ensure_docker_service('neuroinsight-postgres', postgres_cmd)
-    ok &= ensure_docker_service('neuroinsight-redis', redis_cmd)
-    ok &= ensure_docker_service('neuroinsight-minio', minio_cmd)
-    return ok
+    os.makedirs(upload_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
+    return env
 
 
-def start_backend(port):
-    """Start the NeuroInsight backend (dev)"""
-    try:
-        log_info(f"Starting dev backend on port {port}...")
+def start_backend(env):
+    """Start dev backend on port 8001."""
+    log_info("Starting dev backend on port 8001...")
+    proc = subprocess.Popen(
+        [sys.executable, 'backend/main.py'],
+        env=env,
+        stdout=open('neuroinsight-dev.log', 'w'),
+        stderr=subprocess.STDOUT,
+    )
+    with open('neuroinsight-dev.pid', 'w') as f:
+        f.write(str(proc.pid))
 
-        env = os.environ.copy()
-        env['PYTHONPATH'] = str(Path.cwd())
-        env['API_PORT'] = str(port)
-        env['PORT'] = str(port)
-        env['ENVIRONMENT'] = 'development'
-        env['FORCE_CELERY'] = 'true'
-        env['MAX_CONCURRENT_JOBS'] = '1'
-        env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
-
-        proc = subprocess.Popen(
-            [sys.executable, 'backend/main.py'],
-            env=env,
-            stdout=open('dev_backend.log', 'w'),
-            stderr=subprocess.STDOUT
-        )
-
-        with open('dev_backend.pid', 'w') as f:
-            f.write(str(proc.pid))
-
-        log_success(f"Dev backend started (PID: {proc.pid})")
-
-        log_info("Waiting for dev backend to be ready...")
-        for _ in range(30):
-            try:
-                import requests
-                response = requests.get(f'http://localhost:{port}/health', timeout=2)
-                if response.status_code == 200:
-                    log_success("Dev backend health check passed!")
-                    return proc
-            except Exception:
-                pass
+    log_info("Waiting for dev backend health...")
+    for _ in range(30):
+        try:
+            import requests
+            response = requests.get('http://localhost:8001/health', timeout=2)
+            if response.status_code == 200:
+                log_success("Dev backend health check passed!")
+                return proc
+        except Exception:
             time.sleep(1)
 
-        log_error("Dev backend failed health checks")
-        proc.kill()
-        return None
-    except Exception as e:
-        log_error(f"Dev backend startup failed: {e}")
-        return None
+    log_error("Dev backend failed to respond to health checks")
+    proc.kill()
+    return None
 
 
-def start_celery():
-    """Start Celery worker (dev)"""
-    try:
-        log_info("Starting dev Celery worker...")
-
-        env = os.environ.copy()
-        env['PYTHONPATH'] = str(Path.cwd())
-
-        proc = subprocess.Popen(
-            [
-                sys.executable, '-m', 'celery',
-                '-A', 'workers.tasks.processing_web',
-                'worker', '--loglevel=info', '--concurrency=4'
-            ],
-            env=env,
-            stdout=open('dev_celery_worker.log', 'w'),
-            stderr=subprocess.STDOUT
-        )
-
-        with open('dev_celery.pid', 'w') as f:
-            f.write(str(proc.pid))
-
-        log_success(f"Dev Celery worker started (PID: {proc.pid})")
-        return proc
-    except Exception as e:
-        log_warning(f"Dev Celery startup failed: {e}")
-        return None
+def start_celery(env):
+    """Start dev Celery worker."""
+    log_info("Starting dev Celery worker...")
+    proc = subprocess.Popen(
+        [
+            sys.executable, '-m', 'celery',
+            '-A', 'workers.tasks.processing_web', 'worker',
+            '--loglevel=info', '--concurrency=4'
+        ],
+        env=env,
+        stdout=open('celery-dev.log', 'w'),
+        stderr=subprocess.STDOUT,
+    )
+    with open('celery-dev.pid', 'w') as f:
+        f.write(str(proc.pid))
+    log_success(f"Dev Celery started (PID: {proc.pid})")
+    return proc
 
 
-def start_job_monitor():
-    """Start job monitoring service (dev)"""
-    try:
-        log_info("Starting dev job monitor...")
-
-        env = os.environ.copy()
-        env['PYTHONPATH'] = str(Path.cwd())
-
-        proc = subprocess.Popen(
-            [
-                sys.executable, '-c',
-                """
-import sys
-import time
-sys.path.insert(0, '.')
-from backend.services.job_monitor import JobMonitor
-monitor = JobMonitor()
-monitor.start_background_monitoring()
-while True:
-    time.sleep(60)
-"""
-            ],
-            env=env,
-            stdout=open('dev_job_monitor.log', 'w'),
-            stderr=subprocess.STDOUT
-        )
-
-        with open('dev_job_monitor.pid', 'w') as f:
-            f.write(str(proc.pid))
-
-        log_success(f"Dev job monitor started (PID: {proc.pid})")
-        return proc
-    except Exception as e:
-        log_warning(f"Dev job monitor startup failed: {e}")
-        return None
-
-
-def start_job_queue_processor():
-    """Start job queue processor service (dev)"""
-    try:
-        log_info("Starting dev job queue processor...")
-
-        env = os.environ.copy()
-        env['PYTHONPATH'] = str(Path.cwd())
-
-        proc = subprocess.Popen(
-            [
-                sys.executable, '-c',
-                """
-import sys
-sys.path.insert(0, '.')
-from backend.services.job_queue_processor import start_job_queue_processor
-start_job_queue_processor()
-import time
-while True:
-    time.sleep(60)
-"""
-            ],
-            env=env,
-            stdout=open('dev_job_queue_processor.log', 'w'),
-            stderr=subprocess.STDOUT
-        )
-
-        with open('dev_job_queue_processor.pid', 'w') as f:
-            f.write(str(proc.pid))
-
-        log_success(f"Dev job queue processor started (PID: {proc.pid})")
-        return proc
-    except Exception as e:
-        log_warning(f"Dev job queue processor startup failed: {e}")
-        return None
+def start_job_monitor(env):
+    """Start dev job monitor."""
+    log_info("Starting dev job monitor...")
+    proc = subprocess.Popen(
+        [
+            sys.executable, '-c',
+            "import sys, time; sys.path.insert(0, '.'); "
+            "from backend.services.job_monitor import JobMonitor; "
+            "monitor = JobMonitor(); monitor.start_background_monitoring(); "
+            "time.sleep(10**9)"
+        ],
+        env=env,
+        stdout=open('dev_job_monitor.log', 'w'),
+        stderr=subprocess.STDOUT,
+    )
+    with open('job_monitor-dev.pid', 'w') as f:
+        f.write(str(proc.pid))
+    log_success(f"Dev job monitor started (PID: {proc.pid})")
+    return proc
 
 
 def main():
-    print("=" * 50)
-    print("   NeuroInsight Dev Startup")
-    print("=" * 50)
-    print()
-
-    script_dir = Path(__file__).parent
-    os.chdir(script_dir)
-
-    if not check_port_available(8001):
-        log_error("Port 8001 is already in use. Stop the dev backend first.")
+    if not require_port_available(8001):
         sys.exit(1)
 
-    # Stop any previous dev processes
-    kill_process_by_pid_file("dev_backend.pid", "dev backend")
-    kill_process_by_pid_file("dev_celery.pid", "dev Celery worker")
-    kill_process_by_pid_file("dev_job_monitor.pid", "dev job monitor")
-    kill_process_by_pid_file("dev_job_queue_processor.pid", "dev job queue processor")
-
-    # Ensure Docker services are running
-    if not start_docker_services():
-        log_error("Failed to ensure Docker services")
+    if not ensure_dev_database():
         sys.exit(1)
 
-    backend_proc = start_backend(8001)
+    env = build_dev_env()
+    backend_proc = start_backend(env)
     if not backend_proc:
-        log_error("Failed to start dev backend")
         sys.exit(1)
 
-    celery_proc = start_celery()
-    if not celery_proc:
-        log_warning("Dev Celery worker failed to start - continuing anyway")
-
-    monitor_proc = start_job_monitor()
-    if not monitor_proc:
-        log_warning("Dev job monitor failed to start - continuing anyway")
-
-    queue_proc = start_job_queue_processor()
-    if not queue_proc:
-        log_warning("Dev job queue processor failed to start - continuing anyway")
-
-    print()
-    print("=" * 50)
-    log_success("NeuroInsight dev backend is running!")
-    print("   Dev API: http://localhost:8001")
-    print("   Dev API Docs: http://localhost:8001/docs")
-    print("   Dev Health: http://localhost:8001/health")
-    print("   Dev Frontend: http://localhost:5173")
-    print("=" * 50)
+    start_celery(env)
+    start_job_monitor(env)
+    log_success("Dev environment started on port 8001 (isolated from prod).")
 
 
 if __name__ == "__main__":
     main()
-
 

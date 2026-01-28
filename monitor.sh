@@ -292,16 +292,16 @@ try:
     db = next(get_db())
     now = datetime.utcnow()
 
-    # Find running jobs stuck for > 2 hours
+    # Find running jobs stuck for > 5 hours
     stuck_running = db.query(Job).filter(
         Job.status == JobStatus.RUNNING,
-        Job.started_at < (now - timedelta(hours=2))
+        Job.started_at < (now - timedelta(hours=5))
     ).all()
 
-    # Find pending jobs stuck for > 24 hours
+    # Find pending jobs stuck for > 5 hours
     stuck_pending = db.query(Job).filter(
         Job.status == JobStatus.PENDING,
-        Job.created_at < (now - timedelta(hours=24))
+        Job.created_at < (now - timedelta(hours=5))
     ).all()
 
     stuck_jobs = []

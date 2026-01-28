@@ -59,7 +59,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, onBack
               </label>
               <input
                 type="file"
-                accept=".nii,.nii.gz,.dcm,.dicom"
+                accept=".nii,.nii.gz"
                 onChange={handleFileSelect}
                 className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-900 hover:file:bg-blue-100"
                 disabled={uploading}

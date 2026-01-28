@@ -25,12 +25,12 @@ def cleanup_orphaned_jobs():
     
     A job is considered orphaned if:
     - Status is RUNNING
-    - Started more than 12 hours ago (reasonable timeout for MRI processing)
+    - Started more than 5 hours ago (timeout for MRI processing)
     """
     db = SessionLocal()
     try:
-        # Find orphaned jobs (running for more than 12 hours)
-        cutoff_time = datetime.utcnow() - timedelta(hours=12)
+        # Find orphaned jobs (running for more than 5 hours)
+        cutoff_time = datetime.utcnow() - timedelta(hours=5)
         
         orphaned_jobs = db.query(Job).filter(
             Job.status == JobStatus.RUNNING,

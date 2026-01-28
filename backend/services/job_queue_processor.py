@@ -129,6 +129,14 @@ def start_job_queue_processor():
     """Start the global job queue processor."""
     global _processor_instance
 
+    if settings.environment == "production" or settings.force_celery:
+        logger.info(
+            "job_queue_processor_disabled",
+            environment=settings.environment,
+            force_celery=settings.force_celery,
+        )
+        return
+
     if _processor_instance is None:
         _processor_instance = JobQueueProcessor()
 

@@ -22,6 +22,7 @@ platformdirs==4.1.0
 # Medical imaging
 nibabel==5.1.0
 numpy==1.24.3
+pandas==2.0.3
 scipy==1.11.3
 
 # Deep learning

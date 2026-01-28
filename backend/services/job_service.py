@@ -433,8 +433,12 @@ class JobService:
                         if inspect_result.returncode == 0:
                             created_str = inspect_result.stdout.strip()
                             # Parse Docker's timestamp format (2026-01-28T20:22:46.829294235Z)
+                            # Docker uses nanosecond precision, but Python only supports microseconds
+                            # Remove extra digits beyond microseconds (keep only 6 decimal places)
+                            import re
                             from datetime import timezone
-                            created_at = datetime.fromisoformat(created_str.replace('Z', '+00:00'))
+                            fixed_timestamp = re.sub(r'\.(\d{6})\d+', r'.\1', created_str)
+                            created_at = datetime.fromisoformat(fixed_timestamp.replace('Z', '+00:00'))
                             age_seconds = (datetime.now(timezone.utc) - created_at).total_seconds()
                             
                             # Skip cleanup for containers less than 60 seconds old

@@ -88,7 +88,7 @@ else
     log_success "RAM check passed: ${TOTAL_RAM}GB"
 fi
 
-# Check disk space (50GB minimum for production, 30GB for testing)
+# Check disk space (35GB minimum for production, 30GB for testing)
 AVAILABLE_SPACE=$(df / | tail -1 | awk '{print int($4/1024/1024)}')
 
 # Reduce requirement for testing/development environments
@@ -96,18 +96,25 @@ if [[ "$HOSTNAME" == *"test"* ]] || [[ "$USER" == *"test"* ]] || [[ "$PWD" == *"
     MIN_DISK_GB=30  # Reduced for testing
     log_info "Testing environment detected - using reduced disk requirement: ${MIN_DISK_GB}GB"
 else
-    MIN_DISK_GB=45  # Standard production requirement
+    MIN_DISK_GB=35  # Standard production requirement (reduced from 45GB)
 fi
 
 if (( AVAILABLE_SPACE < MIN_DISK_GB )); then
     log_error "Insufficient disk space. NeuroInsight requires at least ${MIN_DISK_GB}GB free."
     log_error "Detected: ${AVAILABLE_SPACE}GB available"
     echo ""
-    log_info "To free up space, try:"
-    echo "  docker system prune -af --volumes   # Removes unused Docker resources"
-    echo "  df -h /                              # Check space after cleanup"
+    log_error "Please free up disk space before installation:"
     echo ""
-    log_info "See TROUBLESHOOTING.md for detailed cleanup instructions:"
+    log_info "  1. Remove unused Docker resources (often frees 15-25GB):"
+    echo "     docker system prune -af --volumes"
+    echo ""
+    log_info "  2. Check available space after cleanup:"
+    echo "     df -h /"
+    echo ""
+    log_info "  3. Retry installation:"
+    echo "     ./neuroinsight install"
+    echo ""
+    log_info "For more cleanup options, see TROUBLESHOOTING.md:"
     echo "  https://github.com/phindagijimana/neuroinsight_local/blob/master/TROUBLESHOUTING.md#insufficient-disk-space"
     exit 1
 fi

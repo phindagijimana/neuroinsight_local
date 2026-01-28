@@ -126,6 +126,77 @@ sleep 5
 - Monitor Celery worker logs during initial testing
 - Keep Celery worker running continuously
 
+### Insufficient Disk Space
+
+**"Insufficient disk space" during installation:**
+```bash
+# Error: Insufficient disk space. NeuroInsight requires at least 45GB free.
+# Error: Detected: XXgB available
+```
+
+**Impact:**
+- NeuroInsight requires 45GB+ free disk space
+- FreeSurfer processing needs substantial temporary storage
+- Docker images (FreeSurfer 7.4.1) require ~20GB
+- Job outputs can accumulate over time
+
+**Solutions:**
+
+**Quick Fix - Free Up Space:**
+```bash
+# 1. Clean Docker resources (most effective)
+docker system prune -af --volumes
+# This removes:
+# - All stopped containers
+# - Unused images
+# - Unused networks
+# - Dangling build cache
+# Typically frees: 15-25GB
+
+# 2. Check space after cleanup
+df -h /
+
+# 3. Retry installation
+./neuroinsight install
+```
+
+**Additional Cleanup Options:**
+```bash
+# Clean old job outputs (if previously installed)
+rm -rf ~/.local/share/neuroinsight/outputs/old-job-*
+
+# Clean system caches
+sudo apt clean
+sudo apt autoclean
+
+# Clean journal logs (keeps last 7 days)
+sudo journalctl --vacuum-time=7d
+
+# Clean pip cache
+rm -rf ~/.cache/pip
+```
+
+**Check Disk Usage:**
+```bash
+# Overall disk usage
+df -h /
+
+# Find large directories
+du -h ~ | sort -rh | head -20
+
+# Docker space usage
+docker system df
+```
+
+**Prevention:**
+```bash
+# Regular maintenance (run monthly)
+docker system prune -a --volumes
+
+# Monitor disk usage
+df -h /
+```
+
 ### Docker Installation Issues
 
 **"Input/output error" during installation:**

@@ -102,6 +102,13 @@ fi
 if (( AVAILABLE_SPACE < MIN_DISK_GB )); then
     log_error "Insufficient disk space. NeuroInsight requires at least ${MIN_DISK_GB}GB free."
     log_error "Detected: ${AVAILABLE_SPACE}GB available"
+    echo ""
+    log_info "To free up space, try:"
+    echo "  docker system prune -af --volumes   # Removes unused Docker resources"
+    echo "  df -h /                              # Check space after cleanup"
+    echo ""
+    log_info "See TROUBLESHOOTING.md for detailed cleanup instructions:"
+    echo "  https://github.com/phindagijimana/neuroinsight_local/blob/master/TROUBLESHOUTING.md#insufficient-disk-space"
     exit 1
 fi
 

@@ -420,6 +420,41 @@ class JobService:
                     if not container_name.startswith(prefix):
                         continue
                     job_id_part = container_name.replace(prefix, "", 1)
+                    
+                    # Check container age to avoid race conditions with newly started jobs
+                    try:
+                        inspect_result = subprocess.run(
+                            ["docker", "inspect", "--format", "{{.Created}}", container_name],
+                            capture_output=True,
+                            text=True,
+                            timeout=5
+                        )
+                        
+                        if inspect_result.returncode == 0:
+                            created_str = inspect_result.stdout.strip()
+                            # Parse Docker's timestamp format (2026-01-28T20:22:46.829294235Z)
+                            from datetime import timezone
+                            created_at = datetime.fromisoformat(created_str.replace('Z', '+00:00'))
+                            age_seconds = (datetime.now(timezone.utc) - created_at).total_seconds()
+                            
+                            # Skip cleanup for containers less than 60 seconds old
+                            # This prevents race conditions with newly started jobs
+                            if age_seconds < 60:
+                                logger.info(
+                                    "skipping_cleanup_for_new_container",
+                                    container_name=container_name,
+                                    age_seconds=round(age_seconds, 2),
+                                    reason="container_too_new"
+                                )
+                                continue  # Skip this container
+                    except Exception as age_check_error:
+                        logger.warning(
+                            "failed_to_check_container_age",
+                            container_name=container_name,
+                            error=str(age_check_error)
+                        )
+                        # Continue with normal cleanup logic if age check fails
+                    
                     job = JobService.get_job(db, job_id_part)
 
                     should_stop = False

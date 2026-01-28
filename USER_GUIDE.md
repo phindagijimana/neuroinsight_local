@@ -273,15 +273,15 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 
 #### Valid Examples
 ```
-✓ sub-01_T1w.nii.gz
-✓ patient_mprage.nii
-✓ brain_t1_mprage.nii
-✓ t1w_mprage.nii.gz
+- sub-01_T1w.nii.gz
+- patient_mprage.nii
+- brain_t1_mprage.nii
+- t1w_mprage.nii.gz
 ```
 
 #### Invalid Examples
 ```
-✗ brain_scan.nii      (missing T1 indicator)
+- brain_scan.nii      (missing T1 indicator)
 ✗ t2_image.nii        (T2, not T1)
 ✗ flair.nii          (FLAIR sequence)
 ✗ scan.dcm           (DICOM not supported - convert to NIfTI first)

@@ -50,10 +50,10 @@ These sample reports serve as:
 ## Privacy Note
 
 All sample reports contain:
-- ✅ Anonymized or synthetic patient data
-- ✅ Open-source MRI images from public datasets
-- ✅ No real patient health information (PHI)
-- ✅ Suitable for public distribution
+- Anonymized or synthetic patient data
+- Open-source MRI images from public datasets
+- No real patient health information (PHI)
+- Suitable for public distribution
 
 ## Generating Your Own Reports
 

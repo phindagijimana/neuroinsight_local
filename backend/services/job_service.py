@@ -442,6 +442,22 @@ class JobService:
                                     stop_reason = "pending_with_running_container"
 
                     if should_stop:
+                        # Enhanced logging BEFORE stopping container for better debugging
+                        import os
+                        logger.info(
+                            "about_to_stop_container_decision",
+                            container_name=container_name,
+                            job_id=job_id_part,
+                            reason=stop_reason,
+                            job_status=job_status if job else "missing",
+                            job_started_at=str(job.started_at) if job and job.started_at else None,
+                            job_created_at=str(job.created_at) if job and job.created_at else None,
+                            elapsed_seconds=elapsed_seconds if 'elapsed_seconds' in locals() else None,
+                            grace_period_seconds=pending_container_grace_seconds,
+                            process_id=os.getpid(),
+                            function="cleanup_orphaned_containers"
+                        )
+                        
                         logger.warning(
                             "found_orphaned_or_stale_container",
                             container_name=container_name,

@@ -148,6 +148,19 @@ class JobMonitor:
                                 settings = get_settings()
                                 container_name = job.docker_container_id or f"{settings.freesurfer_container_prefix}{job.id}"
                                 if container_name:
+                                    # Enhanced logging BEFORE stopping container
+                                    import os
+                                    logger.info(
+                                        "about_to_stop_stuck_job_container",
+                                        container_name=container_name,
+                                        job_id=job_id,
+                                        reason="stuck_job_auto_cleanup",
+                                        job_status=job.status.value,
+                                        tracked_for_minutes=self.cleanup_grace_period_minutes,
+                                        process_id=os.getpid(),
+                                        function="job_monitor_auto_cleanup"
+                                    )
+                                    
                                     subprocess.run(
                                         ["docker", "stop", container_name],
                                         capture_output=True,

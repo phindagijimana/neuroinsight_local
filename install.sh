@@ -562,6 +562,16 @@ deactivate
 
 log_success "Python environment setup completed"
 
+# Setup frontend
+log_info "Setting up frontend..."
+if [ -f "frontend/index.html" ]; then
+    mkdir -p frontend/dist
+    cp frontend/index.html frontend/dist/index.html
+    log_success "Frontend setup completed"
+else
+    log_warning "frontend/index.html not found, skipping frontend setup"
+fi
+
 log_info "Running final verification..."
 
 # Check if key components can be imported (using venv python)

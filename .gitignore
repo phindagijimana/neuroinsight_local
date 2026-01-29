@@ -81,9 +81,17 @@ config.local.*
 # FreeSurfer License (keep example, ignore real license)
 license.txt
 !license.txt.example
+
 # Large binary files (added for GitHub push)
 *.nii.gz
 *.raw
 *.pdf
+!sample_reports/*.pdf  # Allow sample report PDFs as examples
 large_files/
 test_data/
+
+# Backup files (prevent future clutter)
+*.backup
+*.old
+*.OLD
+*_BACKUP.*

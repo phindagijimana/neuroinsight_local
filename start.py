@@ -383,7 +383,7 @@ def check_for_conflicts():
     # If conflicts found, show warning and prompt
     if conflicts_found:
         print()
-        log_error("⚠️  CONFLICT DETECTED: NeuroInsight appears to be already running!")
+        log_error("CONFLICT DETECTED: NeuroInsight appears to be already running!")
         print()
         print(f"{RED}Conflicts found:{NC}")
         for conflict in set(conflicts_found):

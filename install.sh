@@ -172,7 +172,7 @@ done
 
 if [ "$CONFLICTS_FOUND" = true ]; then
     echo ""
-    log_error "⚠️  INSTALLATION CONFLICT DETECTED"
+    log_error "INSTALLATION CONFLICT DETECTED"
     echo ""
     echo -e "${RED}Potential issues found:${NC}"
     echo "  • NeuroInsight may already be installed or running"

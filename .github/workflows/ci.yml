@@ -989,7 +989,7 @@ EOF
 
       - name: Generate deployment report
         run: |
-          echo "## 🚀 NeuroInsight CI/CD Status Report" >> $GITHUB_STEP_SUMMARY
+          echo "## ROCKET: NeuroInsight CI/CD Status Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Component | Status | Duration |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|----------|" >> $GITHUB_STEP_SUMMARY
@@ -1021,7 +1021,7 @@ EOF
           echo "- Native Deployment: Fully native services (no containers)" >> $GITHUB_STEP_SUMMARY
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎯 Production Readiness" >> $GITHUB_STEP_SUMMARY
+          echo "### TARGET: Production Readiness" >> $GITHUB_STEP_SUMMARY
           if [ "${{ needs.production-deployment-test.result }}" == "success" ] && [ "${{ needs.e2e-tests.result }}" == "success" ] && [ "${{ needs.linux-compatibility-test.result }}" == "success" ] && [ "${{ needs.freesurfer-processing-test.result }}" == "success" ] && [ "${{ needs.native-deployment-test.result }}" == "success" ]; then
             echo "PASS: **READY FOR PRODUCTION DEPLOYMENT**" >> $GITHUB_STEP_SUMMARY
             echo "All tests passed including Linux compatibility, FreeSurfer processing, and native deployment!" >> $GITHUB_STEP_SUMMARY

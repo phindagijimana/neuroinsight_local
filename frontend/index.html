@@ -251,14 +251,9 @@
         const formData = new FormData();
         formData.append('file', file);
         
-        // Add patient metadata if provided
+        // Add patient metadata as JSON string if provided
         if (metadata && Object.keys(metadata).length > 0) {
-          // Only append non-empty fields
-          Object.entries(metadata).forEach(([key, value]) => {
-            if (value && value.trim() !== '') {
-              formData.append(key, value);
-            }
-          });
+          formData.append('patient_data', JSON.stringify(metadata));
         }
         
         return new Promise((resolve, reject) => {

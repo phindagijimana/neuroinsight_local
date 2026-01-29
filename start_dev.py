@@ -143,7 +143,7 @@ def start_celery(env):
         [
             sys.executable, '-m', 'celery',
             '-A', 'workers.tasks.processing_web', 'worker',
-            '--loglevel=info', '--concurrency=4'
+            '--loglevel=info', '--concurrency=1'
         ],
         env=env,
         stdout=open('celery-dev.log', 'w'),

@@ -114,6 +114,8 @@ def start_next_pending_job(db: Session):
     Check for pending jobs and start the next one if no jobs are currently running.
     
     This ensures automatic job progression after a job completes or fails.
+    Uses database-level row locking to prevent race conditions when multiple
+    workers try to start the same job simultaneously.
     
     Args:
         db: Database session
@@ -126,19 +128,27 @@ def start_next_pending_job(db: Session):
             logger.info("job_already_running_skipping_auto_start", running_count=running_count)
             return
         
-        # Get the oldest pending job (FIFO queue)
+        # Get the oldest pending job with row-level locking (FIFO queue)
+        # with_for_update(skip_locked=True) ensures only one worker grabs this job
+        # Other workers will skip to the next available job or return None
         pending_job = db.query(Job).filter(
             Job.status == JobStatus.PENDING
-        ).order_by(Job.created_at.asc()).first()
+        ).with_for_update(skip_locked=True).order_by(Job.created_at.asc()).first()
         
         if not pending_job:
             logger.info("no_pending_jobs_found")
             return
         
+        # Atomically mark as running before releasing the lock
+        # This prevents other workers from picking up the same job
+        pending_job.status = JobStatus.RUNNING
+        pending_job.started_at = datetime.utcnow()
+        db.commit()  # Lock is released here
+        
         # Start the pending job
         logger.info("auto_starting_next_pending_job", job_id=str(pending_job.id), filename=pending_job.filename)
         
-        # Submit to Celery queue
+        # Now safe to submit to Celery queue
         task = process_mri_task.delay(str(pending_job.id))
         logger.info("auto_started_pending_job", 
                    job_id=str(pending_job.id), 
@@ -147,6 +157,7 @@ def start_next_pending_job(db: Session):
         
     except Exception as e:
         logger.error("failed_to_auto_start_pending_job", error=str(e), exc_info=True)
+        db.rollback()
 
 
 @celery_app.task(bind=True, name="process_mri_task")

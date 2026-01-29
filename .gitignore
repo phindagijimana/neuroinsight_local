@@ -76,6 +76,7 @@ logs/
 .env*
 secrets/
 config.local.*
+*.local.md
 
 # FreeSurfer License (keep example, ignore real license)
 license.txt

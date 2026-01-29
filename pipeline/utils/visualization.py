@@ -748,7 +748,6 @@ def extract_hippocampus_segmentation(
     aseg_candidates = [
         mri_dir / "aseg.auto.mgz",      # Auto segmentation (preferred)
         mri_dir / "aseg.mgz",            # Standard segmentation
-        mri_dir / "aseg.presurf.mgz",   # Pre-surface segmentation (partial runs)
     ]
     
     aseg_path = None

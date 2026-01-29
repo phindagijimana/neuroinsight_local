@@ -378,9 +378,9 @@ def main():
     print(f"   Health Check: http://localhost:{port}/health")
     print()
     print("Management commands:")
-    print("  ./status.sh    # Check system status")
-    print("  ./stop.sh      # Stop all services")
-    print("  ./monitor.sh   # Advanced monitoring")
+    print("  ./neuroinsight status    # Check system status")
+    print("  ./neuroinsight stop      # Stop all services")
+    print("  ./neuroinsight monitor   # Advanced monitoring")
     print("=" * 50)
 
 if __name__ == "__main__":

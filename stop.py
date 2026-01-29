@@ -251,8 +251,8 @@ def main():
 
     print()
     print("=" * 50)
-    print("To restart: python3 start.py")
-    print("To check status: ./status.sh")
+    print("To restart: ./neuroinsight start")
+    print("To check status: ./neuroinsight status")
     print("=" * 50)
 
 if __name__ == "__main__":

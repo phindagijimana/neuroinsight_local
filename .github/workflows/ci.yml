@@ -442,10 +442,10 @@ jobs:
 
       - name: Test system compatibility
         run: |
-          echo "🖥️ Testing on: ${{ matrix.name }}"
+          echo "DESKTOP: Testing on: ${{ matrix.name }}"
           echo "🐧 Linux Kernel: $(uname -r)"
           echo "🐍 Python: $(python --version)"
-          echo "📦 Pip: $(pip --version)"
+          echo "PACKAGE: Pip: $(pip --version)"
 
           # Test core system dependencies
           python -c "
@@ -1043,5 +1043,5 @@ EOF
       - name: Notify on production test completion
         if: github.event.inputs.test_production == 'true'
         run: |
-          echo "🔔 Comprehensive testing completed"
+          echo "BELL: Comprehensive testing completed"
           echo "Results: Unit=${{ needs.unit-tests.result }}, Integration=${{ needs.integration-tests.result }}, Docker=${{ needs.docker-build-test.result }}, Production=${{ needs.production-deployment-test.result }}, E2E=${{ needs.e2e-tests.result }}, Linux=${{ needs.linux-compatibility-test.result }}, FreeSurfer=${{ needs.freesurfer-processing-test.result }}, Native=${{ needs.native-deployment-test.result }}"

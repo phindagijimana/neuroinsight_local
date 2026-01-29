@@ -746,6 +746,17 @@ class JobService:
         if not job:
             return None
         
+        # Status protection: Don't overwrite completed jobs
+        # This prevents duplicate/retry tasks from marking a successful job as failed
+        if job.status == JobStatus.COMPLETED:
+            logger = logging.getLogger(__name__)
+            logger.warning("attempted_to_fail_completed_job",
+                          job_id=job_id_str,
+                          current_status="COMPLETED",
+                          error_message=error_message,
+                          message="Skipping status change - job is already completed")
+            return job
+        
         job.status = JobStatus.FAILED
         job.completed_at = datetime.utcnow()
         job.error_message = error_message
@@ -791,7 +802,7 @@ class JobService:
             if running_jobs < settings.max_concurrent_jobs:
                 pending_job = db.query(Job).filter(
                     Job.status == JobStatus.PENDING
-                ).order_by(Job.created_at.asc()).first()
+                ).order_by(Job.created_at.asc()).with_for_update(skip_locked=True).first()
                 
                 if pending_job:
                     logger.info("starting_queued_job",

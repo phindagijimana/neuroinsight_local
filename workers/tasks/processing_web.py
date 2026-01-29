@@ -180,6 +180,20 @@ def process_mri_task(self, job_id: str):
         if not job:
             raise ValueError(f"Job {job_id} not found")
 
+        # Idempotency check: Only process if job is still PENDING
+        # This prevents duplicate tasks from processing the same job
+        if job.status != JobStatus.PENDING:
+            logger.warning("job_already_processed",
+                          job_id=job_id,
+                          current_status=job.status.value,
+                          task_id=self.request.id,
+                          message="Skipping duplicate task - job is not PENDING")
+            return {
+                'status': 'skipped',
+                'reason': f'Job already in {job.status.value} status',
+                'job_id': job_id
+            }
+
         # Update job status to running
         JobService.start_job(db, job_id)
 

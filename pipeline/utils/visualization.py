@@ -14,21 +14,17 @@ try:
     import matplotlib
     matplotlib.use('Agg')  # Non-interactive backend
     import matplotlib.pyplot as plt
+    from matplotlib.colors import ListedColormap, BoundaryNorm
     MATPLOTLIB_AVAILABLE = True
-except ImportError:
-    MATPLOTLIB_AVAILABLE = False
-    matplotlib = None
-    plt = None
+except ImportError as e:
+    # Fail loudly - matplotlib is required for visualization generation
+    raise ImportError(
+        "matplotlib is required for visualization generation but is not installed. "
+        "Please install it with: pip install matplotlib>=3.5.0"
+    ) from e
 
 import nibabel as nib
 import numpy as np
-
-# Only import matplotlib-specific items if matplotlib is available
-if MATPLOTLIB_AVAILABLE:
-    from matplotlib.colors import ListedColormap, BoundaryNorm
-else:
-    ListedColormap = None
-    BoundaryNorm = None
 
 from backend.core.logging import get_logger
 import subprocess as subprocess_module
@@ -748,17 +744,27 @@ def extract_hippocampus_segmentation(
     mri_dir = subject_dir / "mri"
     
     # FreeSurfer whole brain segmentation (contains hippocampus labels)
-    # FreeSurfer generates aseg.auto.mgz as the main segmentation file
-    aseg_path = mri_dir / "aseg.auto.mgz"
-    if not aseg_path.exists():
-        # Fallback to aseg.mgz if auto segmentation isn't available
-        aseg_path = mri_dir / "aseg.mgz"
-        if not aseg_path.exists():
-            # Last resort - look for any aseg file
-            import glob
-            aseg_files = glob.glob(str(mri_dir / "aseg*.mgz"))
-            if aseg_files:
-                aseg_path = Path(aseg_files[0])  # Take the first one found
+    # Try multiple fallback paths in order of preference
+    aseg_candidates = [
+        mri_dir / "aseg.auto.mgz",      # Auto segmentation (preferred)
+        mri_dir / "aseg.mgz",            # Standard segmentation
+        mri_dir / "aseg.presurf.mgz",   # Pre-surface segmentation (partial runs)
+    ]
+    
+    aseg_path = None
+    for candidate in aseg_candidates:
+        if candidate.exists():
+            aseg_path = candidate
+            logger.info("found_aseg_file", path=str(candidate), job_id=job_id)
+            break
+    
+    if not aseg_path:
+        # Last resort - look for any aseg file
+        import glob
+        aseg_files = glob.glob(str(mri_dir / "aseg*.mgz"))
+        if aseg_files:
+            aseg_path = Path(aseg_files[0])
+            logger.info("found_aseg_file_wildcard", path=str(aseg_path), job_id=job_id)
 
     # FreeSurfer doesn't generate separate hippocampal subfield files
     # The hippocampus labels are embedded in the aseg.auto.mgz file

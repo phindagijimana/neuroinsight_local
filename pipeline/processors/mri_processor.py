@@ -679,11 +679,60 @@ class MRIProcessor:
                 logger.warning("failed_to_store_container_id", error=str(e), container_id=container_id)
                 self.db_session.rollback()
 
+    def _validate_visualizations(self, visualization_paths: Dict) -> None:
+        """
+        Validate that visualization files were actually generated.
+        
+        This ensures that the job doesn't complete successfully if visualizations
+        are missing, which would cause issues in the UI and PDF reports.
+        
+        Args:
+            visualization_paths: Dictionary containing paths to visualization files
+            
+        Raises:
+            RuntimeError: If required visualization files are missing
+        """
+        if not visualization_paths:
+            logger.warning("no_visualization_paths_returned", job_id=str(self.job_id))
+            return
+        
+        # Check for overlay PNG files (the most common visualization type)
+        overlays = visualization_paths.get("overlays", {})
+        if not overlays:
+            logger.warning("no_overlays_in_visualization_paths", 
+                          job_id=str(self.job_id),
+                          viz_paths=visualization_paths)
+            return
+        
+        # Count how many PNG files actually exist
+        missing_files = []
+        existing_files = []
+        
+        for orientation, paths in overlays.items():
+            if isinstance(paths, dict):
+                for view_type, file_path in paths.items():
+                    if file_path and Path(file_path).exists():
+                        existing_files.append(file_path)
+                    elif file_path:
+                        missing_files.append(file_path)
+        
+        logger.info("visualization_validation_complete",
+                   job_id=str(self.job_id),
+                   existing_count=len(existing_files),
+                   missing_count=len(missing_files))
+        
+        # If we expect visualizations but none exist, raise an error
+        if existing_files == 0 and missing_files > 0:
+            raise RuntimeError(
+                f"Visualization generation failed: Expected {len(missing_files)} files but none were created. "
+                f"This may indicate a problem with matplotlib or the visualization pipeline."
+            )
+
     def _cleanup_job_containers(self) -> None:
         """
-        Stop any running Docker containers for this job.
-
-        Containers are left stopped for maintenance cleanup.
+        Stop and remove any Docker containers for this job.
+        
+        This prevents container name conflicts on subsequent job runs.
         """
         try:
             container_name = f"{settings.freesurfer_container_prefix}{self.job_id}"
@@ -704,6 +753,22 @@ class MRIProcessor:
                            job_id=str(self.job_id),
                            container_name=container_name,
                            stderr=result.stderr.decode() if result.stderr else "")
+
+            # Remove the container to prevent name conflicts
+            rm_result = subprocess_module.run(
+                ["docker", "rm", container_name],
+                capture_output=True,
+                timeout=30
+            )
+
+            if rm_result.returncode == 0:
+                logger.info("removed_job_container", job_id=str(self.job_id), container_name=container_name)
+            else:
+                # Container might not exist, which is fine
+                logger.debug("container_removal_skipped",
+                           job_id=str(self.job_id),
+                           container_name=container_name,
+                           stderr=rm_result.stderr.decode() if rm_result.stderr else "")
 
         except subprocess_module.TimeoutExpired:
             logger.warning("container_stop_timeout", job_id=str(self.job_id), container_name=container_name)
@@ -1058,6 +1123,9 @@ class MRIProcessor:
         # Step 5: Generate segmentation visualizations
         self._update_progress(97, "Generating visualizations...")
         visualization_paths = self._generate_visualizations(nifti_path, freesurfer_output)
+        
+        # Validate that visualizations were actually generated
+        self._validate_visualizations(visualization_paths)
         
         # Step 6: Save results
         self._update_progress(99, "Saving results...")

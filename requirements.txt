@@ -39,6 +39,7 @@ aiofiles==23.2.1
 
 # Image processing
 Pillow==10.1.0
+matplotlib>=3.5.0
 
 # PDF generation
 reportlab==4.4.9

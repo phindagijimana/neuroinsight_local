@@ -15,7 +15,7 @@ export default {
           300: '#003d7a',  // Exact #003d7a color for animations
           400: '#94a3b8',  // Medium neutral
           500: '#64748b',  // Medium gray
-          600: '#003d7a',  // Primary color ✨
+          600: '#003d7a',  // Primary color
           700: '#003d7a',  // Same as 600 for consistency
           800: '#002850',  // Darker variant for emphasis
           900: '#001a33',  // Darkest for strong contrast

@@ -224,7 +224,7 @@ jobs:
       - name: Test Docker Compose configuration
         run: |
           docker compose -f docker-compose.test.yml config --quiet
-          echo "✅ Docker Compose configuration is valid"
+          echo "PASS: Docker Compose configuration is valid"
 
   # ==========================================
   # PRODUCTION DEPLOYMENT TESTS - Test production setup
@@ -279,12 +279,12 @@ jobs:
           # Test script syntax (don't actually start services in CI)
           bash -n start_production_hybrid.sh
           bash -n monitor_production_hybrid.sh
-          echo "✅ Production scripts have valid syntax"
+          echo "PASS: Production scripts have valid syntax"
 
       - name: Test hybrid Docker Compose
         run: |
           docker compose -f docker-compose.hybrid.yml config --quiet
-          echo "✅ Hybrid Docker Compose configuration is valid"
+          echo "PASS: Hybrid Docker Compose configuration is valid"
 
       - name: Test production configuration
         run: |
@@ -302,7 +302,7 @@ jobs:
               if not os.getenv(var):
                   raise ValueError(f'Missing required environment variable: {var}')
 
-          print('✅ Production environment configuration is valid')
+          print('PASS: Production environment configuration is valid')
           "
 
   # ==========================================
@@ -354,7 +354,7 @@ jobs:
           from backend.database import engine
           from backend.models import Base
           Base.metadata.create_all(bind=engine)
-          print('✅ Test database initialized')
+          print('PASS: Test database initialized')
           "
 
       - name: Start FastAPI backend for testing
@@ -366,7 +366,7 @@ jobs:
           # Wait for backend to be ready
           for i in {1..30}; do
             if curl -f http://localhost:8000/health > /dev/null 2>&1; then
-              echo '✅ Backend is ready'
+              echo 'PASS: Backend is ready'
               break
             fi
             sleep 2
@@ -384,7 +384,7 @@ jobs:
 
           # Test report generation
           curl -f http://localhost:8000/reports/1/pdf > /dev/null
-          echo "✅ Report generation works"
+          echo "PASS: Report generation works"
 
       - name: Stop test services
         run: |
@@ -450,29 +450,29 @@ jobs:
           # Test core system dependencies
           python -c "
           import sys
-          print(f'✅ Python executable: {sys.executable}')
-          print(f'✅ Python version: {sys.version}')
+          print(f'PASS: Python executable: {sys.executable}')
+          print(f'PASS: Python version: {sys.version}')
 
           # Test critical imports
           try:
             import numpy
-            print('✅ NumPy available')
+            print('PASS: NumPy available')
           except ImportError as e:
-            print(f'❌ NumPy missing: {e}')
+            print(f'FAIL: NumPy missing: {e}')
             sys.exit(1)
 
           try:
             import nibabel
-            print('✅ NiBabel available')
+            print('PASS: NiBabel available')
           except ImportError as e:
-            print(f'❌ NiBabel missing: {e}')
+            print(f'FAIL: NiBabel missing: {e}')
             sys.exit(1)
 
           try:
             import sqlalchemy
-            print('✅ SQLAlchemy available')
+            print('PASS: SQLAlchemy available')
           except ImportError as e:
-            print(f'❌ SQLAlchemy missing: {e}')
+            print(f'FAIL: SQLAlchemy missing: {e}')
             sys.exit(1)
           "
 
@@ -483,8 +483,8 @@ jobs:
           engine = create_engine('postgresql://neuroinsight:test_password@localhost:5432/neuroinsight_test')
           with engine.connect() as conn:
               result = conn.execute(text('SELECT version()'))
-              print('✅ PostgreSQL connected:', result.fetchone()[0][:50] + '...')
-          print('✅ Database connectivity confirmed')
+              print('PASS: PostgreSQL connected:', result.fetchone()[0][:50] + '...')
+          print('PASS: Database connectivity confirmed')
           "
 
       - name: Test Redis connectivity
@@ -495,7 +495,7 @@ jobs:
           r.set('test_key', 'test_value')
           value = r.get('test_key').decode('utf-8')
           assert value == 'test_value'
-          print('✅ Redis connectivity confirmed')
+          print('PASS: Redis connectivity confirmed')
           "
 
       - name: Test FastAPI startup
@@ -506,9 +506,9 @@ jobs:
 
           # Test health endpoint
           if curl -f http://127.0.0.1:8000/health > /dev/null 2>&1; then
-            echo "✅ FastAPI application starts successfully on ${{ matrix.name }}"
+            echo "PASS: FastAPI application starts successfully on ${{ matrix.name }}"
           else
-            echo "❌ FastAPI failed to start on ${{ matrix.name }}"
+            echo "FAIL: FastAPI failed to start on ${{ matrix.name }}"
             kill $SERVER_PID || true
             exit 1
           fi
@@ -519,16 +519,16 @@ jobs:
         run: |
           # Test Docker installation and basic functionality
           if command -v docker &> /dev/null; then
-            echo "✅ Docker is installed"
+            echo "PASS: Docker is installed"
 
             # Test Docker daemon
             if docker info > /dev/null 2>&1; then
-              echo "✅ Docker daemon is accessible"
+              echo "PASS: Docker daemon is accessible"
             else
-              echo "⚠️ Docker daemon not accessible (expected in some CI environments)"
+              echo "WARNING: Docker daemon not accessible (expected in some CI environments)"
             fi
           else
-            echo "⚠️ Docker not installed in this environment"
+            echo "WARNING: Docker not installed in this environment"
           fi
 
   # ==========================================
@@ -594,7 +594,7 @@ jobs:
           export FREESURFER_HOME=/tmp/freesurfer
           export PATH=$FREESURFER_HOME/bin:$PATH
 
-          echo "✅ Mock FreeSurfer setup complete"
+          echo "PASS: Mock FreeSurfer setup complete"
 
       - name: Download test MRI data
         run: |
@@ -621,7 +621,7 @@ jobs:
           img = nib.Nifti1Image(data, affine)
           nib.save(img, 'test_data/test_brain.nii.gz')
 
-          print('✅ Test MRI data created: test_data/test_brain.nii.gz')
+          print('PASS: Test MRI data created: test_data/test_brain.nii.gz')
           print(f'   Shape: {data.shape}')
           print(f'   Data type: {data.dtype}')
           print(f'   File size: {os.path.getsize(\"test_data/test_brain.nii.gz\")} bytes')
@@ -649,11 +649,11 @@ jobs:
 
           processor = MRIProcessor(job_id='test', progress_callback=None)
           native_available = processor._is_native_freesurfer_available()
-          print(f'✅ Native FreeSurfer available: {native_available}')
+          print(f'PASS: Native FreeSurfer available: {native_available}')
 
           # Test runtime selection
           runtime = processor._check_container_runtime_availability()
-          print(f'✅ Selected FreeSurfer runtime: {runtime}')
+          print(f'PASS: Selected FreeSurfer runtime: {runtime}')
           "
 
           # Test 2: Try mock FreeSurfer setup for CI
@@ -662,7 +662,7 @@ jobs:
 
           # Test FreeSurfer commands
           if command -v recon-all; then
-            echo "✅ recon-all command found"
+            echo "PASS: recon-all command found"
 
             # Test basic functionality
             recon-all --version || echo "Version check not available in mock"
@@ -674,18 +674,18 @@ jobs:
             if [ -f "test_output/subject001/scripts/recon-all-status.log" ]; then
               status=$(cat test_output/subject001/scripts/recon-all-status.log)
               if [ "$status" = "0" ]; then
-                echo "✅ FreeSurfer processing completed successfully"
+                echo "PASS: FreeSurfer processing completed successfully"
               else
-                echo "❌ FreeSurfer processing failed with status: $status"
+                echo "FAIL: FreeSurfer processing failed with status: $status"
                 exit 1
               fi
             else
-              echo "❌ FreeSurfer status log not found"
+              echo "FAIL: FreeSurfer status log not found"
               exit 1
             fi
           else
-            echo "⚠️ recon-all command not found (expected in CI without native FreeSurfer)"
-            echo "✅ Native FreeSurfer detection working (would fallback to mock processing)"
+            echo "WARNING: recon-all command not found (expected in CI without native FreeSurfer)"
+            echo "PASS: Native FreeSurfer detection working (would fallback to mock processing)"
           fi
 
       - name: Test MRI processing pipeline
@@ -712,16 +712,16 @@ jobs:
           try:
               # Test preprocessing
               preprocessed_file = preprocess_mri(input_file, output_dir)
-              print(f'✅ Preprocessing completed: {preprocessed_file}')
+              print(f'PASS: Preprocessing completed: {preprocessed_file}')
 
               # Test segmentation (mock)
               regions_file = segment_brain_regions(preprocessed_file, output_dir)
-              print(f'✅ Segmentation completed: {regions_file}')
+              print(f'PASS: Segmentation completed: {regions_file}')
 
-              print('✅ Complete MRI processing pipeline works!')
+              print('PASS: Complete MRI processing pipeline works!')
 
           except Exception as e:
-              print(f'❌ Processing failed: {e}')
+              print(f'FAIL: Processing failed: {e}')
               import traceback
               traceback.print_exc()
               sys.exit(1)
@@ -729,32 +729,32 @@ jobs:
 
       - name: Validate processing results
         run: |
-          echo "📊 Validating processing results..."
+          echo "INFO: Validating processing results..."
 
           # Check that output files were created
           if [ -f "test_output/processed/preprocessed_brain.nii.gz" ]; then
-            echo "✅ Preprocessed brain file created"
+            echo "PASS: Preprocessed brain file created"
           else
-            echo "❌ Preprocessed brain file missing"
+            echo "FAIL: Preprocessed brain file missing"
             exit 1
           fi
 
           if [ -f "test_output/processed/brain_regions.nii.gz" ]; then
-            echo "✅ Brain regions segmentation file created"
+            echo "PASS: Brain regions segmentation file created"
           else
-            echo "⚠️ Brain regions file missing (may be expected for mock processing)"
+            echo "WARNING: Brain regions file missing (may be expected for mock processing)"
           fi
 
           # Check file sizes are reasonable
           if [ -s "test_output/processed/preprocessed_brain.nii.gz" ]; then
             size=$(stat -c%s "test_output/processed/preprocessed_brain.nii.gz")
-            echo "✅ Preprocessed file size: ${size} bytes"
+            echo "PASS: Preprocessed file size: ${size} bytes"
           else
-            echo "❌ Preprocessed file is empty"
+            echo "FAIL: Preprocessed file is empty"
             exit 1
           fi
 
-          echo "✅ All processing validations passed!"
+          echo "PASS: All processing validations passed!"
 
       - name: Upload processing artifacts
         uses: actions/upload-artifact@v3
@@ -853,7 +853,7 @@ EOF
           # Test script syntax validation
           bash -n start_production_native.sh
           bash -n monitor_production_native.sh
-          echo "✅ Native deployment scripts have valid syntax"
+          echo "PASS: Native deployment scripts have valid syntax"
 
       - name: Test native environment configuration
         run: |
@@ -873,7 +873,7 @@ EOF
               if not os.getenv(var):
                   raise ValueError(f'Environment variable {var} not set')
 
-          print('✅ Native environment configuration is valid')
+          print('PASS: Native environment configuration is valid')
           "
 
       - name: Test database connectivity
@@ -883,7 +883,7 @@ EOF
           engine = create_engine('postgresql://test_user:test_password@localhost:5432/neuroinsight_test')
           with engine.connect() as conn:
               result = conn.execute(text('SELECT version()')).fetchone()
-              print(f'✅ PostgreSQL connected: {result[0][:50]}...')
+              print(f'PASS: PostgreSQL connected: {result[0][:50]}...')
           "
 
       - name: Test Redis connectivity
@@ -894,7 +894,7 @@ EOF
           r.set('test_key', 'test_value')
           value = r.get('test_key').decode('utf-8')
           assert value == 'test_value'
-          print('✅ Redis connectivity confirmed')
+          print('PASS: Redis connectivity confirmed')
           "
 
       - name: Test MinIO connectivity
@@ -914,7 +914,7 @@ EOF
 
           # Test connection by listing buckets
           buckets = s3.list_buckets()
-          print(f'✅ MinIO connected: {len(buckets.get(\"Buckets\", []))} buckets found')
+          print(f'PASS: MinIO connected: {len(buckets.get(\"Buckets\", []))} buckets found')
           "
 
       - name: Test FastAPI startup in native mode
@@ -928,18 +928,18 @@ EOF
 
           # Test health endpoint
           if curl -f http://127.0.0.1:8000/health >/dev/null 2>&1; then
-            echo "✅ FastAPI application starts successfully in native mode"
+            echo "PASS: FastAPI application starts successfully in native mode"
 
             # Test API endpoints
             response=$(curl -s http://127.0.0.1:8000/api/jobs)
             if echo "$response" | jq . >/dev/null 2>&1; then
-              echo "✅ API endpoints responding correctly"
+              echo "PASS: API endpoints responding correctly"
             else
-              echo "❌ API endpoints not responding properly"
+              echo "FAIL: API endpoints not responding properly"
               exit 1
             fi
           else
-            echo "❌ FastAPI failed to start in native mode"
+            echo "FAIL: FastAPI failed to start in native mode"
             kill $SERVER_PID || true
             exit 1
           fi
@@ -996,7 +996,7 @@ EOF
 
           # Function to get job status
           get_status() {
-            if [ "$1" == "success" ]; then echo "✅ Pass"; elif [ "$1" == "failure" ]; then echo "❌ Fail"; else echo "⚠️ Skip"; fi
+            if [ "$1" == "success" ]; then echo "PASS: Pass"; elif [ "$1" == "failure" ]; then echo "FAIL: Fail"; else echo "WARNING: Skip"; fi
           }
 
           echo "| Unit Tests | $(get_status ${{ needs.unit-tests.result }}) | ${{ needs.unit-tests.outputs.duration || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
@@ -1009,7 +1009,7 @@ EOF
           echo "| Native Deployment | $(get_status ${{ needs.native-deployment-test.result }}) | ${{ needs.native-deployment-test.outputs.duration || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
 
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📊 Test Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "### INFO: Test Coverage" >> $GITHUB_STEP_SUMMARY
           echo "- Backend Unit Tests: pytest with coverage" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend Unit Tests: Vitest with coverage" >> $GITHUB_STEP_SUMMARY
           echo "- Integration Tests: API and database connectivity" >> $GITHUB_STEP_SUMMARY
@@ -1023,13 +1023,13 @@ EOF
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🎯 Production Readiness" >> $GITHUB_STEP_SUMMARY
           if [ "${{ needs.production-deployment-test.result }}" == "success" ] && [ "${{ needs.e2e-tests.result }}" == "success" ] && [ "${{ needs.linux-compatibility-test.result }}" == "success" ] && [ "${{ needs.freesurfer-processing-test.result }}" == "success" ] && [ "${{ needs.native-deployment-test.result }}" == "success" ]; then
-            echo "✅ **READY FOR PRODUCTION DEPLOYMENT**" >> $GITHUB_STEP_SUMMARY
+            echo "PASS: **READY FOR PRODUCTION DEPLOYMENT**" >> $GITHUB_STEP_SUMMARY
             echo "All tests passed including Linux compatibility, FreeSurfer processing, and native deployment!" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Confirmed: Runs on Linux Ubuntu 20.04/22.04" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Confirmed: FreeSurfer processing pipeline works" >> $GITHUB_STEP_SUMMARY
-            echo "✅ Confirmed: Fully native deployment works" >> $GITHUB_STEP_SUMMARY
+            echo "PASS: Confirmed: Runs on Linux Ubuntu 20.04/22.04" >> $GITHUB_STEP_SUMMARY
+            echo "PASS: Confirmed: FreeSurfer processing pipeline works" >> $GITHUB_STEP_SUMMARY
+            echo "PASS: Confirmed: Fully native deployment works" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ **REQUIRES ATTENTION**" >> $GITHUB_STEP_SUMMARY
+            echo "WARNING: **REQUIRES ATTENTION**" >> $GITHUB_STEP_SUMMARY
             echo "Some tests failed. Please review the results before deployment." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Test Results:**" >> $GITHUB_STEP_SUMMARY

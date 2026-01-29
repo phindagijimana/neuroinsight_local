@@ -127,6 +127,87 @@ fi
 
 log_success "System requirements met: ${TOTAL_RAM}GB RAM, ${AVAILABLE_SPACE}GB disk, $CPU_CORES cores"
 
+# Check for existing NeuroInsight installation/conflicts
+log_info "Checking for existing NeuroInsight installation..."
+
+CONFLICTS_FOUND=false
+
+# Check if venv already exists
+if [ -d "venv" ]; then
+    log_warning "Virtual environment already exists (venv/)"
+    CONFLICTS_FOUND=true
+fi
+
+# Check if NeuroInsight is currently running
+if [ -f "neuroinsight.pid" ]; then
+    PID=$(cat neuroinsight.pid 2>/dev/null)
+    if ps -p "$PID" > /dev/null 2>&1; then
+        log_warning "NeuroInsight appears to be running (PID: $PID)"
+        CONFLICTS_FOUND=true
+    fi
+fi
+
+# Check for running processes
+if pgrep -f "backend/main.py" > /dev/null 2>&1 || pgrep -f "celery.*processing_web" > /dev/null 2>&1; then
+    log_warning "NeuroInsight processes are currently running"
+    CONFLICTS_FOUND=true
+fi
+
+# Check for Docker containers
+if docker ps --filter "name=neuroinsight" --format "{{.Names}}" 2>/dev/null | grep -q "neuroinsight"; then
+    log_warning "NeuroInsight Docker containers are running"
+    CONFLICTS_FOUND=true
+fi
+
+# Check for port conflicts
+for PORT in 8000 5432 6379 9000; do
+    if command -v lsof &> /dev/null && sudo lsof -i :$PORT > /dev/null 2>&1; then
+        log_warning "Port $PORT is already in use"
+        CONFLICTS_FOUND=true
+    elif command -v netstat &> /dev/null && netstat -tln 2>/dev/null | grep -q ":$PORT "; then
+        log_warning "Port $PORT is already in use"
+        CONFLICTS_FOUND=true
+    fi
+done
+
+if [ "$CONFLICTS_FOUND" = true ]; then
+    echo ""
+    log_error "⚠️  INSTALLATION CONFLICT DETECTED"
+    echo ""
+    echo -e "${RED}Potential issues found:${NC}"
+    echo "  • NeuroInsight may already be installed or running"
+    echo "  • Required ports may be in use"
+    echo "  • Processes or containers from previous installation detected"
+    echo ""
+    echo -e "${BLUE}Recommended actions:${NC}"
+    echo "  1. Stop NeuroInsight if running:"
+    echo -e "     ${GREEN}./neuroinsight stop${NC}"
+    echo ""
+    echo "  2. Check what's using the ports:"
+    echo -e "     ${GREEN}sudo lsof -i :8000 -i :5432 -i :6379 -i :9000${NC}"
+    echo ""
+    echo "  3. If re-installing, clean up first:"
+    echo -e "     ${GREEN}./neuroinsight stop${NC}"
+    echo -e "     ${GREEN}docker rm -f \$(docker ps -aq --filter 'name=neuroinsight')${NC}"
+    echo -e "     ${GREEN}rm -rf venv/  # Remove virtual environment${NC}"
+    echo ""
+    echo -e "${YELLOW}Continue with installation anyway?${NC}"
+    echo "  • This may overwrite existing files"
+    echo "  • Running services should be stopped first"
+    echo ""
+    read -p "Force continue? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_info "Installation cancelled by user"
+        log_info "Stop existing services and clean up, then try again"
+        exit 0
+    fi
+    log_warning "User chose to continue despite conflicts..."
+    echo ""
+fi
+
+log_success "No installation conflicts detected"
+
 # Check Python version
 log_info "Checking Python version..."
 if ! command -v python3 &> /dev/null; then

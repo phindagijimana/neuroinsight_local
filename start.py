@@ -324,6 +324,98 @@ while True:
         log_warning(f"Job queue processor startup failed: {e}")
         return None
 
+def check_for_conflicts():
+    """Check for existing NeuroInsight instances and warn user"""
+    conflicts_found = []
+    
+    # Check for PID files
+    pid_files = ['neuroinsight.pid', 'celery.pid', 'job_monitor.pid', 'job_queue_processor.pid']
+    existing_pids = []
+    for pid_file in pid_files:
+        if os.path.exists(pid_file):
+            try:
+                with open(pid_file, 'r') as f:
+                    pid = int(f.read().strip())
+                    if psutil.pid_exists(pid):
+                        existing_pids.append((pid_file, pid))
+            except (ValueError, IOError):
+                pass
+    
+    if existing_pids:
+        conflicts_found.append("PID files")
+        log_warning("Found existing PID files:")
+        for pid_file, pid in existing_pids:
+            log_warning(f"  • {pid_file}: process {pid} is running")
+    
+    # Check for running processes
+    running_procs = []
+    patterns = ['backend/main.py', 'celery.*processing_web', 'job_monitor']
+    for pattern in patterns:
+        result = subprocess.run(['pgrep', '-f', pattern], capture_output=True, text=True, check=False)
+        if result.returncode == 0:
+            pids = result.stdout.strip().split('\n')
+            running_procs.extend([p for p in pids if p.strip()])
+    
+    if running_procs:
+        conflicts_found.append("running processes")
+        log_warning(f"Found {len(running_procs)} NeuroInsight process(es) already running")
+    
+    # Check for port conflicts
+    ports_in_use = []
+    for port in [8000, 5432, 6379, 9000]:
+        if not check_port_available(port):
+            ports_in_use.append(port)
+            conflicts_found.append(f"port {port}")
+    
+    if ports_in_use:
+        log_warning(f"Ports in use: {', '.join(map(str, ports_in_use))}")
+    
+    # Check for existing Docker containers
+    result = subprocess.run(
+        ['docker', 'ps', '-q', '--filter', 'name=neuroinsight'],
+        capture_output=True, text=True, check=False
+    )
+    if result.returncode == 0 and result.stdout.strip():
+        container_count = len(result.stdout.strip().split('\n'))
+        conflicts_found.append("Docker containers")
+        log_warning(f"Found {container_count} NeuroInsight Docker container(s) already running")
+    
+    # If conflicts found, show warning and prompt
+    if conflicts_found:
+        print()
+        log_error("⚠️  CONFLICT DETECTED: NeuroInsight appears to be already running!")
+        print()
+        print(f"{RED}Conflicts found:{NC}")
+        for conflict in set(conflicts_found):
+            print(f"  • {conflict}")
+        print()
+        print(f"{YELLOW}This usually means:{NC}")
+        print("  1. NeuroInsight is already running (use './neuroinsight status' to check)")
+        print("  2. A previous shutdown didn't complete cleanly")
+        print()
+        print(f"{BLUE}What to do:{NC}")
+        print(f"  • Stop existing instance first: {GREEN}./neuroinsight stop{NC}")
+        print(f"  • Check status: {GREEN}./neuroinsight status{NC}")
+        print(f"  • Or force cleanup and continue: Press {GREEN}Y{NC} to continue anyway")
+        print()
+        
+        # Ask user what to do
+        try:
+            response = input(f"{YELLOW}Force cleanup and continue? [y/N]:{NC} ").strip().lower()
+            if response != 'y':
+                log_info("Startup cancelled by user")
+                log_info(f"Run '{GREEN}./neuroinsight stop{NC}' first, then try starting again")
+                sys.exit(1)
+            else:
+                log_warning("User chose to force cleanup and continue")
+                return True  # Will clean up existing processes
+        except KeyboardInterrupt:
+            print()
+            log_info("Startup cancelled by user")
+            sys.exit(1)
+    
+    return False  # No conflicts
+
 def main():
     print("=" * 50)
     print("   NeuroInsight Startup (Python-based)")
@@ -334,9 +426,16 @@ def main():
     script_dir = Path(__file__).parent
     os.chdir(script_dir)
 
-    # Clean up existing processes
-    log_info("Cleaning up any existing NeuroInsight processes...")
-    killed = find_and_kill_processes()
+    # Check for conflicts before starting
+    force_cleanup = check_for_conflicts()
+
+    # Clean up existing processes if needed
+    if force_cleanup:
+        log_info("Cleaning up existing NeuroInsight processes...")
+        killed = find_and_kill_processes()
+    else:
+        log_info("No conflicts detected, proceeding with startup...")
+        killed = 0
 
     # Start Docker services
     if not start_docker_services():

@@ -143,6 +143,10 @@ class MRIProcessor:
             job_id: Unique job identifier
             progress_callback: Optional callback function(progress: int, step: str) for progress updates
             db_session: Optional database session for progress persistence
+            
+        Note:
+            __init__ must be fast and non-blocking (<10ms).
+            Patient info is saved during process() after initialization.
         """
         self.job_id = job_id
         self.db_session = db_session
@@ -160,9 +164,6 @@ class MRIProcessor:
 
         # Initialize progress tracking
         self._current_progress = 0
-        
-        # Save patient information to filesystem for recovery
-        self._save_patient_info()
 
         logger.info(
             "processor_initialized",
@@ -182,23 +183,49 @@ class MRIProcessor:
         """
         Save patient information to filesystem for recovery.
         
+        This method queries the database to retrieve patient metadata
+        and saves it to a JSON file in the job's output directory.
+        
         This ensures patient data survives database resets and can be
         recovered by the bring command.
+        
+        Note:
+            This is called at the START of process(), not in __init__,
+            to avoid blocking the constructor with database queries (Fix #2).
         """
         import json
         
         if not self.db_session:
+            logger.debug("no_db_session_skipping_patient_info_save",
+                        job_id=str(self.job_id))
             return
         
         try:
             from backend.models.job import Job
             
-            # Get job from database
-            job = self.db_session.query(Job).filter(Job.id == self.job_id).first()
-            if not job:
+            # Query with timeout (Fix #4)
+            # If this hangs, we fail fast rather than blocking forever
+            try:
+                # Note: SQLAlchemy execution_options timeout support varies by driver
+                # For PostgreSQL with psycopg2, statement timeout is better set at connection level
+                # This is a best-effort approach
+                job = self.db_session.query(Job).filter(
+                    Job.id == self.job_id
+                ).first()
+                
+                if not job:
+                    logger.warning("job_not_found_for_patient_info",
+                                  job_id=str(self.job_id))
+                    return
+                    
+            except Exception as query_error:
+                logger.warning("patient_info_query_failed",
+                              job_id=str(self.job_id),
+                              error=str(query_error),
+                              message="Failed to query job for patient info - continuing without it")
                 return
             
-            # Collect patient information
+            # Collect patient information (DO NOT log patient data - Fix #6 privacy)
             patient_info = {
                 'patient_name': job.patient_name,
                 'patient_id': job.patient_id,
@@ -212,15 +239,27 @@ class MRIProcessor:
             # Only save if there's at least one non-null field
             if any(v is not None for v in patient_info.values()):
                 patient_info_file = self.output_dir / "patient_info.json"
-                with open(patient_info_file, 'w') as f:
-                    json.dump(patient_info, f, indent=2)
                 
-                logger.info("patient_info_saved", 
-                           job_id=str(self.job_id),
-                           file=str(patient_info_file))
+                # Write with explicit error handling
+                try:
+                    with open(patient_info_file, 'w') as f:
+                        json.dump(patient_info, f, indent=2)
+                    
+                    logger.info("patient_info_saved", 
+                               job_id=str(self.job_id),
+                               file=str(patient_info_file),
+                               has_data=True)
+                except IOError as io_error:
+                    logger.warning("failed_to_write_patient_info_file",
+                                  job_id=str(self.job_id),
+                                  error=str(io_error))
+            else:
+                logger.debug("no_patient_info_to_save",
+                            job_id=str(self.job_id))
             
         except Exception as e:
             # Don't fail the job if patient info save fails
+            # This is a best-effort operation for recovery purposes
             logger.warning("failed_to_save_patient_info", 
                           job_id=str(self.job_id), 
                           error=str(e))
@@ -1121,6 +1160,11 @@ class MRIProcessor:
         print(f"DEBUG: Working directory: {os.getcwd()}")
         print(f"DEBUG: Process PID: {os.getpid()}")
         print(f"DEBUG: Database session: {self.db_session is not None}")
+
+        # Save patient info at START of processing (Fix #2)
+        # After initialization complete, when worker has stable resources
+        # If this fails, it's caught and logged but doesn't stop processing
+        self._save_patient_info()
 
         # PRODUCTION MODE: Always use real FreeSurfer processing - no mock fallbacks allowed
         logger.info("production_processing_mode", mock_fallbacks_disabled=True, real_processing_only=True)

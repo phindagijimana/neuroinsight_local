@@ -306,9 +306,6 @@ def process_mri_task(self, job_id: str):
         update_job_progress(db, job_id, 100, "Processing completed successfully")
 
         logger.info("celery_task_completed", job_id=job_id, results=results)
-        
-        # Start next pending job if any
-        start_next_pending_job(db)
 
         return {
             "status": "completed",
@@ -323,8 +320,6 @@ def process_mri_task(self, job_id: str):
         # Update job status to failed
         try:
             JobService.fail_job(db, job_id, str(e))
-            # Start next pending job if any
-            start_next_pending_job(db)
         except Exception as db_error:
             logger.error("job_status_update_failed", job_id=job_id, error=str(db_error))
 
@@ -337,13 +332,45 @@ def process_mri_task(self, job_id: str):
             from pipeline.processors import MRIProcessor
             cleanup_processor = MRIProcessor(job_id=job_id, db_session=None, progress_callback=None)
             cleanup_processor._cleanup_job_containers()
-            logger.info("container_cleanup_attempted_in_finally", job_id=job_id)
+            logger.info("container_cleanup_completed", job_id=job_id)
         except Exception as cleanup_error:
             logger.warning("container_cleanup_failed_in_finally",
                           job_id=job_id,
                           error=str(cleanup_error))
 
-        db.close()
+        # Close database session
+        try:
+            db.close()
+            logger.info("db_session_closed", job_id=job_id)
+        except Exception as db_close_error:
+            logger.error("db_close_failed", 
+                        job_id=job_id,
+                        error=str(db_close_error))
+
+        # Start next job AFTER cleanup (Fix #1)
+        # This ensures previous worker fully completes before next job starts
+        # Uses fresh DB session for complete isolation
+        try:
+            logger.info("attempting_to_start_next_pending_job",
+                       completed_job_id=job_id)
+            
+            # Create a fresh database session for the next job
+            db_for_next = SessionLocal()
+            
+            try:
+                start_next_pending_job(db_for_next)
+                logger.info("next_job_start_attempted", 
+                           completed_job_id=job_id)
+            finally:
+                # Always close the session
+                db_for_next.close()
+                
+        except Exception as next_job_error:
+            # Don't fail the current job if next job fails to start
+            logger.error("failed_to_start_next_pending_job",
+                        completed_job_id=job_id,
+                        error=str(next_job_error),
+                        exc_info=True)
 
 
 @celery_app.task(name="health_check")

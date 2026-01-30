@@ -368,13 +368,14 @@
      * @param {string} status - Backend status string
      * @returns {string} Normalized UI status
      */
-    const normalizeStatus = (status) => {
-      if (status === 'running') return 'processing';
-      if (status === 'pending') return 'pending';
-      if (status === 'completed') return 'completed';
-      if (status === 'failed') return 'failed';
-      return 'queued';
-    };
+      const normalizeStatus = (status) => {
+        if (status === 'running') return 'processing';
+        if (status === 'processing') return 'processing';
+        if (status === 'pending') return 'pending';
+        if (status === 'completed') return 'completed';
+        if (status === 'failed') return 'failed';
+        return 'queued';
+      };
     
     /**
      * Format date string for display

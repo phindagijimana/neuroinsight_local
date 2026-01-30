@@ -374,6 +374,7 @@
      */
     const normalizeStatus = (status) => {
       if (status === 'running') return 'processing';
+      if (status === 'processing') return 'processing';
       if (status === 'pending') return 'pending';
       if (status === 'completed') return 'completed';
       if (status === 'failed') return 'failed';

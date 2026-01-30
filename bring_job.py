@@ -75,6 +75,17 @@ def main() -> None:
     if not filename:
         filename = f"{job_id}.nii.gz"
 
+    # Load patient information if available
+    patient_info_file = output_dir / "patient_info.json"
+    patient_info = {}
+    if patient_info_file.exists():
+        try:
+            with open(patient_info_file, 'r') as f:
+                patient_info = json.load(f)
+            print(f"Loaded patient information from {patient_info_file}")
+        except Exception as e:
+            print(f"Warning: Failed to load patient info: {e}")
+
     db = SessionLocal()
     try:
         existing = db.query(Job).filter(Job.id == job_id).first()
@@ -94,6 +105,13 @@ def main() -> None:
             progress=100,
             current_step="Processing completed successfully",
             visualizations=json.dumps(JobService.build_visualization_payload(job_id)),
+            patient_name=patient_info.get('patient_name'),
+            patient_id=patient_info.get('patient_id'),
+            patient_age=patient_info.get('patient_age'),
+            patient_sex=patient_info.get('patient_sex'),
+            scanner_info=patient_info.get('scanner_info'),
+            sequence_info=patient_info.get('sequence_info'),
+            notes=patient_info.get('notes'),
         )
         db.add(job)
         db.commit()

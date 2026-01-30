@@ -160,6 +160,9 @@ class MRIProcessor:
 
         # Initialize progress tracking
         self._current_progress = 0
+        
+        # Save patient information to filesystem for recovery
+        self._save_patient_info()
 
         logger.info(
             "processor_initialized",
@@ -174,6 +177,53 @@ class MRIProcessor:
             Current progress as integer percentage (0-100)
         """
         return getattr(self, '_current_progress', 0)
+
+    def _save_patient_info(self):
+        """
+        Save patient information to filesystem for recovery.
+        
+        This ensures patient data survives database resets and can be
+        recovered by the bring command.
+        """
+        import json
+        
+        if not self.db_session:
+            return
+        
+        try:
+            from backend.models.job import Job
+            
+            # Get job from database
+            job = self.db_session.query(Job).filter(Job.id == self.job_id).first()
+            if not job:
+                return
+            
+            # Collect patient information
+            patient_info = {
+                'patient_name': job.patient_name,
+                'patient_id': job.patient_id,
+                'patient_age': job.patient_age,
+                'patient_sex': job.patient_sex,
+                'scanner_info': job.scanner_info,
+                'sequence_info': job.sequence_info,
+                'notes': job.notes
+            }
+            
+            # Only save if there's at least one non-null field
+            if any(v is not None for v in patient_info.values()):
+                patient_info_file = self.output_dir / "patient_info.json"
+                with open(patient_info_file, 'w') as f:
+                    json.dump(patient_info, f, indent=2)
+                
+                logger.info("patient_info_saved", 
+                           job_id=str(self.job_id),
+                           file=str(patient_info_file))
+            
+        except Exception as e:
+            # Don't fail the job if patient info save fails
+            logger.warning("failed_to_save_patient_info", 
+                          job_id=str(self.job_id), 
+                          error=str(e))
 
     def _get_freesurfer_thread_count(self) -> int:
         """

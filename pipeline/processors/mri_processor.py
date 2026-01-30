@@ -708,13 +708,16 @@ class MRIProcessor:
         missing_files = []
         existing_files = []
         
-        for orientation, paths in overlays.items():
-            if isinstance(paths, dict):
-                for view_type, file_path in paths.items():
-                    if file_path and Path(file_path).exists():
-                        existing_files.append(file_path)
-                    elif file_path:
-                        missing_files.append(file_path)
+        for orientation, slices in overlays.items():
+            if isinstance(slices, dict):
+                for slice_name, paths in slices.items():
+                    if isinstance(paths, dict):
+                        # Each slice has anatomical and overlay paths
+                        for path_type, file_path in paths.items():
+                            if file_path and isinstance(file_path, str) and Path(file_path).exists():
+                                existing_files.append(file_path)
+                            elif file_path and isinstance(file_path, str):
+                                missing_files.append(file_path)
         
         logger.info("visualization_validation_complete",
                    job_id=str(self.job_id),
@@ -722,7 +725,7 @@ class MRIProcessor:
                    missing_count=len(missing_files))
         
         # If we expect visualizations but none exist, raise an error
-        if existing_files == 0 and missing_files > 0:
+        if len(existing_files) == 0 and len(missing_files) > 0:
             raise RuntimeError(
                 f"Visualization generation failed: Expected {len(missing_files)} files but none were created. "
                 f"This may indicate a problem with matplotlib or the visualization pipeline."

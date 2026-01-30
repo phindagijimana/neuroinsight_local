@@ -117,6 +117,10 @@ def start_next_pending_job(db: Session):
     Uses database-level row locking to prevent race conditions when multiple
     workers try to start the same job simultaneously.
     
+    The row lock ensures only one worker can select a given PENDING job.
+    The job status is updated to RUNNING by process_mri_task() itself,
+    not here, to avoid conflicts with the idempotency check.
+    
     Args:
         db: Database session
     """
@@ -139,24 +143,23 @@ def start_next_pending_job(db: Session):
             logger.info("no_pending_jobs_found")
             return
         
-        # Atomically mark as running before releasing the lock
-        # This prevents other workers from picking up the same job
-        pending_job.status = JobStatus.RUNNING
-        pending_job.started_at = datetime.utcnow()
-        db.commit()  # Lock is released here
+        # DO NOT change status to RUNNING here!
+        # The row lock already prevents other workers from selecting this job.
+        # Let process_mri_task() update the status after the idempotency check passes.
+        # This fixes the deadlock where the job is marked RUNNING before the task runs,
+        # causing the idempotency check to skip processing.
         
-        # Start the pending job
-        logger.info("auto_starting_next_pending_job", job_id=str(pending_job.id), filename=pending_job.filename)
+        logger.info("submitting_job_to_celery", job_id=str(pending_job.id), filename=pending_job.filename)
         
-        # Now safe to submit to Celery queue
+        # Submit to Celery - the task will mark it as RUNNING
         task = process_mri_task.delay(str(pending_job.id))
-        logger.info("auto_started_pending_job", 
+        logger.info("job_submitted_to_celery", 
                    job_id=str(pending_job.id), 
                    celery_task_id=task.id,
                    filename=pending_job.filename)
         
     except Exception as e:
-        logger.error("failed_to_auto_start_pending_job", error=str(e), exc_info=True)
+        logger.error("failed_to_submit_job_to_celery", error=str(e), exc_info=True)
         db.rollback()
 
 

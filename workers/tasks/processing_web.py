@@ -382,3 +382,54 @@ def health_check():
     return {"status": "healthy", "timestamp": time.time()}
 
 
+@celery_app.task(name="check_pending_jobs")
+def check_pending_jobs():
+    """
+    Periodic task to check for pending jobs and start them if no jobs are running.
+    
+    This prevents orphaned pending jobs when:
+    - A running job gets stuck and is manually marked as failed
+    - Worker restarts occur
+    - Auto-start mechanism fails for any reason
+    
+    Runs every 60 seconds via Celery Beat.
+    """
+    db = SessionLocal()
+    try:
+        # Check if there are any running jobs
+        running_count = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
+        
+        if running_count > 0:
+            logger.debug("periodic_check_skipped_job_running", running_count=running_count)
+            return {"status": "skipped", "reason": "job_already_running", "running_count": running_count}
+        
+        # Check for pending jobs
+        pending_count = JobService.count_jobs_by_status(db, [JobStatus.PENDING])
+        
+        if pending_count == 0:
+            logger.debug("periodic_check_no_pending_jobs")
+            return {"status": "ok", "pending_count": 0}
+        
+        # Try to start next pending job
+        logger.info("periodic_check_starting_pending_job", pending_count=pending_count)
+        start_next_pending_job(db)
+        
+        return {"status": "started", "pending_count": pending_count}
+        
+    except Exception as e:
+        logger.error("periodic_check_failed", error=str(e), exc_info=True)
+        return {"status": "error", "error": str(e)}
+    finally:
+        db.close()
+
+
+# Configure Celery Beat schedule for periodic tasks
+celery_app.conf.beat_schedule = {
+    'check-pending-jobs-every-60-seconds': {
+        'task': 'check_pending_jobs',
+        'schedule': 60.0,  # Run every 60 seconds
+    },
+}
+celery_app.conf.timezone = 'UTC'
+
+

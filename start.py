@@ -289,6 +289,36 @@ def start_celery():
         log_warning(f"Celery startup failed: {e}")
         return None
 
+def start_celery_beat():
+    """Start Celery Beat scheduler for periodic tasks"""
+    try:
+        log_info("Starting Celery Beat scheduler...")
+
+        # Set up environment
+        env = os.environ.copy()
+        env['PYTHONPATH'] = str(Path.cwd())
+        env['ENVIRONMENT'] = 'production'
+        env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
+
+        # Start celery beat
+        proc = subprocess.Popen([
+            sys.executable, '-m', 'celery',
+            '-A', 'workers.tasks.processing_web',
+            'beat', '--loglevel=info'
+        ], env=env, stdout=open('celery_beat.log', 'w'),
+           stderr=subprocess.STDOUT)
+
+        # Save PID
+        with open('celery_beat.pid', 'w') as f:
+            f.write(str(proc.pid))
+
+        log_success(f"Celery Beat started (PID: {proc.pid})")
+        return proc
+
+    except Exception as e:
+        log_warning(f"Celery Beat startup failed: {e}")
+        return None
+
 def start_job_monitor():
     """Start job monitoring service"""
     try:
@@ -502,6 +532,11 @@ def main():
     celery_proc = start_celery()
     if not celery_proc:
         log_warning("Celery worker failed to start - continuing anyway")
+
+    # Start Celery Beat (periodic task scheduler)
+    beat_proc = start_celery_beat()
+    if not beat_proc:
+        log_warning("Celery Beat failed to start - continuing anyway")
 
     # Start job monitor
     monitor_proc = start_job_monitor()

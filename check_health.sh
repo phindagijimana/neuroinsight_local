@@ -61,6 +61,37 @@ check_resources() {
     fi
 }
 
+# Check Celery worker count
+check_celery_workers() {
+    log "Checking Celery workers..."
+    
+    # Count running Celery worker processes
+    local worker_count=$(pgrep -f "celery.*worker.*processing_web" | wc -l)
+    
+    if [ "$worker_count" -eq 0 ]; then
+        log "${RED}No Celery workers running${NC}"
+        return 1
+    elif [ "$worker_count" -gt 2 ]; then
+        # More than 2 processes (parent + child) indicates multiple workers
+        alert "Multiple Celery workers detected: $worker_count processes (expected 2)"
+        log "${YELLOW}This could cause job processing conflicts${NC}"
+        
+        local running_jobs=$(get_running_job_count)
+        if [ -n "$running_jobs" ] && [ "$running_jobs" -gt 0 ]; then
+            log "${YELLOW}Skipping cleanup: ${running_jobs} job(s) currently running${NC}"
+        else
+            log "${YELLOW}Cleaning up duplicate workers...${NC}"
+            pkill -9 -f "celery.*worker.*processing_web"
+            sleep 2
+            cd "$SCRIPT_DIR" && ./neuroinsight start celery
+        fi
+        return 1
+    else
+        log "${GREEN}Celery workers healthy: $worker_count processes${NC}"
+        return 0
+    fi
+}
+
 # Check Docker containers
 check_containers() {
     log "Checking Docker containers..."
@@ -97,6 +128,14 @@ check_containers() {
             log "${YELLOW}Skipping restart: ${running_jobs} job(s) currently running${NC}"
             return 0
         fi
+        
+        # CRITICAL: Check if Celery workers are already running before starting
+        local worker_count=$(pgrep -f "celery.*worker.*processing_web" | wc -l)
+        if [ "$worker_count" -gt 0 ]; then
+            log "${YELLOW}Celery workers already running ($worker_count processes), skipping restart${NC}"
+            return 0
+        fi
+        
         log "${YELLOW}Attempting to restart services...${NC}"
         cd "$SCRIPT_DIR" && ./neuroinsight start
     fi
@@ -126,6 +165,7 @@ main() {
     log "=== NeuroInsight Health Check Started ==="
 
     check_resources
+    check_celery_workers
     check_containers
     check_processes
 

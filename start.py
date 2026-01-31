@@ -219,6 +219,35 @@ def start_celery():
     try:
         log_info("Starting Celery worker...")
 
+        # CRITICAL: Kill any existing Celery workers first to prevent multiple workers
+        log_info("Checking for existing Celery workers...")
+        try:
+            result = subprocess.run(
+                ['pgrep', '-f', 'celery.*worker.*processing_web'],
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            
+            if result.returncode == 0 and result.stdout.strip():
+                existing_pids = result.stdout.strip().split('\n')
+                log_warning(f"Found {len(existing_pids)} existing Celery worker(s), killing them...")
+                
+                for pid in existing_pids:
+                    try:
+                        subprocess.run(['kill', '-9', pid], check=False)
+                        log_info(f"Killed worker PID {pid}")
+                    except Exception as e:
+                        log_warning(f"Failed to kill PID {pid}: {e}")
+                
+                # Wait for cleanup
+                time.sleep(3)
+                log_success("Existing workers cleaned up")
+            else:
+                log_info("No existing workers found")
+        except Exception as e:
+            log_warning(f"Error checking for existing workers: {e}")
+
         # Set environment
         env = os.environ.copy()
         env['PYTHONPATH'] = str(Path.cwd())
@@ -239,6 +268,21 @@ def start_celery():
             f.write(str(proc.pid))
 
         log_success(f"Celery worker started (PID: {proc.pid})")
+        
+        # Verify only one worker is running
+        time.sleep(2)
+        result = subprocess.run(
+            ['pgrep', '-f', 'celery.*worker.*processing_web'],
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        worker_count = len(result.stdout.strip().split('\n')) if result.stdout.strip() else 0
+        if worker_count > 2:  # parent + child is normal
+            log_warning(f"WARNING: {worker_count} Celery processes detected (expected 2)!")
+        else:
+            log_success(f"Worker count validated: {worker_count} processes")
+        
         return proc
 
     except Exception as e:

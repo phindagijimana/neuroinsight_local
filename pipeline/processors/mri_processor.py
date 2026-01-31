@@ -1684,7 +1684,7 @@ class MRIProcessor:
         """
         try:
             # Check for running containers that might be in cleanup
-            result = subprocess.run(
+            result = subprocess_module.run(
                 ["docker", "ps", "-a", "--filter", "status=exited", "--format", "{{.Names}}"],
                 capture_output=True,
                 timeout=5,
@@ -1752,7 +1752,7 @@ class MRIProcessor:
         while time.time() - start_time < max_wait_seconds:
             try:
                 # Quick check if Docker is responsive
-                result = subprocess.run(
+                result = subprocess_module.run(
                     ["docker", "version"],
                     capture_output=True,
                     timeout=5,
@@ -1766,7 +1766,7 @@ class MRIProcessor:
                               max_wait=max_wait_seconds)
                     return True
 
-            except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+            except (subprocess_module.TimeoutExpired, FileNotFoundError, Exception):
                 pass  # Continue waiting
 
             # Wait before next check
@@ -1786,7 +1786,6 @@ class MRIProcessor:
         Uses multiple checks with retry logic to handle transient Docker daemon issues.
         Includes automatic waiting for cleanup operations to complete.
         """
-        import subprocess
         import time
 
         # Docker commands to try in order of reliability
@@ -1809,7 +1808,7 @@ class MRIProcessor:
                                attempt=attempt + 1,
                                max_retries=max_retries)
 
-                    result = subprocess.run(
+                    result = subprocess_module.run(
                         check_cmd,
                         capture_output=True,
                         timeout=10,
@@ -1837,7 +1836,7 @@ class MRIProcessor:
                                       delay=delay)
                             time.sleep(delay)
 
-                except subprocess.TimeoutExpired:
+                except subprocess_module.TimeoutExpired:
                     logger.warning("docker_command_timeout",
                                  command=cmd_name,
                                  attempt=attempt + 1,
@@ -2143,10 +2142,8 @@ class MRIProcessor:
             )
 
         try:
-            import subprocess
-
             # Run the download script
-            result = subprocess.run(
+            result = subprocess_module.run(
                 ["bash", str(download_script)],
                 cwd=app_dir,
                 capture_output=True,
@@ -2171,7 +2168,7 @@ class MRIProcessor:
                            stderr=result.stderr.strip())
                 return None
 
-        except subprocess.TimeoutExpired:
+        except subprocess_module.TimeoutExpired:
             logger.error("freesurfer_singularity_download_timeout", timeout_minutes=30)
             return None
         except Exception as e:
@@ -2394,7 +2391,6 @@ class MRIProcessor:
                 f"Processing with FreeSurfer (Singularity) ({subject_id})..."
             )
 
-        import subprocess
         import os
 
         # IMPORTANT: Clean up any existing subject directory to prevent "re-run existing subject" error
@@ -2450,7 +2446,7 @@ class MRIProcessor:
                        nifti_path=str(nifti_path),
                        sif_path=str(sif_path))
 
-            result = subprocess.run(
+            result = subprocess_module.run(
                 singularity_cmd,
                 capture_output=True,
                 timeout=FREESURFER_PROCESSING_TIMEOUT_MINUTES*60,  # Use the configured timeout
@@ -2496,7 +2492,7 @@ class MRIProcessor:
                 ]
 
                 logger.info("running_mri_segstats_after_combined_autorecon", command=" ".join(segstats_cmd))
-                segstats_result = subprocess.run(
+                segstats_result = subprocess_module.run(
                     segstats_cmd,
                     capture_output=True,
                     timeout=300,  # 5 minutes for stats generation
@@ -2544,7 +2540,7 @@ class MRIProcessor:
                            error=error_msg[:500])
                 raise RuntimeError(f"FreeSurfer Singularity failed: {error_msg[:200]}")
 
-        except subprocess.TimeoutExpired:
+        except subprocess_module.TimeoutExpired:
             logger.error("freesurfer_singularity_timeout",
                         subject_id=subject_id,
                         timeout_minutes=FREESURFER_PROCESSING_TIMEOUT_MINUTES)
@@ -2557,7 +2553,7 @@ class MRIProcessor:
             # Try with singularity instead of apptainer
             singularity_cmd[0] = "singularity"
             try:
-                result = subprocess.run(
+                result = subprocess_module.run(
                     singularity_cmd,
                     capture_output=True,
                     timeout=FREESURFER_PROCESSING_TIMEOUT_MINUTES*60,
@@ -5155,8 +5151,7 @@ class MRIProcessor:
                 return None
 
             # Run docker exec to check running processes
-            import subprocess
-            result = subprocess.run([
+            result = subprocess_module.run([
                 'docker', 'exec', container_id,
                 'ps', 'aux'
             ], capture_output=True, text=True, timeout=10)

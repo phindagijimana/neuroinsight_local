@@ -250,15 +250,10 @@
         const formData = new FormData();
         formData.append('file', file);
         
-        // Add patient metadata if provided
-        if (metadata && Object.keys(metadata).length > 0) {
-          // Only append non-empty fields
-          Object.entries(metadata).forEach(([key, value]) => {
-            if (value && value.trim() !== '') {
-              formData.append(key, value);
-            }
-          });
-        }
+        // Always send patient metadata as JSON string (even if empty)
+        // Backend expects this field and will handle empty values
+        formData.append('patient_data', JSON.stringify(metadata));
+        console.log('Sending patient_data:', JSON.stringify(metadata));
         
         return new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
@@ -802,6 +797,7 @@
       const [pollingJobId, setPollingJobId] = useState(null);
       const [patientInfo, setPatientInfo] = useState({
         patient_name: '',
+        patient_id: '',
         age: '',
         sex: '',
         scanner: '',
@@ -963,6 +959,7 @@
           // Reset patient info form
           setPatientInfo({
             patient_name: '',
+            patient_id: '',
             age: '',
             sex: '',
             scanner: '',
@@ -1093,6 +1090,18 @@
                       value={patientInfo.patient_name}
                       onChange={(e) => handlePatientInfoChange('patient_name', e.target.value)}
                       placeholder="Enter patient name"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Patient ID
+                    </label>
+                    <input
+                      type="text"
+                      value={patientInfo.patient_id}
+                      onChange={(e) => handlePatientInfoChange('patient_id', e.target.value)}
+                      placeholder="Enter patient ID"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>

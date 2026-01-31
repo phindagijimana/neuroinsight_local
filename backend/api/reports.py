@@ -154,17 +154,20 @@ async def generate_pdf_report(
         story.append(Paragraph("Patient Information", table_title_style))
         story.append(Spacer(1, 12))
 
+        # Format age/sex similar to UI dashboard
+        age_sex = f"{job.patient_age if job.patient_age else 'N/A'} / {job.patient_sex or 'N/A'}"
+        
         patient_data = [
             ["Item", "Information"],  # Header row
-            ["Patient ID", job.patient_id or "N/A"],
-            ["Patient Name", job.patient_name or "N/A"],
-            ["Age", str(job.patient_age) if job.patient_age else "N/A"],
-            ["Sex", job.patient_sex or "N/A"],
+            ["Patient ID", job.patient_id or job.id],  # Show job ID if patient_id not set
+            ["Age / Sex", age_sex],
             ["Scan Date", job.created_at.strftime("%Y-%m-%d") if job.created_at else "N/A"],
-            ["Processed Date", job.completed_at.strftime("%Y-%m-%d %H:%M") if job.completed_at else "N/A"],
             ["Scanner", job.scanner_info or "N/A"],
-            ["Sequence", job.sequence_info or "T1-MPRAGE"],
         ]
+        
+        # Add Notes row if notes exist and aren't just the default upload message
+        if job.notes and job.notes != "Uploaded as nii.gz file." and not job.notes.startswith("Uploaded as"):
+            patient_data.append(["Notes", job.notes])
 
         patient_table = Table(patient_data, colWidths=[2.5*inch, 4.5*inch])
         patient_table.setStyle(TableStyle([

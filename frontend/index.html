@@ -251,10 +251,10 @@
         const formData = new FormData();
         formData.append('file', file);
         
-        // Add patient metadata as JSON string if provided
-        if (metadata && Object.keys(metadata).length > 0) {
-          formData.append('patient_data', JSON.stringify(metadata));
-        }
+        // Always send patient metadata as JSON string (even if empty)
+        // Backend expects this field and will handle empty values
+        formData.append('patient_data', JSON.stringify(metadata));
+        console.log('Sending patient_data:', JSON.stringify(metadata));
         
         return new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
@@ -798,6 +798,7 @@
       const [pollingJobId, setPollingJobId] = useState(null);
       const [patientInfo, setPatientInfo] = useState({
         patient_name: '',
+        patient_id: '',
         age: '',
         sex: '',
         scanner: '',
@@ -959,6 +960,7 @@
           // Reset patient info form
           setPatientInfo({
             patient_name: '',
+            patient_id: '',
             age: '',
             sex: '',
             scanner: '',
@@ -1089,6 +1091,18 @@
                       value={patientInfo.patient_name}
                       onChange={(e) => handlePatientInfoChange('patient_name', e.target.value)}
                       placeholder="Enter patient name"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Patient ID
+                    </label>
+                    <input
+                      type="text"
+                      value={patientInfo.patient_id}
+                      onChange={(e) => handlePatientInfoChange('patient_id', e.target.value)}
+                      placeholder="Enter patient ID"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
@@ -1574,12 +1588,13 @@
           setPatientInfo({
             id: jobAny.id || jobAny.job_id || selectedJobId,
             name: jobAny.patient_name || jobAny.metadata?.patient_name || 'N/A',
-            age: jobAny.age || jobAny.metadata?.age || 'N/A',
-            sex: jobAny.sex || jobAny.metadata?.sex || 'N/A',
+            age: jobAny.patient_age || jobAny.age || jobAny.metadata?.age || 'N/A',
+            sex: jobAny.patient_sex || jobAny.sex || jobAny.metadata?.sex || 'N/A',
             scanDate: jobAny.created_at || 'N/A',
             processedDate: jobAny.completed_at || 'N/A',
-            scanner: jobAny.scanner || jobAny.metadata?.scanner || 'N/A',
-            sequence: jobAny.sequence || jobAny.metadata?.sequence || 'T1-MPRAGE'
+            scanner: jobAny.scanner_info || jobAny.scanner || jobAny.metadata?.scanner || 'N/A',
+            sequence: jobAny.sequence_info || jobAny.sequence || jobAny.metadata?.sequence || 'T1-MPRAGE',
+            notes: jobAny.notes || 'N/A'
           });
           
           if (metricsData) {
@@ -1697,6 +1712,12 @@
                   <p className="font-semibold text-gray-900">{patientInfo.scanner}</p>
                 </div>
               </div>
+              {patientInfo.notes && patientInfo.notes !== 'N/A' && !patientInfo.notes.startsWith('Uploaded as') && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-500">Notes</p>
+                  <p className="font-semibold text-gray-900 mt-1">{patientInfo.notes}</p>
+                </div>
+              )}
             </div>
             )}
 

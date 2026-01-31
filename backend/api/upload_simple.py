@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Optional
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, Form
 from sqlalchemy.orm import Session
 
 from backend.core.config import get_settings
@@ -31,7 +31,7 @@ router = APIRouter()
 @router.post("/upload/")
 async def upload_file(
     file: UploadFile,
-    patient_data: Optional[str] = None,
+    patient_data: str = Form("{}"),
     db: Session = Depends(get_db)
 ) -> Dict:
     """

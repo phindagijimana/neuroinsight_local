@@ -167,7 +167,10 @@ async def generate_pdf_report(
         
         # Add Notes row if notes exist and aren't just the default upload message
         if job.notes and job.notes != "Uploaded as nii.gz file." and not job.notes.startswith("Uploaded as"):
-            patient_data.append(["Notes", job.notes])
+            # Clean up notes: remove "| Uploaded as..." suffix
+            clean_notes = job.notes.split(" | Uploaded as")[0].strip()
+            if clean_notes:  # Only add if there's actual content after cleanup
+                patient_data.append(["Notes", clean_notes])
 
         patient_table = Table(patient_data, colWidths=[2.5*inch, 4.5*inch])
         patient_table.setStyle(TableStyle([
@@ -261,19 +264,6 @@ async def generate_pdf_report(
         ]))
         story.append(interpretation_table)
         story.append(Spacer(1, 24))
-
-        # Clinical Notes (if any)
-        if job.notes:
-            story.append(Paragraph("Clinical Notes", styles['Heading3']))
-            story.append(Spacer(1, 6))
-            notes_style = ParagraphStyle(
-                'Notes',
-                parent=styles['Normal'],
-                fontSize=11,
-                leftIndent=20,
-            )
-            story.append(Paragraph(job.notes, notes_style))
-            story.append(Spacer(1, 24))
 
         # Coronal Visualizations Section
         story.append(Paragraph("Coronal Visualizations", styles['Heading2']))

@@ -5049,6 +5049,97 @@ class MRIProcessor:
                     # Update heartbeat at start of each poll cycle
                     health.heartbeat()
                     
+                    # CRITICAL: Check if output directory still exists
+                    output_dir = status_log_path.parent.parent  # Go up from scripts/recon-all-status.log to job root
+                    if not output_dir.exists():
+                        logger.error("freesurfer_monitor_output_directory_deleted",
+                                   job_id=str(self.job_id),
+                                   output_dir=str(output_dir),
+                                   message="Output directory was deleted while job was running")
+                        # Fail the job immediately
+                        try:
+                            self._update_progress(0, "Failed: Output directory deleted")
+                            # Mark job as failed in database
+                            from workers.tasks.processing_web import fail_job_sync
+                            fail_job_sync(str(self.job_id), "Output directory was deleted while job was running")
+                        except Exception as fail_err:
+                            logger.error("failed_to_mark_job_as_failed", 
+                                       job_id=str(self.job_id), 
+                                       error=str(fail_err))
+                        health.is_alive = False
+                        return
+                    
+                    # CRITICAL: Check if container is still running
+                    from backend.core.config import get_settings
+                    settings = get_settings()
+                    container_name = f"{settings.freesurfer_container_prefix}{self.job_id}"
+                    
+                    try:
+                        import subprocess as subprocess_module
+                        check_result = subprocess_module.run(
+                            ["docker", "inspect", "--format", "{{.State.Status}}", container_name],
+                            capture_output=True,
+                            timeout=5,
+                            text=True
+                        )
+                        
+                        if check_result.returncode == 0:
+                            container_status = check_result.stdout.strip()
+                            
+                            # If container exited, check exit code
+                            if container_status in ["exited", "dead"]:
+                                exit_code_result = subprocess_module.run(
+                                    ["docker", "inspect", "--format", "{{.State.ExitCode}}", container_name],
+                                    capture_output=True,
+                                    timeout=5,
+                                    text=True
+                                )
+                                
+                                exit_code = int(exit_code_result.stdout.strip()) if exit_code_result.returncode == 0 else -1
+                                
+                                if exit_code != 0:
+                                    logger.error("freesurfer_monitor_container_failed",
+                                               job_id=str(self.job_id),
+                                               container_name=container_name,
+                                               exit_code=exit_code,
+                                               status=container_status)
+                                    
+                                    # Get container logs for error details
+                                    logs_result = subprocess_module.run(
+                                        ["docker", "logs", "--tail", "50", container_name],
+                                        capture_output=True,
+                                        timeout=10,
+                                        text=True
+                                    )
+                                    error_logs = logs_result.stdout[-500:] if logs_result.returncode == 0 else "Could not retrieve logs"
+                                    
+                                    # Fail the job immediately
+                                    try:
+                                        error_msg = f"FreeSurfer container exited with code {exit_code}. Recent logs: {error_logs}"
+                                        self._update_progress(0, f"Failed: Container error (code {exit_code})")
+                                        from workers.tasks.processing_web import fail_job_sync
+                                        fail_job_sync(str(self.job_id), error_msg)
+                                    except Exception as fail_err:
+                                        logger.error("failed_to_mark_job_as_failed", 
+                                                   job_id=str(self.job_id), 
+                                                   error=str(fail_err))
+                                    
+                                    health.is_alive = False
+                                    return
+                                else:
+                                    # Container exited successfully (exit code 0)
+                                    logger.info("freesurfer_monitor_container_completed",
+                                              job_id=str(self.job_id),
+                                              container_name=container_name)
+                                    health.is_alive = False
+                                    return
+                    except Exception as container_check_err:
+                        # Container might not exist yet or Docker is unavailable
+                        # Don't fail the job, just log it
+                        logger.debug("freesurfer_monitor_container_check_failed",
+                                   job_id=str(self.job_id),
+                                   error=str(container_check_err))
+                    
                     # Log each poll attempt for debugging
                     logger.debug("freesurfer_monitor_poll_attempt", 
                                poll_count=health.poll_count,

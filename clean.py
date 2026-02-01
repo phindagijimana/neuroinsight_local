@@ -55,11 +55,19 @@ def clean_orphaned_files(keep_ids: set[str], retention_days: int) -> int:
     try:
         # Get all job IDs from database
         db_job_ids = {str(job.id) for job in db.query(Job.id).all()}
+        
+        # CRITICAL: Get all RUNNING/PENDING job IDs to protect their directories
+        running_job_ids = {
+            str(job.id) for job in db.query(Job.id).filter(
+                Job.status.in_([JobStatus.RUNNING, JobStatus.PENDING])
+            ).all()
+        }
     finally:
         db.close()
     
     cutoff_time = datetime.utcnow().timestamp() - (retention_days * 86400)
     removed_count = 0
+    skipped_running_count = 0
     
     # Scan all directories in outputs
     for item in outputs_dir.iterdir():
@@ -70,6 +78,12 @@ def clean_orphaned_files(keep_ids: set[str], retention_days: int) -> int:
         
         # Skip if in database
         if job_id in db_job_ids:
+            continue
+        
+        # CRITICAL: Skip if job is currently running or pending
+        if job_id in running_job_ids:
+            print(f"  Skipping active job (running/pending): {job_id}")
+            skipped_running_count += 1
             continue
         
         # Skip if in keep list
@@ -89,6 +103,9 @@ def clean_orphaned_files(keep_ids: set[str], retention_days: int) -> int:
             print(f"  Removed orphaned job directory: {job_id}")
         except Exception as e:
             print(f"  Warning: Failed to remove {job_id}: {e}")
+    
+    if skipped_running_count > 0:
+        print(f"  Protected {skipped_running_count} active job(s) from deletion")
     
     return removed_count
 
@@ -145,6 +162,7 @@ def main() -> None:
         db = SessionLocal()
         cleanup_service = CleanupService()
         try:
+            # Only clean COMPLETED or FAILED jobs (never RUNNING or PENDING)
             candidates = (
                 db.query(Job)
                 .filter(Job.status.in_([JobStatus.COMPLETED, JobStatus.FAILED]))
@@ -164,6 +182,13 @@ def main() -> None:
                     removed_jobs += 1
 
             db.commit()
+            
+            # Verify no running jobs were affected
+            running_count = db.query(Job).filter(
+                Job.status.in_([JobStatus.RUNNING, JobStatus.PENDING])
+            ).count()
+            if running_count > 0:
+                print(f"  Note: {running_count} active job(s) were protected from cleanup")
         finally:
             db.close()
     

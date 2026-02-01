@@ -109,6 +109,29 @@ def update_job_progress(db: Session, job_id, progress: int, current_step: str):
         db.rollback()
 
 
+def fail_job_sync(job_id: str, error_message: str):
+    """
+    Synchronously mark a job as failed from progress monitor thread.
+    
+    This is a helper function for the progress monitor to fail jobs immediately
+    when critical errors are detected (e.g., directory deleted, container crashed).
+    
+    Args:
+        job_id: Job identifier string
+        error_message: Error message describing why job failed
+    """
+    db = SessionLocal()
+    try:
+        job_service = JobService()
+        job_service.fail_job(db, job_id, error_message)
+        logger.info("job_failed_by_monitor", job_id=job_id, reason=error_message[:100])
+    except Exception as e:
+        logger.error("failed_to_fail_job_from_monitor", job_id=job_id, error=str(e))
+        db.rollback()
+    finally:
+        db.close()
+
+
 def start_next_pending_job(db: Session):
     """
     Check for pending jobs and start the next one if no jobs are currently running.

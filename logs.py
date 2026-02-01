@@ -69,7 +69,7 @@ def show_usage():
 def show_log_file(filepath, lines=100, follow=False):
     """Show log file contents."""
     if not os.path.exists(filepath):
-        print(f"❌ Log file not found: {filepath}")
+        print(f"ERROR: Log file not found: {filepath}")
         return False
     
     cmd = ['tail', f'-n{lines}']
@@ -84,7 +84,7 @@ def show_log_file(filepath, lines=100, follow=False):
         print("\n\nLog viewing interrupted.")
         return True
     except Exception as e:
-        print(f"❌ Error reading log: {e}")
+        print(f"ERROR: Error reading log: {e}")
         return False
 
 
@@ -99,16 +99,16 @@ def show_docker_log(container_name, lines=100, follow=False):
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
             if 'No such container' in result.stderr:
-                print(f"❌ Container '{container_name}' is not running")
+                print(f"ERROR: Container '{container_name}' is not running")
             else:
-                print(f"❌ Error: {result.stderr}")
+                print(f"ERROR: {result.stderr}")
             return False
         print(result.stdout)
         if result.stderr:
             print(result.stderr)
         return True
     except Exception as e:
-        print(f"❌ Error reading Docker logs: {e}")
+        print(f"ERROR: Error reading Docker logs: {e}")
         return False
 
 
@@ -120,7 +120,7 @@ def show_freesurfer_logs(job_id, lines=100, follow=False):
     output_dir = Path(settings.output_dir) / job_id
     
     if not output_dir.exists():
-        print(f"❌ Job output directory not found: {output_dir}")
+        print(f"ERROR: Job output directory not found: {output_dir}")
         return False
     
     # Check for FreeSurfer logs
@@ -133,7 +133,7 @@ def show_freesurfer_logs(job_id, lines=100, follow=False):
     for log_file in log_files:
         if log_file.exists():
             print(f"\n{'='*70}")
-            print(f"📄 {log_file.name}")
+            print(f"LOG: {log_file.name}")
             print('='*70)
             show_log_file(str(log_file), lines, follow)
             found = True
@@ -141,8 +141,8 @@ def show_freesurfer_logs(job_id, lines=100, follow=False):
                 print()
     
     if not found:
-        print(f"❌ No FreeSurfer logs found for job {job_id}")
-        print(f"   Checked: {output_dir}")
+        print(f"ERROR: No FreeSurfer logs found for job {job_id}")
+        print(f"       Checked: {output_dir}")
     
     return found
 
@@ -150,7 +150,7 @@ def show_freesurfer_logs(job_id, lines=100, follow=False):
 def interactive_menu():
     """Show interactive menu for log selection."""
     print("\n" + "="*70)
-    print("📋 NeuroInsight Log Viewer")
+    print("NeuroInsight Log Viewer")
     print("="*70)
     print("\nSelect log source:")
     print()
@@ -178,7 +178,7 @@ def interactive_menu():
                 if source == 'freesurfer':
                     continue  # Skip freesurfer (needs job ID)
                 print(f"\n{'='*70}")
-                print(f"📄 {source.upper()} LOGS")
+                print(f"{source.upper()} LOGS")
                 print('='*70)
                 show_logs(source, lines=50, follow=False)
         elif 1 <= choice_num <= len(sources):
@@ -191,7 +191,7 @@ def interactive_menu():
             else:
                 show_logs(source, lines=100, follow=False)
         else:
-            print("❌ Invalid choice")
+            print("ERROR: Invalid choice")
     
     except (ValueError, KeyboardInterrupt):
         print("\nCancelled.")
@@ -200,15 +200,15 @@ def interactive_menu():
 def show_logs(source, lines=100, follow=False):
     """Show logs for specified source."""
     if source not in LOG_SOURCES:
-        print(f"❌ Unknown log source: {source}")
-        print(f"   Available: {', '.join(LOG_SOURCES.keys())}")
+        print(f"ERROR: Unknown log source: {source}")
+        print(f"       Available: {', '.join(LOG_SOURCES.keys())}")
         return False
     
     info = LOG_SOURCES[source]
     
     if info.get('requires_job_id'):
-        print(f"❌ {source} logs require a job ID")
-        print(f"   Use: neuroinsight logs {source} --job-id <ID>")
+        print(f"ERROR: {source} logs require a job ID")
+        print(f"       Use: neuroinsight logs {source} --job-id <ID>")
         return False
     
     if 'command' in info:
@@ -251,7 +251,7 @@ def main():
                 try:
                     lines = int(args[i])
                 except ValueError:
-                    print(f"❌ Invalid number: {args[i]}")
+                    print(f"ERROR: Invalid number: {args[i]}")
                     sys.exit(1)
         elif arg == '--job-id':
             i += 1
@@ -260,7 +260,7 @@ def main():
         elif not source:
             source = arg
         else:
-            print(f"❌ Unknown argument: {arg}")
+            print(f"ERROR: Unknown argument: {arg}")
             show_usage()
             sys.exit(1)
         
@@ -273,8 +273,8 @@ def main():
     
     if source == 'freesurfer':
         if not job_id:
-            print("❌ FreeSurfer logs require a job ID")
-            print("   Use: neuroinsight logs freesurfer --job-id <ID>")
+            print("ERROR: FreeSurfer logs require a job ID")
+            print("       Use: neuroinsight logs freesurfer --job-id <ID>")
             sys.exit(1)
         show_freesurfer_logs(job_id, lines, follow)
     else:

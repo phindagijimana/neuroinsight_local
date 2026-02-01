@@ -4941,6 +4941,8 @@ class MRIProcessor:
 
         This runs in a separate thread and updates progress based on FreeSurfer's
         completion of different processing stages.
+        
+        Includes robust error handling, thread health checks, and watchdog mechanism.
 
         Args:
             status_log_path: Path to the recon-all-status.log file
@@ -4949,11 +4951,36 @@ class MRIProcessor:
         import threading
         import time
 
+        # Thread health monitoring
+        class MonitorHealth:
+            def __init__(self):
+                self.last_heartbeat = time.time()
+                self.poll_count = 0
+                self.error_count = 0
+                self.is_alive = True
+                
+            def heartbeat(self):
+                """Update heartbeat timestamp"""
+                self.last_heartbeat = time.time()
+                self.poll_count += 1
+                
+            def record_error(self):
+                """Record an error occurrence"""
+                self.error_count += 1
+                
+            def is_healthy(self, timeout=120):
+                """Check if monitor is healthy (heartbeat within timeout)"""
+                return (time.time() - self.last_heartbeat) < timeout
+        
+        health = MonitorHealth()
+
         def monitor_progress():
             """Monitor the status log file and update progress with fixed percentages per phase."""
             last_line_count = 0
             current_phase = None
             ca_reg_snapshot_taken = False
+            consecutive_errors = 0
+            max_consecutive_errors = 5
 
             # Fixed percentage allocation based on phase complexity/duration.
             # Weights are mapped into the remaining range [base_progress, 100]
@@ -5013,18 +5040,48 @@ class MRIProcessor:
 
             logger.info("status_log_found", path=str(status_log_path))
 
+            poll_interval = 5  # Poll every 5 seconds (more responsive than 10s or 30s)
+            
             while True:
+                poll_start_time = time.time()
+                
                 try:
+                    # Update heartbeat at start of each poll cycle
+                    health.heartbeat()
+                    
+                    # Log each poll attempt for debugging
+                    logger.debug("freesurfer_monitor_poll_attempt", 
+                               poll_count=health.poll_count,
+                               last_line_count=last_line_count,
+                               current_phase=current_phase,
+                               job_id=str(self.job_id),
+                               log_exists=status_log_path.exists())
+                    
                     if status_log_path.exists():
-                        with open(status_log_path, 'r') as f:
-                            lines = f.readlines()
+                        try:
+                            with open(status_log_path, 'r', encoding='utf-8', errors='replace') as f:
+                                lines = f.readlines()
+                        except IOError as io_err:
+                            logger.warning("freesurfer_monitor_file_read_error",
+                                         error=str(io_err),
+                                         path=str(status_log_path),
+                                         job_id=str(self.job_id))
+                            health.record_error()
+                            consecutive_errors += 1
+                            time.sleep(poll_interval)
+                            continue
 
                         if len(lines) > last_line_count:
-                            # New lines detected
+                            # New lines detected - reset error counter
+                            consecutive_errors = 0
                             new_lines = lines[last_line_count:]
                             last_line_count = len(lines)
                             
-                            logger.debug("freesurfer_log_new_lines", count=len(new_lines), total_lines=len(lines))
+                            logger.info("freesurfer_log_new_lines", 
+                                       count=len(new_lines), 
+                                       total_lines=len(lines),
+                                       poll_count=health.poll_count,
+                                       job_id=str(self.job_id))
 
                             for line in new_lines:
                                 original_line = line.strip()
@@ -5104,34 +5161,157 @@ class MRIProcessor:
 
                     # Fixed percentage system: Progress only updates when phases start and complete
                     # No incremental time-based updates within phases for simplicity
+                        else:
+                            # No new lines in this poll
+                            logger.debug("freesurfer_monitor_no_new_lines",
+                                       last_line_count=last_line_count,
+                                       poll_count=health.poll_count,
+                                       job_id=str(self.job_id))
                     else:
                         # Status log no longer exists, processing might be complete
-                        logger.info("status_log_disappeared", path=str(status_log_path))
+                        logger.info("status_log_disappeared", path=str(status_log_path), job_id=str(self.job_id))
                         # Set final progress to 100% if we were in a phase
                         if current_phase and current_phase in phase_info:
                             final_progress = phase_info[current_phase]["completion_percent"]
                             self._update_progress(final_progress, f"FreeSurfer: {current_phase.replace('_', ' ').title()} completed")
+                        health.is_alive = False
                         break
 
-                    # Wait before checking again
-                    time.sleep(10)  # Check every 10 seconds (more frequent than before)
+                    # Check for too many consecutive errors (possible thread issue)
+                    if consecutive_errors >= max_consecutive_errors:
+                        logger.error("freesurfer_monitor_too_many_errors",
+                                   consecutive_errors=consecutive_errors,
+                                   max_errors=max_consecutive_errors,
+                                   job_id=str(self.job_id))
+                        # Don't exit - keep trying, but log the issue
+                        consecutive_errors = 0  # Reset to continue monitoring
 
+                    # Calculate poll duration and adjust sleep time
+                    poll_duration = time.time() - poll_start_time
+                    sleep_time = max(0.1, poll_interval - poll_duration)
+                    
+                    logger.debug("freesurfer_monitor_poll_complete",
+                               poll_duration_ms=int(poll_duration * 1000),
+                               sleep_time_ms=int(sleep_time * 1000),
+                               job_id=str(self.job_id))
+                    
+                    time.sleep(sleep_time)
+
+                except KeyboardInterrupt:
+                    logger.info("freesurfer_monitor_interrupted", job_id=str(self.job_id))
+                    health.is_alive = False
+                    break
                 except Exception as e:
+                    health.record_error()
+                    consecutive_errors += 1
+                    
                     logger.error("freesurfer_progress_monitor_error", 
                                 error=str(e), 
                                 error_type=type(e).__name__,
+                                error_count=health.error_count,
+                                consecutive_errors=consecutive_errors,
                                 job_id=str(self.job_id))
+                    
+                    # Log full traceback for debugging
                     import traceback
-                    logger.error("freesurfer_monitor_traceback", traceback=traceback.format_exc())
-                    time.sleep(60)  # Wait longer on error
+                    logger.error("freesurfer_monitor_traceback", 
+                               traceback=traceback.format_exc(),
+                               job_id=str(self.job_id))
+                    
+                    # Adaptive error handling: shorter wait for transient errors
+                    if consecutive_errors < 3:
+                        time.sleep(poll_interval)  # Normal interval
+                    else:
+                        time.sleep(poll_interval * 3)  # Longer wait after multiple errors
+                    
                     continue
             
-            logger.info("freesurfer_progress_monitor_thread_ended", job_id=str(self.job_id))
+            logger.info("freesurfer_progress_monitor_thread_ended", 
+                       job_id=str(self.job_id),
+                       poll_count=health.poll_count,
+                       error_count=health.error_count)
+
+        def watchdog():
+            """Watchdog thread to monitor and restart the progress monitor if it dies."""
+            restart_count = 0
+            max_restarts = 3
+            watchdog_check_interval = 60  # Check every 60 seconds
+            
+            logger.info("freesurfer_watchdog_started", job_id=str(self.job_id))
+            
+            while restart_count < max_restarts:
+                time.sleep(watchdog_check_interval)
+                
+                # Check if monitor thread is still alive
+                if not monitor_thread.is_alive():
+                    logger.warning("freesurfer_monitor_thread_died",
+                                 job_id=str(self.job_id),
+                                 restart_count=restart_count,
+                                 poll_count=health.poll_count,
+                                 error_count=health.error_count)
+                    
+                    # Don't restart if it exited cleanly
+                    if health.is_alive:
+                        restart_count += 1
+                        logger.warning("freesurfer_monitor_restarting",
+                                     job_id=str(self.job_id),
+                                     restart_attempt=restart_count)
+                        
+                        # Restart the monitor thread
+                        new_monitor = threading.Thread(
+                            target=monitor_progress,
+                            daemon=True,
+                            name=f"FreeSurferProgressMonitor-Restart{restart_count}"
+                        )
+                        new_monitor.start()
+                        globals()['monitor_thread'] = new_monitor
+                        
+                        logger.info("freesurfer_monitor_restarted",
+                                  job_id=str(self.job_id),
+                                  thread_name=new_monitor.name)
+                    else:
+                        logger.info("freesurfer_monitor_exited_cleanly", job_id=str(self.job_id))
+                        break
+                
+                # Check for unhealthy thread (heartbeat timeout)
+                elif not health.is_healthy(timeout=120):
+                    logger.error("freesurfer_monitor_unhealthy",
+                               job_id=str(self.job_id),
+                               last_heartbeat_seconds_ago=int(time.time() - health.last_heartbeat),
+                               poll_count=health.poll_count,
+                               error_count=health.error_count)
+                    
+                    # Thread is stuck - this is bad, log but don't restart
+                    # (restarting a stuck thread could cause issues)
+                else:
+                    # Monitor is healthy
+                    logger.debug("freesurfer_watchdog_check_ok",
+                               job_id=str(self.job_id),
+                               monitor_alive=True,
+                               poll_count=health.poll_count,
+                               last_heartbeat_seconds_ago=int(time.time() - health.last_heartbeat))
+            
+            if restart_count >= max_restarts:
+                logger.error("freesurfer_monitor_max_restarts_exceeded",
+                           job_id=str(self.job_id),
+                           max_restarts=max_restarts)
+            
+            logger.info("freesurfer_watchdog_ended", job_id=str(self.job_id))
 
         # Start monitoring in a background thread
         monitor_thread = threading.Thread(target=monitor_progress, daemon=True, name="FreeSurferProgressMonitor")
         monitor_thread.start()
-        logger.info("freesurfer_progress_monitor_started", log_path=str(status_log_path), thread_name=monitor_thread.name)
+        
+        # Start watchdog thread to monitor the monitor thread
+        watchdog_thread = threading.Thread(target=watchdog, daemon=True, name="FreeSurferWatchdog")
+        watchdog_thread.start()
+        
+        logger.info("freesurfer_progress_monitor_started", 
+                   log_path=str(status_log_path), 
+                   monitor_thread=monitor_thread.name,
+                   watchdog_thread=watchdog_thread.name,
+                   poll_interval_seconds=5,
+                   job_id=str(self.job_id))
 
     def _get_current_freesurfer_command(self) -> Optional[str]:
         """Get the current FreeSurfer command being executed in the container.

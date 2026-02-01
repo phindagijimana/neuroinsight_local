@@ -1,6 +1,6 @@
 #!/bin/bash
 # NeuroInsight Launcher - Terminal-agnostic wrapper
-# Avoids VS Code/Cursor terminal corruption issues
+# Avoids terminal corruption issues in IDE environments
 
 # Detect if we're in a problematic terminal environment
 if [[ "$TERM_PROGRAM" == "vscode" ]] || [[ "$TERM_PROGRAM" == "vscode-insiders" ]] || [[ -n "$VSCODE_PID" ]]; then

@@ -74,13 +74,10 @@ export const apiService = {
       const formData = new FormData();
       formData.append('file', file);
 
-      // Add patient information to form data
-      if (patientInfo.patient_name) formData.append('patient_name', patientInfo.patient_name);
-      if (patientInfo.age) formData.append('patient_age', patientInfo.age);
-      if (patientInfo.sex) formData.append('patient_sex', patientInfo.sex);
-      if (patientInfo.scanner) formData.append('scanner_info', patientInfo.scanner);
-      if (patientInfo.sequence) formData.append('sequence_info', patientInfo.sequence);
-      if (patientInfo.notes) formData.append('notes', patientInfo.notes);
+      // Send patient information as JSON string (backend expects 'patient_data' field)
+      // This matches the format from index.dev.html
+      formData.append('patient_data', JSON.stringify(patientInfo));
+      console.log('Sending patient_data:', JSON.stringify(patientInfo));
 
       const xhr = new XMLHttpRequest();
 

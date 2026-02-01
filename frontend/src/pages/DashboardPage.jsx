@@ -243,29 +243,22 @@ function DashboardPage({ selectedJobId, setSelectedJobId, jobs }) {
               </p>
             </div>
           )}
-            <div className="col-span-1 bg-white rounded-xl shadow-sm border border-blue-100 p-3">
-            <h2 className="text-lg font-semibold text-gray-900 mb-8">Hippocampal Volume Comparison (mm³)</h2>
+            <div className="col-span-1 bg-white rounded-xl shadow-sm border border-blue-100 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Hippocampal Volume Comparison (mm³)</h2>
             {/* Simple Bar Chart */}
-            <div className="mb-8 pt-8">
-              <div className="flex items-end justify-center space-x-12 mb-6">
-                <div className="text-center">
-                  <div className="w-16 bg-[#003d7a] rounded-t-lg relative" style={{ height: `${Math.max(displayVolumes.left / 50, 30)}px` }}>
-                    <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 -translate-y-full text-sm font-bold text-[#003d7a] bg-white px-1 rounded">
-                      {displayVolumes.left.toFixed(1)}
-                    </div>
-                  </div>
-                  <div className="mt-3 text-sm text-gray-600">Left</div>
+            <div className="h-96 flex items-end justify-center gap-4 p-4">
+              <div className="flex flex-col items-center">
+                <div className="w-20 bg-blue-500 text-white text-center px-2 py-1 rounded-t" style={{ height: `${(displayVolumes.left / Math.max(displayVolumes.left, displayVolumes.right)) * 300}px` }}>
+                  {displayVolumes.left.toFixed(1)}
                 </div>
-                <div className="text-center">
-                  <div className="w-16 bg-[#003d7a] rounded-t-lg relative" style={{ height: `${Math.max(displayVolumes.right / 50, 30)}px` }}>
-                    <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 -translate-y-full text-sm font-bold text-[#003d7a] bg-white px-1 rounded">
-                      {displayVolumes.right.toFixed(1)}
-                    </div>
-                  </div>
-                  <div className="mt-3 text-sm text-gray-600">Right</div>
-                </div>
+                <div className="mt-2 text-sm text-gray-600">Left</div>
               </div>
-              <div className="text-center text-xs text-gray-500 mt-2">Volume (mm³)</div>
+              <div className="flex flex-col items-center">
+                <div className="w-20 bg-blue-500 text-white text-center px-2 py-1 rounded-t" style={{ height: `${(displayVolumes.right / Math.max(displayVolumes.left, displayVolumes.right)) * 300}px` }}>
+                  {displayVolumes.right.toFixed(1)}
+                </div>
+                <div className="mt-2 text-sm text-gray-600">Right</div>
+              </div>
             </div>
           </div>
 

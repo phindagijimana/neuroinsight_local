@@ -25,10 +25,196 @@ else
     fi
 fi
 
+# ============================================================================
+# SYSTEMD AUTO-DETECTION AND MANAGEMENT
+# ============================================================================
+
+check_systemd_available() {
+    # Check if systemd is available on this system
+    command -v systemctl &> /dev/null
+}
+
+check_systemd_installed() {
+    # Check if our systemd services are installed
+    systemctl --user list-unit-files 2>/dev/null | grep -q "neuroinsight-backend.service"
+}
+
+auto_install_systemd() {
+    # Automatically install systemd services (first run only)
+    echo ""
+    echo "=========================================="
+    echo "First Run: Setting up automatic restart"
+    echo "=========================================="
+    echo ""
+    echo "[Step 1/3] Checking systemd availability..."
+    
+    if ! check_systemd_available; then
+        echo "  [INFO] Systemd not available on this system"
+        echo "  [INFO] Using manual start method"
+        return 1
+    fi
+    
+    echo "  [OK] Systemd detected"
+    echo ""
+    echo "[Step 2/3] Installing systemd services..."
+    echo "  Installing to ~/.config/systemd/user/"
+    
+    if [ -f "systemd/install_systemd.sh" ]; then
+        # Run install script silently
+        if ./systemd/install_systemd.sh > /tmp/neuroinsight_systemd_install.log 2>&1; then
+            echo "  [OK] Services installed"
+            echo "  [OK] Auto-start enabled"
+            echo "  [INFO] Services will auto-restart on failure"
+            echo ""
+            echo "[Step 3/3] Systemd setup complete!"
+            echo ""
+            return 0
+        else
+            echo "  [WARNING] Installation failed"
+            echo "  [INFO] Falling back to manual start"
+            echo "  [INFO] See /tmp/neuroinsight_systemd_install.log for details"
+            return 1
+        fi
+    else
+        echo "  [WARNING] systemd/install_systemd.sh not found"
+        echo "  [INFO] Using manual start method"
+        return 1
+    fi
+}
+
+use_systemd_start() {
+    # Start services using systemd
+    local force_install="$1"
+    
+    if ! check_systemd_available; then
+        return 1
+    fi
+    
+    # Check if services are installed
+    if ! check_systemd_installed; then
+        if [ "$force_install" = "auto" ]; then
+            # Auto-install on first run
+            if ! auto_install_systemd; then
+                return 1
+            fi
+        else
+            echo "[INFO] Systemd services not installed"
+            echo "[INFO] Run './neuroinsight install-systemd' to enable automatic restart"
+            return 1
+        fi
+    fi
+    
+    # Services are installed, use them
+    echo "=========================================="
+    echo "Starting NeuroInsight (systemd)"
+    echo "=========================================="
+    echo ""
+    
+    # Start services in order
+    echo "[1/4] Starting backend..."
+    systemctl --user start neuroinsight-backend
+    sleep 2
+    
+    echo "[2/4] Starting worker..."
+    systemctl --user start neuroinsight-worker
+    sleep 1
+    
+    echo "[3/4] Starting beat scheduler..."
+    systemctl --user start neuroinsight-beat
+    sleep 1
+    
+    echo "[4/4] Starting job monitor..."
+    systemctl --user start neuroinsight-monitor
+    
+    echo ""
+    echo "=========================================="
+    echo "NeuroInsight started with systemd!"
+    echo "=========================================="
+    echo ""
+    echo "Services will auto-restart on failure"
+    echo "Web Interface: http://localhost:8000"
+    echo ""
+    echo "Management commands:"
+    echo "  ./neuroinsight status     # Check status"
+    echo "  ./neuroinsight stop       # Stop services"
+    echo "  ./neuroinsight restart    # Restart services"
+    echo "  ./neuroinsight logs       # View logs"
+    echo ""
+    
+    return 0
+}
+
+use_systemd_stop() {
+    if check_systemd_available && check_systemd_installed; then
+        echo "Stopping NeuroInsight services (systemd)..."
+        systemctl --user stop neuroinsight-monitor 2>/dev/null || true
+        systemctl --user stop neuroinsight-beat 2>/dev/null || true
+        systemctl --user stop neuroinsight-worker 2>/dev/null || true
+        systemctl --user stop neuroinsight-backend 2>/dev/null || true
+        echo "Services stopped!"
+        return 0
+    fi
+    return 1
+}
+
+use_systemd_restart() {
+    if check_systemd_available && check_systemd_installed; then
+        echo "Restarting NeuroInsight services (systemd)..."
+        systemctl --user restart neuroinsight-backend
+        systemctl --user restart neuroinsight-worker
+        systemctl --user restart neuroinsight-beat
+        systemctl --user restart neuroinsight-monitor
+        echo "Services restarted!"
+        return 0
+    fi
+    return 1
+}
+
+use_systemd_status() {
+    if check_systemd_available && check_systemd_installed; then
+        echo "NeuroInsight Systemd Services Status"
+        echo "===================================="
+        echo ""
+        
+        echo "Backend:"
+        systemctl --user status neuroinsight-backend --no-pager -l | head -10
+        echo ""
+        
+        echo "Worker:"
+        systemctl --user status neuroinsight-worker --no-pager -l | head -10
+        echo ""
+        
+        echo "Beat Scheduler:"
+        systemctl --user status neuroinsight-beat --no-pager -l | head -10
+        echo ""
+        
+        echo "Job Monitor:"
+        systemctl --user status neuroinsight-monitor --no-pager -l | head -10
+        echo ""
+        
+        echo "Summary:"
+        systemctl --user list-units "neuroinsight-*" --no-pager
+        return 0
+    fi
+    return 1
+}
+
 # Use Python-based scripts for consistency
 case "$1" in
     start)
-        echo "Starting NeuroInsight..."
+        # Check for --manual flag to force manual start
+        if [[ "$2" == "--manual" ]]; then
+            echo "Starting NeuroInsight (manual mode)..."
+            exec "$PYTHON_BIN" start.py
+        fi
+        
+        # Try systemd first (auto-install if needed)
+        if use_systemd_start "auto"; then
+            exit 0
+        fi
+        
+        # Fall back to manual start
+        echo "Starting NeuroInsight (manual mode)..."
         exec "$PYTHON_BIN" start.py
         ;;
     dev-start)
@@ -36,7 +222,20 @@ case "$1" in
         exec "$PYTHON_BIN" start_dev.py
         ;;
     stop)
-        echo "Stopping NeuroInsight..."
+        # Check for --manual flag to force manual stop
+        if [[ "$2" == "--manual" ]]; then
+            echo "Stopping NeuroInsight (manual mode)..."
+            "$PYTHON_BIN" nosleep.py stop >/dev/null 2>&1 || true
+            exec "$PYTHON_BIN" stop.py "${@:2}"
+        fi
+        
+        # Try systemd first
+        if use_systemd_stop; then
+            exit 0
+        fi
+        
+        # Fall back to manual stop
+        echo "Stopping NeuroInsight (manual mode)..."
         "$PYTHON_BIN" nosleep.py stop >/dev/null 2>&1 || true
         exec "$PYTHON_BIN" stop.py "${@:2}"
         ;;
@@ -45,12 +244,65 @@ case "$1" in
         exec "$PYTHON_BIN" stop_dev.py "${@:2}"
         ;;
     status)
-        echo "NeuroInsight Status..."
+        # Check for --manual flag to force manual status
+        if [[ "$2" == "--manual" ]]; then
+            echo "NeuroInsight Status (manual mode)..."
+            exec ./status.sh
+        fi
+        
+        # Try systemd first
+        if use_systemd_status; then
+            exit 0
+        fi
+        
+        # Fall back to manual status
+        echo "NeuroInsight Status (manual mode)..."
         exec ./status.sh
         ;;
     dev-status)
         echo "NeuroInsight Dev Status..."
         exec ./status_dev.sh
+        ;;
+    restart)
+        # Check for --manual flag to force manual restart
+        if [[ "$2" == "--manual" ]]; then
+            echo "Restarting NeuroInsight (manual mode)..."
+            "$PYTHON_BIN" stop.py
+            sleep 2
+            exec "$PYTHON_BIN" start.py
+        fi
+        
+        # Try systemd first
+        if use_systemd_restart; then
+            exit 0
+        fi
+        
+        # Fall back to manual restart
+        echo "Restarting NeuroInsight (manual mode)..."
+        "$PYTHON_BIN" stop.py
+        sleep 2
+        exec "$PYTHON_BIN" start.py
+        ;;
+    logs)
+        # View logs (systemd or manual)
+        service="${2:-all}"
+        
+        if check_systemd_available && check_systemd_installed; then
+            if [ "$service" = "all" ]; then
+                echo "Following all NeuroInsight logs (Ctrl+C to stop)..."
+                journalctl --user -u neuroinsight-* -f
+            else
+                echo "Following $service logs (Ctrl+C to stop)..."
+                journalctl --user -u "neuroinsight-$service" -f
+            fi
+        else
+            echo "Viewing logs (manual mode)..."
+            echo "Available logs:"
+            echo "  tail -f celery_worker.log"
+            echo "  tail -f celery_beat.log"
+            echo "  tail -f neuroinsight.log"
+            echo "  tail -f job_monitor.log"
+        fi
         ;;
     monitor)
         echo "NeuroInsight Monitoring..."
@@ -227,44 +479,180 @@ case "$1" in
             exit 1
         fi
         ;;
+    install-systemd)
+        echo "Installing NeuroInsight systemd services..."
+        if [ -f "systemd/install_systemd.sh" ]; then
+            exec ./systemd/install_systemd.sh
+        else
+            echo "Error: systemd/install_systemd.sh not found"
+            echo "Please ensure you're in the NeuroInsight project directory"
+            exit 1
+        fi
+        ;;
+    uninstall-systemd)
+        echo "Uninstalling NeuroInsight systemd services..."
+        if [ -f "systemd/uninstall_systemd.sh" ]; then
+            exec ./systemd/uninstall_systemd.sh
+        else
+            echo "Error: systemd/uninstall_systemd.sh not found"
+            exit 1
+        fi
+        ;;
+    start-systemd)
+        echo "Starting NeuroInsight services via systemd..."
+        echo ""
+        
+        # Check if services are installed
+        if ! systemctl --user list-unit-files | grep -q "neuroinsight-backend.service"; then
+            echo "ERROR: Systemd services not installed!"
+            echo "Run: ./neuroinsight install-systemd"
+            exit 1
+        fi
+        
+        # Start services in order
+        echo "Starting backend..."
+        systemctl --user start neuroinsight-backend
+        sleep 2
+        
+        echo "Starting worker..."
+        systemctl --user start neuroinsight-worker
+        sleep 1
+        
+        echo "Starting beat scheduler..."
+        systemctl --user start neuroinsight-beat
+        sleep 1
+        
+        echo "Starting job monitor..."
+        systemctl --user start neuroinsight-monitor
+        
+        echo ""
+        echo "Services started! Check status with:"
+        echo "  ./neuroinsight status-systemd"
+        ;;
+    stop-systemd)
+        echo "Stopping NeuroInsight services via systemd..."
+        systemctl --user stop neuroinsight-monitor 2>/dev/null || true
+        systemctl --user stop neuroinsight-beat 2>/dev/null || true
+        systemctl --user stop neuroinsight-worker 2>/dev/null || true
+        systemctl --user stop neuroinsight-backend 2>/dev/null || true
+        echo "Services stopped!"
+        ;;
+    restart-systemd)
+        echo "Restarting NeuroInsight services via systemd..."
+        systemctl --user restart neuroinsight-backend
+        systemctl --user restart neuroinsight-worker
+        systemctl --user restart neuroinsight-beat
+        systemctl --user restart neuroinsight-monitor
+        echo "Services restarted!"
+        ;;
+    status-systemd)
+        echo "NeuroInsight Systemd Services Status"
+        echo "===================================="
+        echo ""
+        
+        # Check if services are installed
+        if ! systemctl --user list-unit-files | grep -q "neuroinsight-backend.service"; then
+            echo "⚠️  Systemd services not installed"
+            echo ""
+            echo "To install: ./neuroinsight install-systemd"
+            exit 0
+        fi
+        
+        # Show status of each service
+        echo "Backend:"
+        systemctl --user status neuroinsight-backend --no-pager -l | head -15
+        echo ""
+        
+        echo "Worker:"
+        systemctl --user status neuroinsight-worker --no-pager -l | head -15
+        echo ""
+        
+        echo "Beat Scheduler:"
+        systemctl --user status neuroinsight-beat --no-pager -l | head -15
+        echo ""
+        
+        echo "Job Monitor:"
+        systemctl --user status neuroinsight-monitor --no-pager -l | head -15
+        echo ""
+        
+        echo "Summary:"
+        systemctl --user list-units "neuroinsight-*" --no-pager
+        ;;
+    logs-systemd)
+        # Follow logs for specified service or all
+        service="${2:-all}"
+        if [ "$service" = "all" ]; then
+            echo "Following all NeuroInsight logs (Ctrl+C to stop)..."
+            journalctl --user -u neuroinsight-* -f
+        else
+            echo "Following $service logs (Ctrl+C to stop)..."
+            journalctl --user -u "neuroinsight-$service" -f
+        fi
+        ;;
     *)
         echo "NeuroInsight Control Script"
         echo ""
-        echo "Usage: $0 {install|reinstall|start|stop|status|monitor|nosleep|clean|bring|health|license|dev-start|dev-stop|dev-status}"
+        echo "Usage: $0 {install|start|stop|status|monitor|health|license|...}"
         echo ""
-        echo "Commands:"
-        echo "  install    - Run NeuroInsight installation"
-        echo "  reinstall  - Complete reinstallation guide (removes everything)"
-        echo "  start      - Start all NeuroInsight services"
-        echo "  stop       - Stop all NeuroInsight services"
-        echo "  status     - Show system status"
-        echo "  monitor    - Advanced monitoring options"
-        echo "  nosleep    - Prevent system sleep while jobs run"
-        echo "  clean      - Remove old completed/failed jobs"
-        echo "  bring      - Recover a completed job by ID"
-        echo "  health     - Quick system health check"
-        echo "  license    - FreeSurfer license management"
-        echo "  dev-start  - Start dev backend services"
-        echo "  dev-stop   - Stop dev backend services"
-        echo "  dev-status - Show dev backend status"
+        echo "Main Commands:"
+        echo "  install           - Run NeuroInsight installation"
+        echo "  start             - Start all NeuroInsight services (manual)"
+        echo "  stop              - Stop all NeuroInsight services (manual)"
+        echo "  status            - Show system status"
+        echo "  health            - Quick system health check"
+        echo "  license           - FreeSurfer license management"
+        echo ""
+        echo "Systemd Commands (Production - Auto-restart):"
+        echo "  install-systemd   - Install systemd services (no sudo required)"
+        echo "  start-systemd     - Start services via systemd"
+        echo "  stop-systemd      - Stop services via systemd"
+        echo "  restart-systemd   - Restart services via systemd"
+        echo "  status-systemd    - Show systemd services status"
+        echo "  logs-systemd      - Follow systemd logs (use: logs-systemd [backend|worker|beat|monitor|all])"
+        echo "  uninstall-systemd - Remove systemd services"
+        echo ""
+        echo "Other Commands:"
+        echo "  reinstall         - Complete reinstallation guide"
+        echo "  monitor           - Advanced monitoring options"
+        echo "  nosleep           - Prevent system sleep while jobs run"
+        echo "  clean             - Remove old completed/failed jobs"
+        echo "  bring             - Recover a completed job by ID"
+        echo "  dev-start         - Start dev backend services"
+        echo "  dev-stop          - Stop dev backend services"
+        echo "  dev-status        - Show dev backend status"
         echo ""
         echo "Examples:"
-        echo "  $0 install            # Install NeuroInsight"
-        echo "  $0 reinstall          # Get complete reinstallation steps"
-        echo "  $0 start              # Start NeuroInsight"
-        echo "  $0 stop               # Stop NeuroInsight"
-        echo "  $0 stop --clear-stuck # Stop and clear stuck jobs"
-        echo "  $0 status             # Show system status"
-        echo "  $0 health             # Quick health check"
-        echo "  $0 license            # Check/setup FreeSurfer license"
-        echo "  $0 dev-start          # Start dev backend"
-        echo "  $0 dev-stop           # Stop dev backend"
-        echo "  $0 dev-status         # Dev status"
-        echo "  $0 nosleep            # Prevent sleep (run after start)"
-        echo "  $0 clean --days 90 --keep d56a321c  # Cleanup but keep job"
-        echo "  $0 clean --months 6               # Cleanup jobs older than 6 months"
-        echo "  $0 bring <job_id>      # Recover job from outputs"
-        echo "  $0 monitor cleanup     # Clean up orphaned processes"
+        echo ""
+        echo "  # Installation & Setup"
+        echo "  $0 install                    # Install NeuroInsight"
+        echo "  $0 license                    # Setup FreeSurfer license"
+        echo ""
+        echo "  # Basic Usage (Auto-detects systemd)"
+        echo "  $0 start                      # Start services (uses systemd if available)"
+        echo "  $0 stop                       # Stop services"
+        echo "  $0 restart                    # Restart services"
+        echo "  $0 status                     # Check status"
+        echo "  $0 logs                       # View logs"
+        echo ""
+        echo "  # Force Manual Mode (skip systemd)"
+        echo "  $0 start --manual             # Start without systemd"
+        echo "  $0 stop --manual              # Stop manual processes"
+        echo "  $0 status --manual            # Check manual status"
+        echo ""
+        echo "  # Explicit Systemd Commands"
+        echo "  $0 install-systemd            # Install systemd services (optional)"
+        echo "  $0 start-systemd              # Start with systemd (explicit)"
+        echo "  $0 logs-systemd worker        # Follow worker logs"
+        echo ""
+        echo "  # Maintenance"
+        echo "  $0 health                     # Quick health check"
+        echo "  $0 clean --days 90            # Cleanup old jobs"
+        echo "  $0 bring <job_id>             # Recover job from outputs"
+        echo "  $0 monitor cleanup            # Clean up orphaned processes"
+        echo ""
+        echo "  # Advanced"
+        echo "  $0 reinstall                  # Complete reinstallation guide"
+        echo "  $0 nosleep                    # Prevent system sleep"
         exit 1
         ;;
 esac

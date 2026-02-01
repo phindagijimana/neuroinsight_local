@@ -85,6 +85,13 @@ function App() {
         }
         return null;
       })()}
+
+      {/* Footer - Copyright Statement */}
+      <footer className="bg-gray-50 border-t border-gray-200 mt-12">
+        <div className="max-w-7xl mx-auto px-6 py-4 text-sm text-gray-500 text-center">
+          © 2025 University of Rochester. All rights reserved.
+        </div>
+      </footer>
     </div>
   )
 }

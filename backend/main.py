@@ -123,11 +123,12 @@ async def lifespan(app: FastAPI):
 
     # Mount frontend static files (after outputs so /outputs takes precedence)
     if settings.environment == "production":
+        # Serve from dist directory (contains index.dev.html for identical UI/UX)
         frontend_dir = Path(__file__).parent.parent / "frontend" / "dist"
         if frontend_dir.exists():
             index_file = frontend_dir / "index.html"
             if index_file.exists():
-                logger.info("serving_index_html_from", path=str(index_file))
+                logger.info("serving_production_frontend_from", path=str(index_file))
             app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
             logger.info("frontend_static_files_enabled", path=str(frontend_dir))
         else:

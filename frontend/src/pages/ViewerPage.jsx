@@ -4,6 +4,7 @@ import AlertCircle from '../components/icons/AlertCircle.jsx'
 import ChevronLeft from '../components/icons/ChevronLeft.jsx'
 import ChevronRight from '../components/icons/ChevronRight.jsx'
 import ZoomIn from '../components/icons/ZoomIn.jsx'
+import ZoomOut from '../components/icons/ZoomOut.jsx'
 import Clock from '../components/icons/Clock.jsx'
 
 function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
@@ -33,6 +34,10 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
   // Zoom handlers
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.25, 3.0)); // Max 300%
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.25, 0.5)); // Min 50%
   };
 
   const handleZoomReset = () => {
@@ -188,21 +193,21 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
   };
 
   const getSliceUrls = (sliceIndex) => {
-    // Use actual visualization URLs from API, with cache busting
-    const ts = Date.now(); // Cache busting
-
-    if (jobVisualizations && jobVisualizations[orientation]) {
-      const baseUrls = jobVisualizations[orientation];
-      return {
-        anatomical: `${baseUrls.anatomical}?v=${ts}`,
-        overlay: `${baseUrls.hippocampus}?v=${ts}`
-      };
-    }
-
-    // Fallback for when visualizations aren't loaded yet
+    // Build URLs dynamically based on slice index
+    if (!selectedJobId) return { anatomical: '', overlay: '' };
+    
+    // Generate URL based on slice index and orientation
+    // Format: slice_00, slice_01, ..., slice_99, slice_100, etc.
+    const sliceId = sliceIndex < 100 
+      ? `slice_${String(sliceIndex).padStart(2, '0')}`
+      : `slice_${sliceIndex}`;
+    
+    // Add cache-busting query to avoid stale cached PNGs
+    const ts = Date.now();
+    
     return {
-      anatomical: '',
-      overlay: ''
+      anatomical: `${API_BASE_URL}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=anatomical&v=${ts}`,
+      overlay: `${API_BASE_URL}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=overlay&v=${ts}`
     };
   };
 
@@ -286,6 +291,14 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                   <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
                     Zoom:
                   </label>
+                  <button
+                    onClick={handleZoomOut}
+                    disabled={zoomLevel <= 0.5}
+                    className={`p-2 rounded-md transition ${zoomLevel <= 0.5 ? 'opacity-30 cursor-not-allowed text-gray-400' : 'hover:bg-blue-100 text-[#003d7a]'}`}
+                    title="Zoom Out"
+                  >
+                    <ZoomOut className="w-5 h-5" />
+                  </button>
                   <button
                     onClick={handleZoomReset}
                     className="px-3 py-2 hover:bg-blue-100 rounded-md transition text-sm font-semibold text-[#003d7a] min-w-[60px]"
@@ -479,6 +492,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                           src={sliceUrls.anatomical}
                           alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Anatomical`}
                           className="w-full h-full object-cover"
+                          style={shouldFlipVertical ? { transform: 'scaleY(-1)' } : {}}
                           onError={(e) => {
                             e.target.style.display = 'none';
                           }}
@@ -490,7 +504,8 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                           className="absolute top-0 left-0 w-full h-full object-cover"
                           style={{
                             opacity: overlayOpacity,
-                            pointerEvents: 'none'
+                            pointerEvents: 'none',
+                            ...(shouldFlipVertical ? { transform: 'scaleY(-1)' } : {})
                           }}
                           onError={(e) => {
                             e.target.style.display = 'none';

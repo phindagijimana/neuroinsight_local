@@ -95,3 +95,6 @@ test_data/
 *.old
 *.OLD
 *_BACKUP.*
+
+# Temporary helper scripts
+dual_env_status.sh

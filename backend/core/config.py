@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     # Application Metadata
     app_name: str = "NeuroInsight"
     app_version: str = "1.0.0"
-    environment: str = Field(default="development", env="ENVIRONMENT")
+    environment: str = Field(default="production", env="ENVIRONMENT")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
 
     # API Configuration
@@ -113,6 +113,7 @@ class Settings(BaseSettings):
     )
     processing_timeout: int = Field(default=25200, env="PROCESSING_TIMEOUT")  # 7 hours
     max_concurrent_jobs: int = Field(default=1, env="MAX_CONCURRENT_JOBS")  # Only 1 job running at a time
+    docker_cleanup_wait_timeout: int = Field(default=30, env="DOCKER_CLEANUP_WAIT_TIMEOUT")  # seconds
 
     @property
     def freesurfer_container_prefix(self) -> str:

@@ -12,8 +12,10 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      input: 'index.build.html',
+      input: path.resolve(__dirname, 'index.build.html'),
     },
+    outDir: 'dist',
+    emptyOutDir: true,
   },
   server: {
     port: 3000,

@@ -17,6 +17,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
   const [isDragging, setIsDragging] = useState(false);
   const [patientInfo, setPatientInfo] = useState({
     patient_name: '',
+    patient_id: '',
     age: '',
     sex: '',
     scanner: '',
@@ -124,6 +125,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
       // Clear patient info after successful upload
       setPatientInfo({
         patient_name: '',
+        patient_id: '',
         age: '',
         sex: '',
         scanner: '',
@@ -181,13 +183,25 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Patient Name *
+                  Patient Name
                 </label>
                 <input
                   type="text"
                   value={patientInfo.patient_name}
                   onChange={(e) => handlePatientInfoChange('patient_name', e.target.value)}
                   placeholder="Enter patient name"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003d7a] focus:border-[#002b55]"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Patient ID
+                </label>
+                <input
+                  type="text"
+                  value={patientInfo.patient_id}
+                  onChange={(e) => handlePatientInfoChange('patient_id', e.target.value)}
+                  placeholder="Enter patient ID"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003d7a] focus:border-[#002b55]"
                 />
               </div>
@@ -332,46 +346,12 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
         </div>
 
         {/* Jobs List */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-2 border-b border-blue-100 flex items-center justify-between">
+        <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-blue-100 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900">Recent Jobs</h2>
-            <button
-              onClick={() => onJobsUpdate()}
-              className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-50 hover:bg-blue-100 text-[#003d7a] rounded-lg transition"
-              title="Refresh job list"
-            >
-              Refresh
-            </button>
-          </div>
-
-          <div className="px-6 py-3 border-b border-blue-100 flex items-center justify-between">
             <div className="text-sm text-gray-500">
               Showing {jobs.length} job{jobs.length !== 1 ? 's' : ''}
               {stats?.completed > 0 ? ` (${stats.completed} completed)` : ''}
-            </div>
-            <div className="flex space-x-2">
-              {[
-                { key: 'all', label: 'All', count: stats?.total || 0 },
-                { key: 'completed', label: 'Completed', count: stats?.completed || 0 },
-                { key: 'processing', label: 'Processing', count: stats?.processing || 0 },
-                { key: 'pending', label: 'Pending', count: stats?.pending || 0 },
-                { key: 'failed', label: 'Failed', count: stats?.failed || 0 }
-              ].map(({ key, label, count }) => (
-                <button
-                  key={key}
-                  onClick={() => {
-                    // UI-only filters to match production behavior
-                  }}
-                  className={`px-3 py-1 text-xs rounded-full transition ${
-                    count > 0
-                      ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                  disabled={count === 0}
-                >
-                  {label} ({count})
-                </button>
-              ))}
             </div>
           </div>
 
@@ -409,9 +389,9 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                 const currentStep = job.current_step || (normalizedStatus === 'processing' ? 'Processing...' : normalizedStatus === 'pending' ? 'Queued for processing' : '');
 
                 return (
-                  <div key={job.id} className="p-3 hover:bg-blue-50 transition">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
+                  <div key={job.id} className="p-6 hover:bg-blue-50 transition">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 flex-1">
                       <div className={`p-2 rounded-lg ${(statusInfo[normalizedStatus] || statusInfo.queued).bgColor}`}>
                         <StatusIcon className={`w-5 h-5 ${(statusInfo[normalizedStatus] || statusInfo.queued).color}`} />
                       </div>
@@ -459,23 +439,148 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                             <div className="flex items-start gap-3">
                               <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
                               <div className="flex-1">
-                                <p className="text-base font-bold text-red-900 mb-3">Job Failed</p>
-                                <p className="text-sm text-red-800 mb-3">{job.error_message}</p>
-                                <details className="text-xs">
-                                  <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold">Show full error details</summary>
-                                  <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.error_message}</pre>
-                                </details>
+                                {(() => {
+                                  const errMsg = job.error_message ? job.error_message.toLowerCase() : '';
+                                  
+                                  const isDockerError = errMsg.includes('docker') && 
+                                    (errMsg.includes('not running') || 
+                                     errMsg.includes('not installed') || 
+                                     errMsg.includes('not available'));
+                                  
+                                  const isFilenameError = errMsg.includes('filename') && 
+                                    (errMsg.includes('does not contain') || 
+                                     errMsg.includes('rename'));
+                                  
+                                  const isT1wError = (errMsg.includes('t1') || 
+                                    errMsg.includes('t2') ||
+                                    errMsg.includes('flair') ||
+                                    errMsg.includes('dwi') ||
+                                    errMsg.includes('image type') ||
+                                    errMsg.includes('sequence')) && !isFilenameError;
+
+                                  if (isDockerError) {
+                                    return (
+                                      <div>
+                                        <p className="text-base text-red-900 mb-4 font-semibold">
+                                          Docker Desktop is not running
+                                        </p>
+                                        <p className="text-sm text-red-800 mb-3">
+                                          NeuroInsight requires Docker to process MRI scans.
+                                        </p>
+                                        <div className="bg-yellow-50 border-2 border-yellow-400 rounded-md p-4 mb-3">
+                                          <p className="text-sm font-bold text-gray-900 mb-3">Quick Fix:</p>
+                                          <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
+                                            <li className="pl-2">Open <strong className="font-bold">Docker Desktop</strong> from your Applications folder</li>
+                                            <li className="pl-2">Wait for the whale icon to appear in your menu bar (Mac) or system tray (Windows/Linux)</li>
+                                            <li className="pl-2">The icon should be <strong>steady</strong> (not animating)</li>
+                                            <li className="pl-2">Return here and upload your MRI file again</li>
+                                          </ol>
+                                        </div>
+                                        <details className="text-xs">
+                                          <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold">Show full error details</summary>
+                                          <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.error_message}</pre>
+                                        </details>
+                                      </div>
+                                    );
+                                  } else if (isFilenameError) {
+                                    return (
+                                      <div>
+                                        <p className="text-base text-red-900 mb-4 font-semibold">
+                                          Please rename your file
+                                        </p>
+                                        <p className="text-sm text-red-800 mb-3">
+                                          Your filename must contain <strong>'T1'</strong> to indicate it's a T1-weighted MRI scan.
+                                        </p>
+                                        <div className="bg-yellow-50 border-2 border-yellow-400 rounded-md p-4 mb-3">
+                                          <p className="text-sm font-bold text-gray-900 mb-3">Good filename examples:</p>
+                                          <ul className="text-sm text-gray-800 space-y-2 list-disc list-inside ml-4 mb-4">
+                                            <li className="pl-1 font-mono">subject_T1w.nii</li>
+                                            <li className="pl-1 font-mono">brain_T1.nii</li>
+                                            <li className="pl-1 font-mono">patient_01_MPRAGE_T1.nii</li>
+                                            <li className="pl-1 font-mono">scan_T1-weighted.nii</li>
+                                          </ul>
+                                          <p className="text-sm font-bold text-gray-900 mb-2">Steps to fix:</p>
+                                          <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
+                                            <li className="pl-2">Rename your file to include <strong>'T1'</strong> in the filename</li>
+                                            <li className="pl-2">Make sure you're using a T1-weighted scan (MPRAGE, SPGR, or 3D T1)</li>
+                                            <li className="pl-2">Upload the renamed file</li>
+                                          </ol>
+                                        </div>
+                                        <p className="text-xs text-gray-700 italic mb-2">
+                                          Why? This helps ensure you're uploading the correct scan type. FreeSurfer requires T1-weighted images.
+                                        </p>
+                                        <details className="text-xs">
+                                          <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold">Show full error details</summary>
+                                          <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.error_message}</pre>
+                                        </details>
+                                      </div>
+                                    );
+                                  } else if (isT1wError) {
+                                    return (
+                                      <div>
+                                        <p className="text-base text-red-900 mb-4 font-semibold">
+                                          Wrong MRI sequence type detected
+                                        </p>
+                                        <p className="text-sm text-red-800 mb-3">
+                                          This file appears to be a <strong>non-T1w</strong> MRI scan.
+                                        </p>
+                                        <div className="bg-yellow-50 border-2 border-yellow-400 rounded-md p-4 mb-3">
+                                          <p className="text-sm font-bold text-green-800 mb-2">Accepted T1 indicators:</p>
+                                          <p className="text-sm text-gray-800 mb-3">Your T1-weighted scan filename must contain at least one of these:</p>
+                                          <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside ml-4 mb-4">
+                                            <li className="pl-1"><strong>t1</strong></li>
+                                            <li className="pl-1"><strong>t1w</strong></li>
+                                            <li className="pl-1"><strong>t1-weighted</strong></li>
+                                            <li className="pl-1"><strong>mprage</strong> (most common)</li>
+                                            <li className="pl-1"><strong>spgr</strong></li>
+                                            <li className="pl-1"><strong>tfl</strong></li>
+                                            <li className="pl-1"><strong>tfe</strong></li>
+                                            <li className="pl-1"><strong>fspgr</strong></li>
+                                          </ul>
+                                          <p className="text-sm font-bold text-red-800 mb-2">NOT supported:</p>
+                                          <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside ml-4 mb-3">
+                                            <li className="pl-1">T2-weighted</li>
+                                            <li className="pl-1">FLAIR (unless T1-FLAIR)</li>
+                                            <li className="pl-1">DWI/DTI</li>
+                                            <li className="pl-1">fMRI/BOLD</li>
+                                          </ul>
+                                          <p className="text-sm font-bold text-gray-900 mb-2">What to do:</p>
+                                          <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
+                                            <li className="pl-2">Find your T1-weighted scan in your MRI data</li>
+                                            <li className="pl-2">Rename the file to include one of the accepted T1 indicators above</li>
+                                            <li className="pl-2">Upload the renamed file</li>
+                                          </ol>
+                                        </div>
+                                        <p className="text-xs text-gray-700 italic mb-2">
+                                          Tip: Most T1-weighted scans are labeled with "t1" or "mprage"
+                                        </p>
+                                        <details className="text-xs">
+                                          <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold">Show full error details</summary>
+                                          <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.error_message}</pre>
+                                        </details>
+                                      </div>
+                                    );
+                                  } else {
+                                    return (
+                                      <div>
+                                        <p className="text-base font-bold text-red-900 mb-3">Job Failed</p>
+                                        <p className="text-sm text-red-800 mb-3">{job.error_message}</p>
+                                        <details className="text-xs">
+                                          <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold">Show full error details</summary>
+                                          <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.error_message}</pre>
+                                        </details>
+                                      </div>
+                                    );
+                                  }
+                                })()}
                               </div>
                             </div>
                           </div>
                         )}
                       </div>
                     </div>
-                  </div>
 
-                  {/* Action buttons - always visible below content */}
-                  <div className="flex items-center justify-end gap-2 mt-4 border-t border-gray-200 pt-3">
-                    <>
+                    <div className="flex items-center gap-2 ml-4">
                       {normalizedStatus === 'completed' && (
                         <>
                           <button
@@ -483,7 +588,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                               setSelectedJobId(job.id);
                               setActivePage('dashboard');
                             }}
-                            className="p-2 text-[#003d7a] hover:bg-blue-100 rounded-lg transition"
+                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
                             title="View Statistics"
                           >
                             <Eye className="w-5 h-5" />
@@ -544,7 +649,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                       >
                         <Trash2 className="w-5 h-5" />
                       </button>
-                    </>
+                    </div>
                   </div>
                 </div>
                 );

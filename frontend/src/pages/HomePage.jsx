@@ -95,17 +95,17 @@ function HomePage({ setActivePage }) {
             {
               icon: Shield,
               title: 'HIPAA Compliant',
-              description: 'Enterprise-grade security and privacy protection for patient data'
+              description: "Ensured security and privacy protection for patient data as data is locally hosted on user's machine"
             },
             {
               icon: Zap,
               title: 'Fast Processing',
-              description: 'Automated pipeline delivers results in minutes, not hours'
+              description: 'Automated pipeline delivers results faster due to reduced manual interventions'
             },
             {
               icon: Activity,
-              title: 'Clinical Accuracy',
-              description: 'Validated asymmetry thresholds for hippocampal sclerosis detection'
+              title: 'Clinical Relevancy',
+              description: 'Validated asymmetry thresholds for lateralization'
             }
           ].map((feature, idx) => (
             <div key={idx} className="bg-white rounded-xl p-6 shadow-lg border border-blue-100 hover:shadow-xl transition">

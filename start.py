@@ -516,11 +516,18 @@ def main():
         log_error("Failed to start Docker services")
         sys.exit(1)
 
-    # Require production to run on port 8000
-    if not require_port_available(8000):
+    # Find available port in range 8000-8050
+    port = None
+    for candidate_port in range(8000, 8051):
+        if check_port_available(candidate_port):
+            port = candidate_port
+            log_success(f"Selected port: {port}")
+            break
+    
+    if port is None:
+        log_error("No available ports found in range 8000-8050")
+        log_error("Please stop other services or free up a port in this range")
         sys.exit(1)
-    port = 8000
-    log_success(f"Selected port: {port}")
 
     # Start backend
     backend_proc = start_backend(port)

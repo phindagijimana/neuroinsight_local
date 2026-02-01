@@ -99,3 +99,9 @@ test_data/
 # Temporary helper scripts
 dual_env_status.sh
 fix.md
+
+# Planning documents (internal use only)
+DESKTOP_APP_PLAN.md
+DOCKER_DISTRIBUTION_PLAN.md
+AUTO_INSTALL_SUMMARY.md
+SYSTEMD_QUICKSTART.md

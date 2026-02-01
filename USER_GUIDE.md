@@ -389,7 +389,7 @@ Use month-based retention for scheduled or quarterly cleanup policies.
 ```
 Use this when you want aggressive cleanup but must preserve a specific job.
 
-**What it does:** Removes completed/failed jobs older than the retention window and deletes their files. Use `--keep` to preserve specific jobs.
+**What it does:** Removes completed/failed jobs older than the retention window and deletes their files. Also cleans orphaned job directories (files on disk without database records). Use `--keep` to preserve specific jobs.
 
 **Additional Examples:**
 
@@ -405,7 +405,23 @@ Use this when you want aggressive cleanup but must preserve a specific job.
 
 # Default (90 days):
 ./neuroinsight clean
+
+# Clean both database AND orphaned files (default):
+./neuroinsight clean --days 30 --keep 912e32e7,e3463efb
+
+# Clean ONLY orphaned files (skip database):
+./neuroinsight clean --days 30 --orphaned-only --keep 912e32e7,e3463efb
+
+# Clean ONLY database jobs (skip orphaned):
+./neuroinsight clean --days 30 --skip-orphaned --keep 912e32e7,e3463efb
 ```
+
+**Options:**
+- `--days N`: Retention period in days (default: 90)
+- `--months N`: Retention period in months (alternative to --days)
+- `--keep ID`: Job IDs to preserve (comma-separated or repeatable)
+- `--orphaned-only`: Only clean orphaned files on disk, skip database jobs
+- `--skip-orphaned`: Only clean database jobs, skip orphaned files on disk
 
 ### Recover a Completed Job
 ```bash

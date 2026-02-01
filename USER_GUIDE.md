@@ -288,7 +288,9 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 - scan.zip           (ZIP archives not supported)
 ```
 
-#### File Selection Tips (Mac Users)
+#### File Selection Tips
+
+**Mac Users:**
 
 If your NIfTI files are not selectable in the file picker dialog:
 
@@ -297,6 +299,16 @@ If your NIfTI files are not selectable in the file picker dialog:
 3. **Select your T1-weighted NIfTI image** (.nii or .nii.gz)
 
 This issue occurs because macOS may not recognize the NIfTI file extension by default. Using "All Files" allows you to select any file regardless of extension.
+
+**Windows Users:**
+
+If your NIfTI files are not visible in the file picker dialog:
+
+1. **Click the file type dropdown** at the bottom of the dialog (shows "Custom Files" or similar)
+2. **Select "All Files (*.*)"** from the dropdown menu
+3. **Select your T1-weighted NIfTI image** (.nii or .nii.gz)
+
+Windows may filter out unrecognized file extensions by default. Switching to "All Files" displays all files in the directory.
 
 ### Detailed File Format Guide
 

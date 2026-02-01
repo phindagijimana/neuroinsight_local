@@ -12,7 +12,7 @@ Environment="API_PORT=8000"
 Environment="PORT=8000"
 Environment="MAX_CONCURRENT_JOBS=1"
 Environment="DATABASE_URL=postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight"
-ExecStart=%h/src/desktop_alone_web_1/venv/bin/python %h/src/desktop_alone_web_1/backend/main.py
+ExecStart=%h/src/desktop_alone_web_1/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
 StandardOutput=append:%h/src/desktop_alone_web_1/neuroinsight.log
 StandardError=append:%h/src/desktop_alone_web_1/neuroinsight.log
 Restart=always

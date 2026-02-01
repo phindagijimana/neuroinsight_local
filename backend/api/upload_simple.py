@@ -201,7 +201,7 @@ async def upload_file(
         # No jobs running, start this one immediately
         logger.info("starting_job_immediately_no_running_jobs", job_id=str(job.id))
         from workers.tasks.processing_web import process_mri_task
-        process_mri_task.delay(str(job.id))
+        process_mri_task.apply_async(args=[str(job.id)], routing_key='celery', exchange='celery')
     else:
         # Jobs are running, leave this one as pending - it will be auto-started when running jobs complete
         logger.info("job_queued_pending_running_jobs_exist",

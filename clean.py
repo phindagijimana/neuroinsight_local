@@ -2,12 +2,17 @@
 """
 NeuroInsight cleanup utility.
 Removes old completed/failed jobs and their files.
+Also cleans orphaned job directories (files without database records).
 """
 
 import argparse
+import os
+import shutil
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from backend.core.database import SessionLocal
+from backend.core.config import get_settings
 from backend.models.job import Job, JobStatus
 from backend.models.metric import Metric
 from backend.services.cleanup_service import CleanupService
@@ -29,8 +34,70 @@ def _job_cutoff_timestamp(job: Job) -> datetime:
     return job.created_at
 
 
+def clean_orphaned_files(keep_ids: set[str], retention_days: int) -> int:
+    """
+    Clean orphaned job directories that don't have database records.
+    
+    Args:
+        keep_ids: Set of job IDs to preserve
+        retention_days: Age threshold in days
+        
+    Returns:
+        Number of orphaned directories removed
+    """
+    settings = get_settings()
+    outputs_dir = Path(settings.output_dir)
+    
+    if not outputs_dir.exists():
+        return 0
+    
+    db = SessionLocal()
+    try:
+        # Get all job IDs from database
+        db_job_ids = {str(job.id) for job in db.query(Job.id).all()}
+    finally:
+        db.close()
+    
+    cutoff_time = datetime.utcnow().timestamp() - (retention_days * 86400)
+    removed_count = 0
+    
+    # Scan all directories in outputs
+    for item in outputs_dir.iterdir():
+        if not item.is_dir():
+            continue
+        
+        job_id = item.name
+        
+        # Skip if in database
+        if job_id in db_job_ids:
+            continue
+        
+        # Skip if in keep list
+        if job_id in keep_ids:
+            print(f"  Keeping orphaned job (in keep list): {job_id}")
+            continue
+        
+        # Check directory age
+        try:
+            dir_mtime = item.stat().st_mtime
+            if dir_mtime >= cutoff_time:
+                continue  # Too recent
+            
+            # Delete orphaned directory
+            shutil.rmtree(item)
+            removed_count += 1
+            print(f"  Removed orphaned job directory: {job_id}")
+        except Exception as e:
+            print(f"  Warning: Failed to remove {job_id}: {e}")
+    
+    return removed_count
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Clean old NeuroInsight jobs.")
+    parser = argparse.ArgumentParser(
+        description="Clean old NeuroInsight jobs.",
+        epilog="Cleans both database records and orphaned files on disk."
+    )
     retention_group = parser.add_mutually_exclusive_group()
     retention_group.add_argument(
         "--days",
@@ -49,6 +116,16 @@ def main() -> None:
         default=[],
         help="Job IDs to keep (comma-separated or repeatable).",
     )
+    parser.add_argument(
+        "--orphaned-only",
+        action="store_true",
+        help="Only clean orphaned files (not database jobs).",
+    )
+    parser.add_argument(
+        "--skip-orphaned",
+        action="store_true",
+        help="Skip orphaned file cleanup (only clean database jobs).",
+    )
     args = parser.parse_args()
 
     retention_days = args.days
@@ -58,37 +135,48 @@ def main() -> None:
     keep_ids = _parse_keep_ids(args.keep)
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
 
-    db = SessionLocal()
-    cleanup_service = CleanupService()
     removed_jobs = 0
     skipped_jobs = 0
-    try:
-        candidates = (
-            db.query(Job)
-            .filter(Job.status.in_([JobStatus.COMPLETED, JobStatus.FAILED]))
-            .all()
-        )
+    removed_orphaned = 0
+    
+    # Clean database jobs (unless --orphaned-only)
+    if not args.orphaned_only:
+        print("Cleaning database jobs...")
+        db = SessionLocal()
+        cleanup_service = CleanupService()
+        try:
+            candidates = (
+                db.query(Job)
+                .filter(Job.status.in_([JobStatus.COMPLETED, JobStatus.FAILED]))
+                .all()
+            )
 
-        for job in candidates:
-            if str(job.id) in keep_ids:
-                skipped_jobs += 1
-                continue
+            for job in candidates:
+                if str(job.id) in keep_ids:
+                    skipped_jobs += 1
+                    continue
 
-            job_time = _job_cutoff_timestamp(job)
-            if job_time and job_time < cutoff:
-                db.query(Metric).filter(Metric.job_id == job.id).delete()
-                cleanup_service.delete_job_files(job)
-                db.delete(job)
-                removed_jobs += 1
+                job_time = _job_cutoff_timestamp(job)
+                if job_time and job_time < cutoff:
+                    db.query(Metric).filter(Metric.job_id == job.id).delete()
+                    cleanup_service.delete_job_files(job)
+                    db.delete(job)
+                    removed_jobs += 1
 
-        db.commit()
-    finally:
-        db.close()
+            db.commit()
+        finally:
+            db.close()
+    
+    # Clean orphaned files (unless --skip-orphaned)
+    if not args.skip_orphaned:
+        print("Cleaning orphaned files...")
+        removed_orphaned = clean_orphaned_files(keep_ids, retention_days)
 
     print(
-        "Cleanup completed. "
-        f"Jobs removed: {removed_jobs}. "
-        f"Jobs kept by ID: {skipped_jobs}."
+        "\nCleanup completed. "
+        f"Database jobs removed: {removed_jobs}. "
+        f"Jobs kept by ID: {skipped_jobs}. "
+        f"Orphaned files removed: {removed_orphaned}."
     )
 
 

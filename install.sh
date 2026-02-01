@@ -675,6 +675,74 @@ except ImportError as e:
     exit(1)
 "
 
+# Setup Docker containers with docker-compose
+log_info "Setting up Docker infrastructure..."
+
+# Create .env file if it doesn't exist
+if [ ! -f ".env" ]; then
+    log_info "Creating .env configuration file..."
+    cat > .env << 'EOF'
+# PostgreSQL Database
+POSTGRES_USER=neuroinsight
+POSTGRES_PASSWORD=neuroinsight_secure_password
+POSTGRES_DB=neuroinsight
+
+# Redis
+REDIS_PASSWORD=redis_secure_password
+
+# MinIO (S3-compatible storage)
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin_secure
+
+# Docker group ID (for container permissions)
+DOCKER_GID=999
+
+# Host paths (for Docker-in-Docker)
+HOST_UPLOAD_DIR=$(pwd)/data/uploads
+HOST_OUTPUT_DIR=$(pwd)/data/outputs
+EOF
+    log_success ".env file created"
+else
+    log_info ".env file already exists, skipping"
+fi
+
+# Start Docker containers
+if command -v docker-compose &> /dev/null || docker compose version &> /dev/null 2>&1; then
+    log_info "Starting Docker containers (postgres, redis, minio)..."
+    
+    # Use docker compose (new) or docker-compose (old)
+    if docker compose version &> /dev/null 2>&1; then
+        DOCKER_COMPOSE="docker compose"
+    else
+        DOCKER_COMPOSE="docker-compose"
+    fi
+    
+    # Start only the infrastructure containers
+    $DOCKER_COMPOSE up -d postgres redis minio 2>&1 | grep -v "variable is not set"
+    
+    if [ $? -eq 0 ]; then
+        log_success "Docker containers started successfully"
+        log_info "Waiting for containers to be healthy..."
+        sleep 5
+        
+        # Check container status
+        RUNNING_CONTAINERS=$(docker ps --filter "name=neuroinsight" --format "{{.Names}}" | wc -l)
+        if [ $RUNNING_CONTAINERS -gt 0 ]; then
+            log_success "Docker infrastructure ready ($RUNNING_CONTAINERS containers running)"
+        else
+            log_warning "Docker containers may not have started correctly"
+            log_info "You can check with: docker ps"
+        fi
+    else
+        log_warning "Docker containers setup encountered issues"
+        log_info "The system will fall back to SQLite databases"
+        log_info "For production use, please check: docker-compose logs"
+    fi
+else
+    log_warning "docker-compose not found, skipping container setup"
+    log_info "System will use SQLite databases instead"
+fi
+
 log_success "NeuroInsight installation completed successfully!"
 echo
 echo "Next steps:"

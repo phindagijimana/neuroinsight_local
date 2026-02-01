@@ -69,6 +69,14 @@ export class ApiService {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      
+      // Add patient_data as required by the backend
+      const patientData = {
+        patient_name: file.name.replace(/\.(nii|nii\.gz|mgz)$/i, ''),
+        patient_id: `WEB_${Date.now()}`,
+        notes: 'Uploaded via web interface'
+      };
+      formData.append('patient_data', JSON.stringify(patientData));
 
       console.log('Uploading file:', file.name, 'Size:', file.size);
       const response = await fetch(`${this.baseUrl}/upload/`, {

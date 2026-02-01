@@ -234,14 +234,25 @@ use_systemd_stop() {
     if check_systemd_available && check_systemd_installed; then
         echo "Stopping NeuroInsight services..."
         echo ""
-        echo "[1/2] Stopping systemd services..."
+        echo "[1/3] Stopping systemd services..."
         systemctl --user stop neuroinsight-monitor 2>/dev/null || true
         systemctl --user stop neuroinsight-beat 2>/dev/null || true
         systemctl --user stop neuroinsight-worker 2>/dev/null || true
         systemctl --user stop neuroinsight-backend 2>/dev/null || true
         echo "  Systemd services stopped"
         echo ""
-        echo "[2/2] Stopping Docker containers..."
+        echo "[2/3] Cleaning up orphaned Python processes..."
+        # Kill any remaining neuroinsight Python processes (orphaned or from manual runs)
+        ORPHANED=$(ps aux | grep -E "python.*(backend|worker|celery|uvicorn|job_monitor)" | grep neuroinsight | grep -v grep | awk '{print $2}')
+        if [ -n "$ORPHANED" ]; then
+            echo "$ORPHANED" | xargs kill -9 2>/dev/null || true
+            ORPHANED_COUNT=$(echo "$ORPHANED" | wc -l)
+            echo "  Cleaned up $ORPHANED_COUNT orphaned process(es)"
+        else
+            echo "  No orphaned processes found"
+        fi
+        echo ""
+        echo "[3/3] Stopping Docker containers..."
         stop_docker_containers
         echo ""
         echo "All NeuroInsight services stopped!"

@@ -749,7 +749,6 @@ class JobService:
         # Status protection: Don't overwrite completed jobs
         # This prevents duplicate/retry tasks from marking a successful job as failed
         if job.status == JobStatus.COMPLETED:
-            logger = logging.getLogger(__name__)
             logger.warning("attempted_to_fail_completed_job",
                           job_id=job_id_str,
                           current_status="COMPLETED",

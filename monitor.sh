@@ -207,7 +207,7 @@ cleanup_processes() {
                 else
                     # Track for future cleanup
                     track_item "process" "$pid"
-                    log_warning "⏳ Tracking orphaned process PID $pid for auto-cleanup in ${CLEANUP_GRACE_PERIOD_MINUTES}min (3 hours)"
+                    log_warning "Tracking orphaned process PID $pid for auto-cleanup in ${CLEANUP_GRACE_PERIOD_MINUTES}min (3 hours)"
                     tracked=$((tracked + 1))
                 fi
             fi
@@ -219,7 +219,7 @@ cleanup_processes() {
     fi
 
     if [ $tracked -gt 0 ]; then
-        log_info "⏳ Tracking $tracked orphaned process(es) for future auto-cleanup"
+        log_info "Tracking $tracked orphaned process(es) for future auto-cleanup"
     fi
 
     if [ $cleaned -eq 0 ] && [ $tracked -eq 0 ]; then
@@ -377,7 +377,7 @@ except Exception as e:
                         else
                             # Track for future cleanup
                             track_item "job" "$job_id"
-                            log_warning "⏳ Tracking stuck job $job_id for auto-cleanup in ${CLEANUP_GRACE_PERIOD_MINUTES}min"
+                            log_warning "Tracking stuck job $job_id for auto-cleanup in ${CLEANUP_GRACE_PERIOD_MINUTES}min"
                         fi
                     fi
                 done
@@ -433,7 +433,7 @@ print(f'{ready_cleanup},{waiting}')
     fi
 
     if [ "$waiting" -gt 0 ]; then
-        log_info "⏳ $waiting item(s) being tracked for future cleanup"
+        log_info "$waiting item(s) being tracked for future cleanup"
     fi
 
     if [ "$ready_cleanup" -eq 0 ] && [ "$waiting" -eq 0 ]; then

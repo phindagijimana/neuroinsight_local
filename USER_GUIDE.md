@@ -239,7 +239,7 @@ NeuroInsight processes one MRI scan at a time to ensure system stability and pre
 4. **Results**:
    - Successful jobs show anatomical and segmentation overlays
    - View hippocampus regions with interactive controls
-   - Adjust zoom (50-500%), opacity (0-100%), and rotation (0-360°)
+   - Adjust zoom (50-500%), opacity (0-100%), and rotation (0-360 degrees)
    - Switch between axial, coronal, and sagittal views
 
 5. **Export & Analysis**:

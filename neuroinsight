@@ -535,7 +535,7 @@ case "$1" in
         
         # Check if services are installed
         if ! systemctl --user list-unit-files | grep -q "neuroinsight-backend.service"; then
-            echo "⚠️  Systemd services not installed"
+            echo "WARNING: Systemd services not installed"
             echo ""
             echo "To install: ./neuroinsight install-systemd"
             exit 0

@@ -443,8 +443,8 @@ jobs:
       - name: Test system compatibility
         run: |
           echo "DESKTOP: Testing on: ${{ matrix.name }}"
-          echo "🐧 Linux Kernel: $(uname -r)"
-          echo "🐍 Python: $(python --version)"
+          echo "Linux Kernel: $(uname -r)"
+          echo "Python: $(python --version)"
           echo "PACKAGE: Pip: $(pip --version)"
 
           # Test core system dependencies
@@ -559,7 +559,7 @@ jobs:
 
       - name: Download and setup FreeSurfer
         run: |
-          echo "🧠 Setting up FreeSurfer for testing..."
+          echo "Setting up FreeSurfer for testing..."
 
           # Download FreeSurfer (using a test version - in production you'd use full version)
           # For CI testing, we'll use a minimal FreeSurfer setup
@@ -638,7 +638,7 @@ jobs:
 
       - name: Test FreeSurfer integration
         run: |
-          echo "🧠 Testing FreeSurfer integration..."
+          echo "Testing FreeSurfer integration..."
 
           # Test 1: Check native FreeSurfer availability
           echo "Testing native FreeSurfer detection..."

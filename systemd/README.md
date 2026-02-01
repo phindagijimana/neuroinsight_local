@@ -4,12 +4,12 @@ User-level systemd services for NeuroInsight. **No sudo required!**
 
 ## Features
 
-✅ **Automatic restart on failure** - Services automatically recover from crashes  
-✅ **No sudo required** - User-level services run under your account  
-✅ **Boot persistence** - Services start automatically on login  
-✅ **Professional logging** - Integrated with systemd journal  
-✅ **Clean management** - Standard `systemctl` commands  
-✅ **Dependency management** - Services start in correct order  
+[YES] **Automatic restart on failure** - Services automatically recover from crashes  
+[YES] **No sudo required** - User-level services run under your account  
+[YES] **Boot persistence** - Services start automatically on login  
+[YES] **Professional logging** - Integrated with systemd journal  
+[YES] **Clean management** - Standard `systemctl` commands  
+[YES] **Dependency management** - Services start in correct order  
 
 ## Prerequisites
 
@@ -251,12 +251,12 @@ Systemd automatically manages these dependencies.
 
 | Feature | Systemd | Manual (`start.py`) |
 |---------|---------|---------------------|
-| Auto-restart on crash | ✅ Yes | ❌ No |
-| Start on boot | ✅ Yes | ❌ No |
-| Run after logout | ✅ Yes (with linger) | ❌ No |
-| Logging | ✅ journalctl + files | ⚠️ Files only |
-| Process supervision | ✅ systemd | ⚠️ Manual |
-| Production ready | ✅ Yes | ⚠️ Development |
+| Auto-restart on crash | [YES] Yes | [NO] No |
+| Start on boot | [YES] Yes | [NO] No |
+| Run after logout | [YES] Yes (with linger) | [NO] No |
+| Logging | [YES] journalctl + files | [WARNING] Files only |
+| Process supervision | [YES] systemd | [WARNING] Manual |
+| Production ready | [YES] Yes | [WARNING] Development |
 
 ## Best Practices
 

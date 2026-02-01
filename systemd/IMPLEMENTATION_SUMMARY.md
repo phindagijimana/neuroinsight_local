@@ -6,7 +6,7 @@
 
 ---
 
-## ✅ What Was Implemented
+## [YES] What Was Implemented
 
 ### 1. Service Files Created
 
@@ -93,20 +93,20 @@ Updated `neuroinsight` with new commands:
 
 ---
 
-## 🎯 Key Features
+## [TARGET] Key Features
 
-### No Sudo Required ✅
+### No Sudo Required [YES]
 - User-level systemd services (`~/.config/systemd/user/`)
 - Works on any Linux distribution with systemd (90%+)
 - Each user can manage their own services
 
-### Automatic Restart ✅
+### Automatic Restart [YES]
 - All services have `Restart=always`
 - `RestartSec=10` (10 second delay between restarts)
 - Prevents infinite restart loops
 - **Solves worker hang/crash issues!**
 
-### Dependency Management ✅
+### Dependency Management [YES]
 Service startup order:
 1. Backend (first)
 2. Worker (requires backend)
@@ -115,12 +115,12 @@ Service startup order:
 
 Systemd ensures correct ordering automatically.
 
-### User Linger ✅
+### User Linger [YES]
 - Services run even after user logout
 - Enabled automatically by installer
 - Can be disabled: `sudo loginctl disable-linger $USER`
 
-### Dual Logging ✅
+### Dual Logging [YES]
 Logs written to both:
 1. **Systemd journal**: `journalctl --user -u neuroinsight-*`
 2. **Project files**: `celery_worker.log`, etc.
@@ -132,7 +132,7 @@ Benefits:
 
 ---
 
-## 📊 Technical Details
+## [STATS] Technical Details
 
 ### Service File Format
 
@@ -202,21 +202,21 @@ With systemd:
 
 | Feature | Manual Start | Systemd (User) | System Systemd |
 |---------|-------------|----------------|----------------|
-| **Sudo Required** | ❌ No | ❌ No | ✅ Yes |
-| **Auto-restart** | ❌ No | ✅ Yes | ✅ Yes |
-| **Survives logout** | ❌ No | ✅ Yes | ✅ Yes |
-| **Start on boot** | ❌ No | ✅ Yes (login) | ✅ Yes |
-| **User control** | ✅ Full | ✅ Full | ⚠️ Limited |
-| **Logging** | ⚠️ Files only | ✅ journal + files | ✅ journal + files |
-| **Dependencies** | ❌ Manual | ✅ Automatic | ✅ Automatic |
-| **Resource limits** | ❌ No | ✅ Yes | ✅ Yes |
-| **Ease of setup** | ✅ Simple | ✅ One command | ⚠️ Requires sudo |
+| **Sudo Required** | [NO] No | [NO] No | [YES] Yes |
+| **Auto-restart** | [NO] No | [YES] Yes | [YES] Yes |
+| **Survives logout** | [NO] No | [YES] Yes | [YES] Yes |
+| **Start on boot** | [NO] No | [YES] Yes (login) | [YES] Yes |
+| **User control** | [YES] Full | [YES] Full | [WARNING] Limited |
+| **Logging** | [WARNING] Files only | [YES] journal + files | [YES] journal + files |
+| **Dependencies** | [NO] Manual | [YES] Automatic | [YES] Automatic |
+| **Resource limits** | [NO] No | [YES] Yes | [YES] Yes |
+| **Ease of setup** | [YES] Simple | [YES] One command | [WARNING] Requires sudo |
 
 **Recommendation**: User-level systemd is the best balance for most users.
 
 ---
 
-## 🚀 Usage Patterns
+## [DEPLOY] Usage Patterns
 
 ### Development Workflow
 
@@ -257,26 +257,26 @@ journalctl --user -u neuroinsight-worker -f
 ### Installation Test
 
 ```bash
-✅ Services installed
+[YES] Services installed
 systemctl --user list-unit-files | grep neuroinsight
 
-✅ Services enabled
+[YES] Services enabled
 systemctl --user is-enabled neuroinsight-backend
 
-✅ User linger enabled
+[YES] User linger enabled
 loginctl show-user $USER | grep Linger=yes
 ```
 
 ### Runtime Test
 
 ```bash
-✅ Services running
+[YES] Services running
 systemctl --user status neuroinsight-*
 
-✅ Backend responding
+[YES] Backend responding
 curl http://localhost:8000/health
 
-✅ Worker connected
+[YES] Worker connected
 journalctl --user -u neuroinsight-worker -n 20
 ```
 
@@ -326,7 +326,7 @@ Create `.deb` or `.rpm` with:
 
 ---
 
-## 🛠️ Future Enhancements
+## [TOOLS] Future Enhancements
 
 ### Possible Additions
 
@@ -359,7 +359,7 @@ Create `.deb` or `.rpm` with:
 
 ---
 
-## 📝 Files Modified/Created
+## [DOCS] Files Modified/Created
 
 ### Created Files
 
@@ -400,32 +400,32 @@ neuroinsight                        (added 100+ lines)
 
 ---
 
-## ✅ Testing Performed
+## [YES] Testing Performed
 
-### Installation Test ✅
+### Installation Test [YES]
 ```bash
-✅ install_systemd.sh runs successfully
-✅ Service files created in ~/.config/systemd/user/
-✅ Services enabled
-✅ User linger enabled
-✅ No errors in output
+[YES] install_systemd.sh runs successfully
+[YES] Service files created in ~/.config/systemd/user/
+[YES] Services enabled
+[YES] User linger enabled
+[YES] No errors in output
 ```
 
-### Service Files ✅
+### Service Files [YES]
 ```bash
-✅ Paths correctly substituted (%h → /home/ubuntu)
-✅ All environment variables present
-✅ Logging configured
-✅ Restart policy set
-✅ Dependencies correct
+[YES] Paths correctly substituted (%h → /home/ubuntu)
+[YES] All environment variables present
+[YES] Logging configured
+[YES] Restart policy set
+[YES] Dependencies correct
 ```
 
-### Commands ✅
+### Commands [YES]
 ```bash
-✅ ./neuroinsight install-systemd works
-✅ ./neuroinsight status-systemd works
-✅ ./neuroinsight help shows new commands
-✅ All scripts executable
+[YES] ./neuroinsight install-systemd works
+[YES] ./neuroinsight status-systemd works
+[YES] ./neuroinsight help shows new commands
+[YES] All scripts executable
 ```
 
 ---
@@ -453,7 +453,7 @@ For users unfamiliar with systemd:
 
 ---
 
-## 📊 Success Metrics
+## [STATS] Success Metrics
 
 ### Reliability Improvement
 
@@ -481,16 +481,16 @@ For users unfamiliar with systemd:
 
 ---
 
-## 🎯 Conclusion
+## [TARGET] Conclusion
 
 ### What This Achieves
 
-1. ✅ **Solves worker stability issue** - Auto-restart on failure
-2. ✅ **Production-ready** - Robust, professional deployment
-3. ✅ **User-friendly** - No sudo, simple commands
-4. ✅ **Well-documented** - Multiple guides for different audiences
-5. ✅ **Tested** - Verified installation and service files
-6. ✅ **Maintainable** - Clean implementation, easy to update
+1. [YES] **Solves worker stability issue** - Auto-restart on failure
+2. [YES] **Production-ready** - Robust, professional deployment
+3. [YES] **User-friendly** - No sudo, simple commands
+4. [YES] **Well-documented** - Multiple guides for different audiences
+5. [YES] **Tested** - Verified installation and service files
+6. [YES] **Maintainable** - Clean implementation, easy to update
 
 ### Next Steps for User
 
@@ -502,10 +502,10 @@ For users unfamiliar with systemd:
 
 ---
 
-**Implementation Status**: ✅ **COMPLETE AND TESTED**
+**Implementation Status**: [YES] **COMPLETE AND TESTED**
 
-**Ready for Production**: ✅ **YES**
+**Ready for Production**: [YES] **YES**
 
-**User Documentation**: ✅ **COMPREHENSIVE**
+**User Documentation**: [YES] **COMPREHENSIVE**
 
-**Backward Compatible**: ✅ **YES** (manual start still works)
+**Backward Compatible**: [YES] **YES** (manual start still works)

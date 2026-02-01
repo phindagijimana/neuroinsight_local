@@ -47,20 +47,20 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
   // Rotation handlers for both axial and coronal views
   const handleRotateClockwise = () => {
     setRotation(prev => (prev + 90) % 360);
-    console.log('🔄 ROTATION: Clockwise clicked');
-    console.log(`🔄 ROTATION: ${rotation}° → ${(rotation + 90) % 360}°`);
+    console.log('ROTATION: Clockwise clicked');
+    console.log(`ROTATION: ${rotation} degrees → ${(rotation + 90) % 360} degrees`);
   };
 
   const handleRotateCounterClockwise = () => {
     setRotation(prev => (prev - 90 + 360) % 360);
-    console.log('🔄 ROTATION: Counter-clockwise clicked');
-    console.log(`🔄 ROTATION: ${rotation}° → ${(rotation - 90 + 360) % 360}°`);
+    console.log('ROTATION: Counter-clockwise clicked');
+    console.log(`ROTATION: ${rotation} degrees to ${(rotation - 90 + 360) % 360} degrees`);
   };
 
   const handleRotateReset = () => {
     setRotation(0);
-    console.log('🔄 ROTATION: Reset clicked');
-    console.log('🔄 ROTATION: Reset to 0°');
+    console.log('ROTATION: Reset clicked');
+    console.log('ROTATION: Reset to 0 degrees');
   };
 
   // Load available completed jobs from props
@@ -343,21 +343,21 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                   <button
                     onClick={handleRotateCounterClockwise}
                     className="p-2 hover:bg-blue-100 rounded-md transition text-[#003d7a]"
-                    title="Rotate Counter-Clockwise (-90°)"
+                    title="Rotate Counter-Clockwise (-90 degrees)"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
                   <button
                     onClick={handleRotateReset}
                     className="px-3 py-2 hover:bg-blue-100 rounded-md transition text-sm font-semibold text-[#003d7a] min-w-[60px]"
-                    title="Reset Rotation (0°)"
+                    title="Reset Rotation (0 degrees)"
                   >
-                    {rotation}°
+                    {rotation} degrees
                   </button>
                   <button
                     onClick={handleRotateClockwise}
                     className="p-2 hover:bg-blue-100 rounded-md transition text-[#003d7a]"
-                    title="Rotate Clockwise (+90°)"
+                    title="Rotate Clockwise (+90 degrees)"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>

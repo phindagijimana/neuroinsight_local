@@ -21,13 +21,14 @@ log() {
 
 get_running_job_count() {
     # Return running job count; empty if API not reachable
-    local stats
-    stats=$(curl -s --max-time 5 http://localhost:8000/api/jobs/stats 2>/dev/null || true)
-    if [ -z "$stats" ]; then
+    local response
+    response=$(curl -s --max-time 5 http://localhost:8000/api/jobs/ 2>/dev/null || true)
+    if [ -z "$response" ]; then
         echo ""
         return
     fi
-    echo "$stats" | python3 -c "import sys, json; print(json.load(sys.stdin).get('jobs', {}).get('running', 0))" 2>/dev/null || echo ""
+    # Count jobs with status "running"
+    echo "$response" | python3 -c "import sys, json; data = json.load(sys.stdin); jobs = data.get('jobs', []); running = [j for j in jobs if j.get('status') == 'running']; print(len(running))" 2>/dev/null || echo ""
 }
 
 alert() {

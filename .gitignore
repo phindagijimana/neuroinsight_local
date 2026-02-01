@@ -105,3 +105,6 @@ DESKTOP_APP_PLAN.md
 DOCKER_DISTRIBUTION_PLAN.md
 AUTO_INSTALL_SUMMARY.md
 SYSTEMD_QUICKSTART.md
+
+# Deployment documentation (keep local only)
+DEPLOYMENT.md

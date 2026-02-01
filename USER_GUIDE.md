@@ -429,6 +429,135 @@ Use this when you want aggressive cleanup but must preserve a specific job.
 ```
 **What it does:** Reconstructs a completed job from on-disk output files. If no outputs exist for the ID, the script reports that it cannot recover the job.
 
+### View System Logs
+```bash
+./neuroinsight logs
+```
+**What it does:** Provides a unified interface to view logs from different NeuroInsight components. You can view logs interactively through a menu or directly specify which component logs to view.
+
+**Interactive Menu (no arguments):**
+```bash
+./neuroinsight logs
+```
+Displays an interactive menu where you can select:
+1. **backend** - Backend API server logs (FastAPI requests, responses, errors)
+2. **celery** - Celery worker logs (job processing, task execution)
+3. **beat** - Celery beat scheduler logs (periodic tasks, scheduling)
+4. **monitor** - Job monitoring service logs (progress tracking, status updates)
+5. **freesurfer** - FreeSurfer processing logs (requires job ID, recon-all logs)
+6. **database** - PostgreSQL database logs (queries, connections, errors)
+7. **redis** - Redis message broker logs (queue operations, cache)
+8. **All logs** - Show all available logs sequentially
+
+**Direct Log Access (specify component):**
+```bash
+# View backend API logs
+./neuroinsight logs backend
+
+# View Celery worker logs
+./neuroinsight logs celery
+
+# View database logs
+./neuroinsight logs database
+
+# View Redis logs
+./neuroinsight logs redis
+
+# View FreeSurfer logs for specific job (requires job ID)
+./neuroinsight logs freesurfer --job-id abc123
+```
+
+**Options:**
+
+**Follow mode** (`-f` or `--follow`): Stream logs in real-time (like `tail -f`)
+```bash
+# Follow backend logs in real-time
+./neuroinsight logs backend --follow
+
+# Follow Celery worker logs
+./neuroinsight logs celery -f
+```
+
+**Line limit** (`-n` or `--lines N`): Show last N lines (default: 100)
+```bash
+# Show last 50 lines of backend logs
+./neuroinsight logs backend -n 50
+
+# Show last 200 lines of Celery logs
+./neuroinsight logs celery --lines 200
+```
+
+**Job-specific FreeSurfer logs** (`--job-id ID`): View FreeSurfer processing logs for a specific job
+```bash
+# View FreeSurfer logs for job abc123
+./neuroinsight logs freesurfer --job-id abc123
+
+# Follow FreeSurfer logs in real-time
+./neuroinsight logs freesurfer --job-id abc123 --follow
+
+# Show last 500 lines of FreeSurfer logs
+./neuroinsight logs freesurfer --job-id abc123 -n 500
+```
+
+**Combine options:**
+```bash
+# Follow last 50 lines of backend logs
+./neuroinsight logs backend -f -n 50
+
+# Show last 20 lines of Celery logs
+./neuroinsight logs celery --lines 20
+```
+
+**Common Use Cases:**
+
+1. **Troubleshooting failed jobs:**
+   ```bash
+   # Check Celery worker logs for errors
+   ./neuroinsight logs celery -n 100
+   
+   # View FreeSurfer logs for failed job
+   ./neuroinsight logs freesurfer --job-id <failed_job_id>
+   ```
+
+2. **Monitoring active processing:**
+   ```bash
+   # Follow backend logs in real-time
+   ./neuroinsight logs backend --follow
+   
+   # Follow FreeSurfer progress for running job
+   ./neuroinsight logs freesurfer --job-id <running_job_id> --follow
+   ```
+
+3. **Checking system health:**
+   ```bash
+   # Check database logs
+   ./neuroinsight logs database -n 50
+   
+   # Check Redis broker logs
+   ./neuroinsight logs redis -n 50
+   ```
+
+4. **Debugging API issues:**
+   ```bash
+   # View recent backend API requests
+   ./neuroinsight logs backend -n 100
+   
+   # Follow backend logs while testing
+   ./neuroinsight logs backend --follow
+   ```
+
+**Help:**
+```bash
+./neuroinsight logs --help
+```
+
+**Notes:**
+- Log files are stored in the NeuroInsight project directory
+- Database and Redis logs are retrieved from Docker containers
+- FreeSurfer logs are job-specific and stored in each job's output directory
+- Press `Ctrl+C` to exit follow mode or interrupt log viewing
+- All output is plain text without emojis for better compatibility with log parsers
+
 ### Additional Commands
 
 #### Reinstall (for troubleshooting)

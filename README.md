@@ -105,6 +105,7 @@ Supported formats: NIfTI (`.nii`, `.nii.gz`) only.
 ./neuroinsight clean     # Clean old completed/failed jobs
 ./neuroinsight bring <job_id>  # Recover a completed job by ID
 ./neuroinsight license   # FreeSurfer license setup
+./neuroinsight logs      # View system logs
 ```
 
 ## Further Documentation

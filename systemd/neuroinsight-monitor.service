@@ -8,7 +8,9 @@ Type=simple
 WorkingDirectory=%h/src/desktop_alone_web_1
 Environment="PYTHONPATH=%h/src/desktop_alone_web_1"
 Environment="ENVIRONMENT=production"
-Environment="DATABASE_URL=postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight"
+EnvironmentFile=/home/ubuntu/src/desktop_alone_web_1/.env
+Environment="DATABASE_URL=postgresql://neuroinsight:neuroinsight_secure_password@localhost:5432/neuroinsight"
+Environment="POSTGRES_PASSWORD=neuroinsight_secure_password"
 Environment="FREESURFER_CONTAINER_PREFIX=freesurfer-job-"
 ExecStart=%h/src/desktop_alone_web_1/venv/bin/python -c "import sys; sys.path.insert(0, '.'); from backend.services.job_monitor import JobMonitor; monitor = JobMonitor(); monitor.start_background_monitoring(); import time; [time.sleep(60) for _ in iter(int, 1)]"
 StandardOutput=append:%h/src/desktop_alone_web_1/job_monitor.log

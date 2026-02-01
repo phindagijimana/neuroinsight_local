@@ -391,6 +391,22 @@ Use this when you want aggressive cleanup but must preserve a specific job.
 
 **What it does:** Removes completed/failed jobs older than the retention window and deletes their files. Use `--keep` to preserve specific jobs.
 
+**Additional Examples:**
+
+```bash
+# Keep specific jobs (comma-separated):
+./neuroinsight clean --days 30 --keep job1,job2,job3
+
+# Or use multiple --keep flags:
+./neuroinsight clean --days 30 --keep job1 --keep job2 --keep job3
+
+# Clean by months:
+./neuroinsight clean --months 3 --keep important_job
+
+# Default (90 days):
+./neuroinsight clean
+```
+
 ### Recover a Completed Job
 ```bash
 ./neuroinsight bring <job_id>

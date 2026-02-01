@@ -182,9 +182,11 @@ def start_backend(port):
         # Force PostgreSQL usage for production
         env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
 
-        # Start backend
+        # Start backend with docker group access
+        # Use 'sg docker' to ensure docker group is active even if user just logged in
         proc = subprocess.Popen([
-            sys.executable, 'backend/main.py'
+            'sg', 'docker', '-c',
+            f'{sys.executable} backend/main.py'
         ], env=env, stdout=open('neuroinsight.log', 'w'),
            stderr=subprocess.STDOUT)
 
@@ -255,11 +257,11 @@ def start_celery():
         env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
         env['FREESURFER_CONTAINER_PREFIX'] = 'freesurfer-job-'
 
-        # Start celery
+        # Start celery with docker group access
+        # Use 'sg docker' to ensure FreeSurfer container operations work
         proc = subprocess.Popen([
-            sys.executable, '-m', 'celery',
-            '-A', 'workers.tasks.processing_web',
-            'worker', '--loglevel=info', '--concurrency=1'
+            'sg', 'docker', '-c',
+            f'{sys.executable} -m celery -A workers.tasks.processing_web worker --loglevel=info --concurrency=1'
         ], env=env, stdout=open('celery_worker.log', 'w'),
            stderr=subprocess.STDOUT)
 

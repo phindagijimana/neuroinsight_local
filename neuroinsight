@@ -284,25 +284,8 @@ case "$1" in
         exec "$PYTHON_BIN" start.py
         ;;
     logs)
-        # View logs (systemd or manual)
-        service="${2:-all}"
-        
-        if check_systemd_available && check_systemd_installed; then
-            if [ "$service" = "all" ]; then
-                echo "Following all NeuroInsight logs (Ctrl+C to stop)..."
-                journalctl --user -u neuroinsight-* -f
-            else
-                echo "Following $service logs (Ctrl+C to stop)..."
-                journalctl --user -u "neuroinsight-$service" -f
-            fi
-        else
-            echo "Viewing logs (manual mode)..."
-            echo "Available logs:"
-            echo "  tail -f celery_worker.log"
-            echo "  tail -f celery_beat.log"
-            echo "  tail -f neuroinsight.log"
-            echo "  tail -f job_monitor.log"
-        fi
+        shift
+        exec "$PYTHON_BIN" logs.py "$@"
         ;;
     monitor)
         echo "NeuroInsight Monitoring..."

@@ -164,22 +164,25 @@ class Settings(BaseSettings):
         # Production mode: Check if PostgreSQL containers are running
         try:
             import subprocess
-            result = subprocess.run(['docker', 'ps', '-q', '-f', 'name=neuroinsight-postgres'],
+            # Check for both neuroinsight-db (docker-compose) and neuroinsight-postgres (direct)
+            result = subprocess.run(['docker', 'ps', '-q', '-f', 'name=neuroinsight-db', '-f', 'name=neuroinsight-postgres'],
                                   capture_output=True, text=True, timeout=2)
             if result.returncode == 0 and result.stdout.strip():
-                # PostgreSQL container is running, try to connect
+                # PostgreSQL container is running, try to connect with credentials from env or settings
                 try:
                     import psycopg2
+                    # Use password from environment or settings
+                    password = self.postgres_password
                     conn = psycopg2.connect(
                         host='localhost',
                         port=5432,
-                        user='neuroinsight',
-                        password='JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg',
-                        database='neuroinsight',
+                        user=self.postgres_user,
+                        password=password,
+                        database=self.postgres_db,
                         connect_timeout=3
                     )
                     conn.close()
-                    return 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
+                    return f'postgresql://{self.postgres_user}:{password}@localhost:5432/{self.postgres_db}'
                 except Exception:
                     pass  # Fall back to normal logic
         except Exception:

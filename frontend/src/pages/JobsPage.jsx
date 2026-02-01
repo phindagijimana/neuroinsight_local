@@ -430,11 +430,6 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                             <div className="flex items-center justify-between mb-1">
                               <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-600">{currentStep}</span>
-                                {pollingJobId === job.id && (
-                                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                                    Live Updates
-                                  </span>
-                                )}
                               </div>
                               <span className={`text-sm font-semibold ${normalizedStatus === 'processing' ? 'text-[#003d7a]' : 'text-yellow-600'}`}>
                                 {normalizedStatus === 'pending' ? 'Queued' : `${job.progress || 0}%`}

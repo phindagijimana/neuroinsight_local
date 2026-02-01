@@ -707,9 +707,12 @@ else
 fi
 
 # Start Docker containers
+log_info "Starting Docker containers (postgres, redis, minio)..."
+
+# Try docker-compose first, fall back to direct docker commands
+CONTAINERS_STARTED=false
+
 if command -v docker-compose &> /dev/null || docker compose version &> /dev/null 2>&1; then
-    log_info "Starting Docker containers (postgres, redis, minio)..."
-    
     # Use docker compose (new) or docker-compose (old)
     if docker compose version &> /dev/null 2>&1; then
         DOCKER_COMPOSE="docker compose"
@@ -717,30 +720,68 @@ if command -v docker-compose &> /dev/null || docker compose version &> /dev/null
         DOCKER_COMPOSE="docker-compose"
     fi
     
-    # Start only the infrastructure containers
-    $DOCKER_COMPOSE up -d postgres redis minio 2>&1 | grep -v "variable is not set"
-    
-    if [ $? -eq 0 ]; then
-        log_success "Docker containers started successfully"
-        log_info "Waiting for containers to be healthy..."
-        sleep 5
-        
-        # Check container status
-        RUNNING_CONTAINERS=$(docker ps --filter "name=neuroinsight" --format "{{.Names}}" | wc -l)
-        if [ $RUNNING_CONTAINERS -gt 0 ]; then
-            log_success "Docker infrastructure ready ($RUNNING_CONTAINERS containers running)"
-        else
-            log_warning "Docker containers may not have started correctly"
-            log_info "You can check with: docker ps"
-        fi
+    # Try to start containers with docker-compose
+    log_info "Attempting to start containers with docker-compose..."
+    if $DOCKER_COMPOSE up -d db redis minio > /tmp/docker-compose.log 2>&1; then
+        CONTAINERS_STARTED=true
+        log_success "Docker containers started via docker-compose"
     else
-        log_warning "Docker containers setup encountered issues"
-        log_info "The system will fall back to SQLite databases"
-        log_info "For production use, please check: docker-compose logs"
+        log_warning "docker-compose failed, will use direct docker commands"
     fi
+fi
+
+# Fallback to direct docker commands if docker-compose failed
+if [ "$CONTAINERS_STARTED" = false ]; then
+    log_info "Starting containers with direct docker commands..."
+    
+    # Create network if it doesn't exist
+    docker network create neuroinsight-network 2>/dev/null || true
+    
+    # Start PostgreSQL
+    docker run -d \
+        --name neuroinsight-db \
+        --network neuroinsight-network \
+        -e POSTGRES_USER=neuroinsight \
+        -e POSTGRES_PASSWORD=neuroinsight_secure_password \
+        -e POSTGRES_DB=neuroinsight \
+        -p 5432:5432 \
+        --restart unless-stopped \
+        postgres:15-alpine > /dev/null 2>&1 || log_warning "PostgreSQL container may already exist"
+    
+    # Start Redis
+    docker run -d \
+        --name neuroinsight-redis \
+        --network neuroinsight-network \
+        -p 6379:6379 \
+        --restart unless-stopped \
+        redis:7-alpine > /dev/null 2>&1 || log_warning "Redis container may already exist"
+    
+    # Start MinIO
+    docker run -d \
+        --name neuroinsight-minio \
+        --network neuroinsight-network \
+        -e MINIO_ROOT_USER=minioadmin \
+        -e MINIO_ROOT_PASSWORD=minioadmin_secure \
+        -p 9000:9000 \
+        -p 9001:9001 \
+        --restart unless-stopped \
+        minio/minio server /data --console-address ":9001" > /dev/null 2>&1 || log_warning "MinIO container may already exist"
+    
+    CONTAINERS_STARTED=true
+    log_success "Docker containers created"
+fi
+
+# Verify containers are running
+log_info "Waiting for containers to be healthy..."
+sleep 5
+
+RUNNING_CONTAINERS=$(docker ps --filter "name=neuroinsight" --format "{{.Names}}" | wc -l)
+if [ $RUNNING_CONTAINERS -gt 0 ]; then
+    log_success "Docker infrastructure ready ($RUNNING_CONTAINERS containers running)"
+    docker ps --filter "name=neuroinsight" --format "  - {{.Names}}: {{.Status}}"
 else
-    log_warning "docker-compose not found, skipping container setup"
-    log_info "System will use SQLite databases instead"
+    log_warning "No Docker containers running - system will use SQLite databases"
+    log_info "For production PostgreSQL, check: docker ps -a"
 fi
 
 log_success "NeuroInsight installation completed successfully!"

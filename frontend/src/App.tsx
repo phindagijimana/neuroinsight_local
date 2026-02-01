@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Navigation from './components/Navigation'
 import HomePage from './pages/HomePage'
 import JobsPage from './pages/JobsPage'
@@ -13,6 +13,8 @@ function App() {
   const [jobsLoading, setJobsLoading] = useState(false)
   const [lastRefreshTime, setLastRefreshTime] = useState(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [pollingJobId, setPollingJobId] = useState<string | null>(null)
+  const pollingTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch jobs data
   const fetchJobs = async (showRefreshing = false) => {
@@ -50,6 +52,75 @@ function App() {
     fetchJobs(true)
   }
 
+  // Rapid polling for a specific job (every 3 seconds)
+  // This provides real-time progress updates for actively processing jobs
+  const pollJobUntilDone = async (jobId: string) => {
+    console.log('Start rapid polling for job:', jobId)
+    setPollingJobId(jobId)
+    
+    // Clear any existing polling timer
+    if (pollingTimerRef.current) {
+      clearInterval(pollingTimerRef.current)
+    }
+    
+    let attempts = 0
+    const maxAttempts = 200 // ~10 minutes at 3s interval
+    const intervalMs = 3000 // 3 seconds - much faster than 30s background polling
+    
+    pollingTimerRef.current = setInterval(async () => {
+      attempts += 1
+      
+      try {
+        const job = await apiService.getJob(jobId)
+        if (job) {
+          // Update this specific job in the jobs list
+          setJobs((prevJobs) => {
+            const otherJobs = prevJobs.filter((j: any) => j.id !== jobId)
+            return [job, ...otherJobs]
+          })
+          
+          // Check if job is complete
+          const status = job.status?.toLowerCase()
+          if (status === 'completed' || status === 'failed') {
+            console.log('Job finished, stopping polling:', jobId, 'Status:', status)
+            if (pollingTimerRef.current) {
+              clearInterval(pollingTimerRef.current)
+              pollingTimerRef.current = null
+            }
+            setPollingJobId(null)
+            
+            // Auto-navigate to dashboard if completed successfully
+            if (status === 'completed') {
+              setSelectedJobId(jobId)
+              setActivePage('dashboard')
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Polling failed for job', jobId, error)
+      }
+      
+      // Timeout after max attempts
+      if (attempts >= maxAttempts) {
+        console.warn('Polling timed out for job', jobId)
+        if (pollingTimerRef.current) {
+          clearInterval(pollingTimerRef.current)
+          pollingTimerRef.current = null
+        }
+        setPollingJobId(null)
+      }
+    }, intervalMs)
+  }
+
+  // Cleanup polling timer on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current)
+      }
+    }
+  }, [])
+
   return (
     <div>
       <Navigation activePage={activePage} setActivePage={setActivePage} />
@@ -63,6 +134,8 @@ function App() {
           onJobsUpdate={handleJobsUpdate}
           lastRefreshTime={lastRefreshTime}
           isRefreshing={isRefreshing}
+          pollJobUntilDone={pollJobUntilDone}
+          pollingJobId={pollingJobId}
         />
       )}
       {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}

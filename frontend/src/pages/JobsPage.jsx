@@ -11,7 +11,7 @@ import Clock from '../components/icons/Clock.jsx'
 import XCircle from '../components/icons/XCircle.jsx'
 import Trash2 from '../components/icons/Trash2.jsx'
 
-function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUpdate, lastRefreshTime, isRefreshing }) {
+function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUpdate, lastRefreshTime, isRefreshing, pollJobUntilDone, pollingJobId }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -122,6 +122,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
       console.log('Upload successful:', result);
       setUploadProgress(100);
       setSelectedFile(null);
+      
       // Clear patient info after successful upload
       setPatientInfo({
         patient_name: '',
@@ -132,8 +133,16 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
         sequence: '',
         notes: ''
       });
+      
       // Refresh jobs list
       await onJobsUpdate();
+      
+      // Start rapid polling for this specific job (every 3 seconds for real-time progress)
+      if (result && result.id && pollJobUntilDone) {
+        console.log('Starting rapid polling for job:', result.id);
+        pollJobUntilDone(result.id);
+      }
+      
       setTimeout(() => setUploadProgress(null), 2000);
     } catch (error) {
       console.error('Upload failed:', error);
@@ -419,7 +428,14 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                         {(normalizedStatus === 'processing' || normalizedStatus === 'pending') && (
                           <div className="mt-3">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm text-gray-600">{currentStep}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600">{currentStep}</span>
+                                {pollingJobId === job.id && (
+                                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                                    Live Updates
+                                  </span>
+                                )}
+                              </div>
                               <span className={`text-sm font-semibold ${normalizedStatus === 'processing' ? 'text-[#003d7a]' : 'text-yellow-600'}`}>
                                 {normalizedStatus === 'pending' ? 'Queued' : `${job.progress || 0}%`}
                               </span>

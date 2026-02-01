@@ -183,18 +183,13 @@ stop_docker_containers() {
     local cleaned_count=0
     
     # 1. Stop running NeuroInsight infrastructure containers (but don't remove them)
-    # Check each infrastructure container individually
-    local infra_containers=""
-    for container in neuroinsight-postgres neuroinsight-redis neuroinsight-minio; do
-        if docker ps -q --filter "name=^/${container}$" 2>/dev/null | grep -q .; then
-            infra_containers="$infra_containers $container"
-        fi
-    done
+    # Check if infrastructure containers are running
+    local infra_running=$(docker ps --format "{{.Names}}" | grep -E "^neuroinsight-(postgres|redis|minio)$" | tr '\n' ' ')
     
-    if [ -n "$infra_containers" ]; then
+    if [ -n "$infra_running" ]; then
         echo "  Stopping infrastructure containers (postgres, redis, minio)..."
-        docker stop $infra_containers > /dev/null 2>&1 || true
-        stopped_count=$((stopped_count + $(echo "$infra_containers" | wc -w)))
+        docker stop $infra_running > /dev/null 2>&1 || true
+        stopped_count=$((stopped_count + $(echo "$infra_running" | wc -w)))
     fi
     
     # 2. Stop and remove FreeSurfer job containers (these are temporary)

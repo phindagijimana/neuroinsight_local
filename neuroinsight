@@ -82,6 +82,28 @@ auto_install_systemd() {
     fi
 }
 
+start_docker_containers() {
+    # Start Docker containers - check if they exist and start them
+    if command -v docker &> /dev/null; then
+        local stopped_containers=$(docker ps -a -q --filter "name=neuroinsight" --filter "status=exited" 2>/dev/null)
+        if [ -n "$stopped_containers" ]; then
+            echo "  Starting stopped Docker containers..."
+            docker start $stopped_containers > /dev/null 2>&1 || true
+            echo "  Docker containers started"
+        else
+            # Check if containers are already running
+            local running_containers=$(docker ps -q --filter "name=neuroinsight" 2>/dev/null)
+            if [ -n "$running_containers" ]; then
+                echo "  Docker containers already running"
+            else
+                echo "  No Docker containers found, they will be created when needed"
+            fi
+        fi
+    else
+        echo "  Docker not available"
+    fi
+}
+
 use_systemd_start() {
     # Start services using systemd
     local force_install="$1"
@@ -110,20 +132,26 @@ use_systemd_start() {
     echo "=========================================="
     echo ""
     
+    # Start Docker containers first
+    echo "[1/5] Starting Docker containers..."
+    start_docker_containers
+    sleep 2
+    echo ""
+    
     # Start services in order
-    echo "[1/4] Starting backend..."
+    echo "[2/5] Starting backend..."
     systemctl --user start neuroinsight-backend
     sleep 2
     
-    echo "[2/4] Starting worker..."
+    echo "[3/5] Starting worker..."
     systemctl --user start neuroinsight-worker
     sleep 1
     
-    echo "[3/4] Starting beat scheduler..."
+    echo "[4/5] Starting beat scheduler..."
     systemctl --user start neuroinsight-beat
     sleep 1
     
-    echo "[4/4] Starting job monitor..."
+    echo "[5/5] Starting job monitor..."
     systemctl --user start neuroinsight-monitor
     
     echo ""
@@ -144,14 +172,37 @@ use_systemd_start() {
     return 0
 }
 
+stop_docker_containers() {
+    # Stop Docker containers - try docker-compose first, fallback to direct docker commands
+    if command -v docker &> /dev/null; then
+        local containers=$(docker ps -q --filter "name=neuroinsight" 2>/dev/null)
+        if [ -n "$containers" ]; then
+            echo "  Stopping Docker containers..."
+            docker stop $containers > /dev/null 2>&1 || true
+            echo "  Docker containers stopped"
+        else
+            echo "  No Docker containers running"
+        fi
+    else
+        echo "  Docker not available"
+    fi
+}
+
 use_systemd_stop() {
     if check_systemd_available && check_systemd_installed; then
-        echo "Stopping NeuroInsight services (systemd)..."
+        echo "Stopping NeuroInsight services..."
+        echo ""
+        echo "[1/2] Stopping systemd services..."
         systemctl --user stop neuroinsight-monitor 2>/dev/null || true
         systemctl --user stop neuroinsight-beat 2>/dev/null || true
         systemctl --user stop neuroinsight-worker 2>/dev/null || true
         systemctl --user stop neuroinsight-backend 2>/dev/null || true
-        echo "Services stopped!"
+        echo "  Systemd services stopped"
+        echo ""
+        echo "[2/2] Stopping Docker containers..."
+        stop_docker_containers
+        echo ""
+        echo "All NeuroInsight services stopped!"
         return 0
     fi
     return 1
@@ -226,7 +277,11 @@ case "$1" in
         if [[ "$2" == "--manual" ]]; then
             echo "Stopping NeuroInsight (manual mode)..."
             "$PYTHON_BIN" nosleep.py stop >/dev/null 2>&1 || true
-            exec "$PYTHON_BIN" stop.py "${@:2}"
+            "$PYTHON_BIN" stop.py "${@:2}"
+            # Stop Docker containers
+            echo "Stopping Docker containers..."
+            stop_docker_containers
+            exit 0
         fi
         
         # Try systemd first
@@ -237,7 +292,11 @@ case "$1" in
         # Fall back to manual stop
         echo "Stopping NeuroInsight (manual mode)..."
         "$PYTHON_BIN" nosleep.py stop >/dev/null 2>&1 || true
-        exec "$PYTHON_BIN" stop.py "${@:2}"
+        "$PYTHON_BIN" stop.py "${@:2}"
+        # Stop Docker containers
+        echo "Stopping Docker containers..."
+        stop_docker_containers
+        exit 0
         ;;
     dev-stop)
         echo "Stopping NeuroInsight (dev backend)..."
@@ -518,7 +577,10 @@ case "$1" in
         systemctl --user stop neuroinsight-beat 2>/dev/null || true
         systemctl --user stop neuroinsight-worker 2>/dev/null || true
         systemctl --user stop neuroinsight-backend 2>/dev/null || true
-        echo "Services stopped!"
+        echo "Systemd services stopped!"
+        echo "Stopping Docker containers..."
+        stop_docker_containers
+        echo "All services stopped!"
         ;;
     restart-systemd)
         echo "Restarting NeuroInsight services via systemd..."

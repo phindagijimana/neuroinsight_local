@@ -294,6 +294,30 @@ docker-compose up -d
 
 ---
 
+## 🔧 Enhanced Stop Command
+
+**Comprehensive Cleanup:**
+
+The `./neuroinsight stop` command now handles complete system shutdown:
+
+1. **Systemd Services:**
+   - Stops all user services (backend, worker, beat, monitor)
+   - Stops system services (docker-events monitor)
+
+2. **Docker Containers:**
+   - Stops all running NeuroInsight infrastructure
+   - Stops all active FreeSurfer job containers
+   - Removes all exited NeuroInsight containers
+   - Removes all exited FreeSurfer job containers
+
+3. **Background Processes:**
+   - Stops Docker event monitoring scripts
+   - Cleans up orphaned processes
+
+**Result:** Zero leftover processes, clean system state
+
+---
+
 ## 📝 Maintenance
 
 ### Regular Tasks
@@ -309,8 +333,9 @@ docker-compose up -d
 
 **Monthly:**
 - System updates: `sudo apt update && sudo apt upgrade`
-- Docker cleanup: `docker system prune`
 - Review and archive old results
+
+**Note:** Docker cleanup is now automatic - `./neuroinsight stop` cleans up all containers including old FreeSurfer job containers
 
 ### Troubleshooting
 

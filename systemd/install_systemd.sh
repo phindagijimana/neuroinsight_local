@@ -37,7 +37,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
 
+# Get relative path from HOME for %h substitution
+RELATIVE_PROJECT_DIR="${PROJECT_DIR#$HOME/}"
+
 log_info "Project directory: $PROJECT_DIR"
+log_info "Relative to home: ~/$RELATIVE_PROJECT_DIR"
 log_info "Systemd user directory: $SYSTEMD_USER_DIR"
 
 # Check if systemd is available
@@ -85,9 +89,11 @@ log_info "Installing service files..."
 
 for service_file in neuroinsight-backend.service neuroinsight-worker.service neuroinsight-beat.service neuroinsight-monitor.service; do
     if [ -f "$SCRIPT_DIR/$service_file" ]; then
-        # Replace %h with actual home directory
-        sed "s|%h|$HOME|g" "$SCRIPT_DIR/$service_file" > "$SYSTEMD_USER_DIR/$service_file"
-        log_success "Installed $service_file"
+        # Replace hardcoded path with actual project directory
+        # First replace the hardcoded src/desktop_alone_web_1 with actual relative path
+        sed "s|%h/src/desktop_alone_web_1|$PROJECT_DIR|g" "$SCRIPT_DIR/$service_file" | \
+        sed "s|%h|$HOME|g" > "$SYSTEMD_USER_DIR/$service_file"
+        log_success "Installed $service_file (using $RELATIVE_PROJECT_DIR)"
     else
         log_warning "$service_file not found, skipping"
     fi

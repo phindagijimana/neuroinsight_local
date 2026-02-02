@@ -2,9 +2,15 @@
 
 Automated hippocampal segmentation and analysis from T1-weighted MRI scans using FreeSurfer.
 
+## Platform Support
+
+- **Linux:** Ubuntu 20.04+ (native installation)
+- **Windows:** WSL2 with systemd (full support) - [WSL Installation Guide](docs/WSL_INSTALLATION.md)
+- **Docker:** Full containerized deployment available
+
 ## Requirements
 
-- Ubuntu 20.04+ Linux
+- Ubuntu 20.04+ Linux (or WSL2 on Windows)
 - Docker and Docker Compose
 - Redis (message broker for job processing)
 - 16GB+ RAM (32GB recommended)
@@ -65,12 +71,17 @@ neuroinsight_local/
 
 ## Quick Start
 
+### Linux / WSL Installation
+
 ```bash
 # Clone repository
 git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local
 
-# Install (one-time setup)
+# For WSL users: Check environment first (optional but recommended)
+./check_wsl.sh
+
+# Install (one-time setup - auto-detects Linux/WSL)
 ./neuroinsight install
 
 # Setup FreeSurfer license

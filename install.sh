@@ -265,10 +265,23 @@ if ! python3 -c "import ensurepip" &> /dev/null; then
         log_info "Attempting to install python${PYTHON_VERSION}-venv..."
         
         # More robust installation with error checking
-        if sudo apt install -y "python${PYTHON_VERSION}-venv" 2>&1 | tee /tmp/venv_install.log | grep -q "done"; then
-            log_success "Installed python${PYTHON_VERSION}-venv"
-        elif sudo apt install -y python3-venv 2>&1 | tee -a /tmp/venv_install.log | grep -q "done"; then
-            log_success "Installed python3-venv"
+        # Look for "Setting up" which indicates successful package installation
+        if sudo apt install -y "python${PYTHON_VERSION}-venv" 2>&1 | tee /tmp/venv_install.log; then
+            # Check if package was actually installed by verifying ensurepip
+            if python3 -c "import ensurepip" &> /dev/null; then
+                log_success "Installed python${PYTHON_VERSION}-venv"
+            else
+                log_error "Package installed but ensurepip still not available"
+                exit 1
+            fi
+        elif sudo apt install -y python3-venv 2>&1 | tee -a /tmp/venv_install.log; then
+            # Check if package was actually installed
+            if python3 -c "import ensurepip" &> /dev/null; then
+                log_success "Installed python3-venv"
+            else
+                log_error "Package installed but ensurepip still not available"
+                exit 1
+            fi
         else
             log_error "Failed to install Python venv package automatically"
             echo ""
@@ -377,9 +390,24 @@ if command -v apt &> /dev/null; then
             log_info "WSL detected - installing required development tools..."
         fi
         
-        # Update and install
-        if sudo apt update -qq && sudo apt install -y "${MISSING_LIBS[@]}" 2>&1 | tee /tmp/apt_install.log | grep -q "done\|Setting up"; then
-            log_success "System development libraries installed successfully"
+        # Update and install - just check exit code, then verify packages
+        if sudo apt update -qq && sudo apt install -y "${MISSING_LIBS[@]}" 2>&1 | tee /tmp/apt_install.log; then
+            # Verify packages were actually installed
+            INSTALL_FAILED=false
+            for pkg in "${MISSING_LIBS[@]}"; do
+                if ! dpkg -l | grep -q "^ii.*$pkg"; then
+                    INSTALL_FAILED=true
+                    log_error "Package $pkg failed to install"
+                fi
+            done
+            
+            if [ "$INSTALL_FAILED" = false ]; then
+                log_success "System development libraries installed successfully"
+            else
+                log_error "Some packages failed to install"
+                log_error "Please install manually: sudo apt install ${MISSING_LIBS[*]}"
+                exit 1
+            fi
         else
             log_error "Failed to install some system libraries"
             log_error "Installation log:"

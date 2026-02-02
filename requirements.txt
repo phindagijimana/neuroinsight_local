@@ -21,13 +21,13 @@ platformdirs==4.1.0
 
 # Medical imaging
 nibabel==5.1.0
-numpy==1.24.3
-pandas==2.0.3
-scipy==1.11.3
+numpy==1.26.4  # Updated for Python 3.12 compatibility (has pre-built wheels)
+pandas==2.1.4
+scipy==1.11.4
 
-# Deep learning
-torch==2.0.1
-torchvision==0.15.2
+# Deep learning (optional - large packages, installed on-demand)
+# torch==2.0.1
+# torchvision==0.15.2
 
 # Utilities
 python-dateutil==2.8.2

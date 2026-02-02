@@ -231,8 +231,9 @@ log_info "Checking Python venv support..."
 PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
 log_info "Detected Python version: $PYTHON_VERSION"
 
-if ! python3 -c "import venv" &> /dev/null; then
-    log_warning "Python venv module not available. Installing python venv package..."
+# Better check: try to import ensurepip which is what venv actually needs
+if ! python3 -c "import ensurepip" &> /dev/null; then
+    log_warning "Python venv package not available. Installing python venv package..."
 
     if command -v apt &> /dev/null; then
         # Ubuntu/Debian - try version-specific package first, then generic
@@ -240,14 +241,21 @@ if ! python3 -c "import venv" &> /dev/null; then
         sudo apt update
 
         # Try version-specific package (e.g., python3.12-venv for Ubuntu 24.04)
+        log_info "Attempting to install python${PYTHON_VERSION}-venv..."
         if sudo apt install -y "python${PYTHON_VERSION}-venv" 2>/dev/null; then
             log_success "Installed python${PYTHON_VERSION}-venv"
         elif sudo apt install -y python3-venv 2>/dev/null; then
             log_success "Installed python3-venv"
         else
             log_error "Failed to install Python venv package automatically"
-            log_error "Please run: sudo apt install python${PYTHON_VERSION}-venv"
-            log_error "Or: sudo apt install python3-venv"
+            echo ""
+            log_error "Please install it manually:"
+            echo "   sudo apt update"
+            echo "   sudo apt install python${PYTHON_VERSION}-venv"
+            echo ""
+            log_info "If you're using WSL (Windows Subsystem for Linux):"
+            echo "   - Run the commands above in your WSL terminal"
+            echo "   - Then re-run: ./neuroinsight install"
             exit 1
         fi
 
@@ -305,10 +313,11 @@ if ! python3 -c "import venv" &> /dev/null; then
     fi
 
     # Verify installation worked
-    if python3 -c "import venv" &> /dev/null; then
+    if python3 -c "import ensurepip" &> /dev/null; then
         log_success "Python venv support installed and verified"
     else
-        log_error "Python venv installation failed - venv module still not available"
+        log_error "Python venv installation failed - ensurepip still not available"
+        log_error "Please install manually: sudo apt install python${PYTHON_VERSION}-venv"
         exit 1
     fi
 

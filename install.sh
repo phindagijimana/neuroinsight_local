@@ -1,6 +1,13 @@
 #!/bin/bash
 # NeuroInsight Installation Script
 # One-command installation for Ubuntu/Debian systems
+#
+# Features:
+# - Automatic detection and installation of missing dependencies
+# - WSL (Windows Subsystem for Linux) support with auto-configuration
+# - Docker setup and permission handling
+# - FreeSurfer license validation
+# - Systemd service installation for auto-restart
 
 set -e  # Exit on any error
 
@@ -226,6 +233,13 @@ fi
 
 log_success "Python version check passed: $PYTHON_VERSION"
 
+# Detect if running on WSL
+IS_WSL=false
+if grep -qEi "(microsoft|wsl)" /proc/version 2>/dev/null; then
+    IS_WSL=true
+    log_info "Detected Windows Subsystem for Linux (WSL)"
+fi
+
 # Check and install python3-venv if needed
 log_info "Checking Python venv support..."
 PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
@@ -238,24 +252,39 @@ if ! python3 -c "import ensurepip" &> /dev/null; then
     if command -v apt &> /dev/null; then
         # Ubuntu/Debian - try version-specific package first, then generic
         log_info "Detected apt package manager (Ubuntu/Debian)"
-        sudo apt update
+        
+        # Update package list
+        log_info "Updating package list..."
+        if ! sudo apt update -qq 2>&1 | grep -q "E:"; then
+            log_success "Package list updated"
+        else
+            log_warning "Package update had warnings, continuing..."
+        fi
 
         # Try version-specific package (e.g., python3.12-venv for Ubuntu 24.04)
         log_info "Attempting to install python${PYTHON_VERSION}-venv..."
-        if sudo apt install -y "python${PYTHON_VERSION}-venv" 2>/dev/null; then
+        
+        # More robust installation with error checking
+        if sudo apt install -y "python${PYTHON_VERSION}-venv" 2>&1 | tee /tmp/venv_install.log | grep -q "done"; then
             log_success "Installed python${PYTHON_VERSION}-venv"
-        elif sudo apt install -y python3-venv 2>/dev/null; then
+        elif sudo apt install -y python3-venv 2>&1 | tee -a /tmp/venv_install.log | grep -q "done"; then
             log_success "Installed python3-venv"
         else
             log_error "Failed to install Python venv package automatically"
+            echo ""
+            log_error "Installation log:"
+            cat /tmp/venv_install.log 2>/dev/null | tail -20
             echo ""
             log_error "Please install it manually:"
             echo "   sudo apt update"
             echo "   sudo apt install python${PYTHON_VERSION}-venv"
             echo ""
-            log_info "If you're using WSL (Windows Subsystem for Linux):"
-            echo "   - Run the commands above in your WSL terminal"
-            echo "   - Then re-run: ./neuroinsight install"
+            if [ "$IS_WSL" = true ]; then
+                log_info "WSL-specific troubleshooting:"
+                echo "   - Make sure you're running in a WSL terminal (not PowerShell)"
+                echo "   - Try: wsl --shutdown and restart WSL"
+                echo "   - Check if apt is working: sudo apt update"
+            fi
             exit 1
         fi
 
@@ -327,24 +356,37 @@ fi
 
 # Check and install system development libraries
 log_info "Checking system development libraries..."
-MISSING_LIBS=false
+MISSING_LIBS=()
 
 if command -v apt &> /dev/null; then
-    # Ubuntu/Debian
+    # Ubuntu/Debian - check for missing packages
     if ! dpkg -l | grep -q "build-essential"; then
-        log_warning "Installing build-essential (GCC, make)..."
-        sudo apt update && sudo apt install -y build-essential
-        MISSING_LIBS=true
+        MISSING_LIBS+=("build-essential")
     fi
     if ! dpkg -l | grep -q "libssl-dev"; then
-        log_warning "Installing libssl-dev (SSL/TLS support)..."
-        sudo apt install -y libssl-dev
-        MISSING_LIBS=true
+        MISSING_LIBS+=("libssl-dev")
     fi
     if ! dpkg -l | grep -q "libffi-dev"; then
-        log_warning "Installing libffi-dev (Python extensions)..."
-        sudo apt install -y libffi-dev
-        MISSING_LIBS=true
+        MISSING_LIBS+=("libffi-dev")
+    fi
+    
+    # Install all missing packages at once (more efficient)
+    if [ ${#MISSING_LIBS[@]} -gt 0 ]; then
+        log_warning "Installing missing system libraries: ${MISSING_LIBS[*]}"
+        if [ "$IS_WSL" = true ]; then
+            log_info "WSL detected - installing required development tools..."
+        fi
+        
+        # Update and install
+        if sudo apt update -qq && sudo apt install -y "${MISSING_LIBS[@]}" 2>&1 | tee /tmp/apt_install.log | grep -q "done\|Setting up"; then
+            log_success "System development libraries installed successfully"
+        else
+            log_error "Failed to install some system libraries"
+            log_error "Installation log:"
+            tail -10 /tmp/apt_install.log
+            log_error "Please install manually: sudo apt install ${MISSING_LIBS[*]}"
+            exit 1
+        fi
     fi
 elif command -v dnf &> /dev/null; then
     # Fedora/RHEL
@@ -411,9 +453,7 @@ elif command -v zypper &> /dev/null; then
     fi
 fi
 
-if [ "$MISSING_LIBS" = true ]; then
-    log_success "System development libraries installed"
-else
+if [ ${#MISSING_LIBS[@]} -eq 0 ]; then
     log_success "System development libraries available"
 fi
 

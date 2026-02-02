@@ -8,7 +8,7 @@ Type=simple
 WorkingDirectory=%h/src/desktop_alone_web_1
 Environment="PYTHONPATH=%h/src/desktop_alone_web_1"
 Environment="ENVIRONMENT=production"
-EnvironmentFile=/home/ubuntu/src/desktop_alone_web_1/.env
+EnvironmentFile=%h/src/desktop_alone_web_1/.env
 Environment="DATABASE_URL=postgresql://neuroinsight:neuroinsight_secure_password@localhost:5432/neuroinsight"
 Environment="POSTGRES_PASSWORD=neuroinsight_secure_password"
 ExecStart=%h/src/desktop_alone_web_1/venv/bin/python -m celery -A workers.tasks.processing_web beat --loglevel=info

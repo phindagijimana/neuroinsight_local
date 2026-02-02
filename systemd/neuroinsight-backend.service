@@ -11,7 +11,7 @@ Environment="ENVIRONMENT=production"
 Environment="API_PORT=8000"
 Environment="PORT=8000"
 Environment="MAX_CONCURRENT_JOBS=1"
-EnvironmentFile=/home/ubuntu/src/desktop_alone_web_1/.env
+EnvironmentFile=%h/src/desktop_alone_web_1/.env
 Environment="DATABASE_URL=postgresql://neuroinsight:neuroinsight_secure_password@localhost:5432/neuroinsight"
 Environment="POSTGRES_PASSWORD=neuroinsight_secure_password"
 ExecStart=%h/src/desktop_alone_web_1/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000

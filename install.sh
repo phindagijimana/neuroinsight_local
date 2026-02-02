@@ -524,15 +524,20 @@ if ! command -v docker &> /dev/null; then
     sudo usermod -aG docker $USER
 
     log_success "Docker installed successfully"
-    log_warning "Please log out and log back in for Docker group changes to take effect"
+    log_warning "User added to docker group - group membership will take effect after this script"
 else
     DOCKER_VERSION=$(docker --version | awk '{print $3}' | sed 's/,//')
     log_success "Docker already installed: $DOCKER_VERSION"
 fi
 
 # Check if user is in docker group
-if ! groups | grep -q docker; then
-    log_warning "User is not in docker group. You may need to log out and back in."
+USER_IN_DOCKER_GROUP=false
+if groups | grep -q docker; then
+    USER_IN_DOCKER_GROUP=true
+    log_success "User is in docker group"
+else
+    # User just added to group, will take effect for subsequent commands
+    log_info "Docker group membership will be activated for this installation"
 fi
 
 # Python environment setup will be done later in the script
@@ -565,11 +570,25 @@ mkdir -p logs
 
 # Test Docker functionality
 log_info "Testing Docker functionality..."
-if docker run --rm hello-world &> /dev/null; then
-    log_success "Docker test passed"
+
+# Use sg docker if user is not currently in docker group (just added)
+if [ "$USER_IN_DOCKER_GROUP" = true ]; then
+    # User already in group, can run docker directly
+    if docker run --rm hello-world &> /dev/null; then
+        log_success "Docker test passed"
+    else
+        log_error "Docker test failed. Please check Docker installation."
+        exit 1
+    fi
 else
-    log_error "Docker test failed. Please check Docker installation."
-    exit 1
+    # User just added to group, use sg to activate group membership
+    if sg docker -c "docker run --rm hello-world" &> /dev/null; then
+        log_success "Docker test passed (using docker group)"
+    else
+        log_error "Docker test failed. Please check Docker installation."
+        log_error "You may need to restart the Docker service: sudo systemctl restart docker"
+        exit 1
+    fi
 fi
 
 # Check FreeSurfer license
@@ -712,6 +731,15 @@ log_info "Starting Docker containers (postgres, redis, minio)..."
 # Try docker-compose first, fall back to direct docker commands
 CONTAINERS_STARTED=false
 
+# Wrapper for docker commands based on group membership
+run_docker_cmd() {
+    if [ "$USER_IN_DOCKER_GROUP" = true ]; then
+        "$@"
+    else
+        sg docker -c "$*"
+    fi
+}
+
 if command -v docker-compose &> /dev/null || docker compose version &> /dev/null 2>&1; then
     # Use docker compose (new) or docker-compose (old)
     if docker compose version &> /dev/null 2>&1; then
@@ -722,7 +750,7 @@ if command -v docker-compose &> /dev/null || docker compose version &> /dev/null
     
     # Try to start containers with docker-compose
     log_info "Attempting to start containers with docker-compose..."
-    if $DOCKER_COMPOSE up -d db redis minio > /tmp/docker-compose.log 2>&1; then
+    if run_docker_cmd $DOCKER_COMPOSE up -d db redis minio > /tmp/docker-compose.log 2>&1; then
         CONTAINERS_STARTED=true
         log_success "Docker containers started via docker-compose"
     else
@@ -735,10 +763,10 @@ if [ "$CONTAINERS_STARTED" = false ]; then
     log_info "Starting containers with direct docker commands..."
     
     # Create network if it doesn't exist
-    docker network create neuroinsight-network 2>/dev/null || true
+    run_docker_cmd docker network create neuroinsight-network 2>/dev/null || true
     
     # Start PostgreSQL
-    docker run -d \
+    run_docker_cmd docker run -d \
         --name neuroinsight-db \
         --network neuroinsight-network \
         -e POSTGRES_USER=neuroinsight \
@@ -749,7 +777,7 @@ if [ "$CONTAINERS_STARTED" = false ]; then
         postgres:15-alpine > /dev/null 2>&1 || log_warning "PostgreSQL container may already exist"
     
     # Start Redis
-    docker run -d \
+    run_docker_cmd docker run -d \
         --name neuroinsight-redis \
         --network neuroinsight-network \
         -p 6379:6379 \
@@ -757,7 +785,7 @@ if [ "$CONTAINERS_STARTED" = false ]; then
         redis:7-alpine > /dev/null 2>&1 || log_warning "Redis container may already exist"
     
     # Start MinIO
-    docker run -d \
+    run_docker_cmd docker run -d \
         --name neuroinsight-minio \
         --network neuroinsight-network \
         -e MINIO_ROOT_USER=minioadmin \
@@ -775,10 +803,10 @@ fi
 log_info "Waiting for containers to be healthy..."
 sleep 5
 
-RUNNING_CONTAINERS=$(docker ps --filter "name=neuroinsight" --format "{{.Names}}" | wc -l)
+RUNNING_CONTAINERS=$(run_docker_cmd docker ps --filter "name=neuroinsight" --format "{{.Names}}" 2>/dev/null | wc -l)
 if [ $RUNNING_CONTAINERS -gt 0 ]; then
     log_success "Docker infrastructure ready ($RUNNING_CONTAINERS containers running)"
-    docker ps --filter "name=neuroinsight" --format "  - {{.Names}}: {{.Status}}"
+    run_docker_cmd docker ps --filter "name=neuroinsight" --format "  - {{.Names}}: {{.Status}}"
 else
     log_warning "No Docker containers running - system will use SQLite databases"
     log_info "For production PostgreSQL, check: docker ps -a"
@@ -786,6 +814,19 @@ fi
 
 log_success "NeuroInsight installation completed successfully!"
 echo
+
+# Add docker group message if user was just added
+if [ "$USER_IN_DOCKER_GROUP" = false ]; then
+    echo ""
+    log_warning "IMPORTANT: Docker Group Membership"
+    echo "   You were added to the 'docker' group during installation."
+    echo "   To use Docker without 'sudo', you MUST log out and log back in."
+    echo ""
+    echo "   After logging back in, run:"
+    echo "      ./neuroinsight start"
+    echo ""
+fi
+
 echo "Next steps:"
 echo "   1. Set up your FreeSurfer license (if not done):"
 echo "      - Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"

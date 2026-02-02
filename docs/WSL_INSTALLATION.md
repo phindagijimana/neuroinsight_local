@@ -71,7 +71,7 @@ git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local
 
 # Check your WSL environment
-./check_wsl.sh
+./neuroinsight check-wsl
 ```
 
 This will verify:
@@ -274,7 +274,7 @@ If you encounter issues:
 
 1. Run the WSL check script:
    ```bash
-   ./check_wsl.sh
+   ./neuroinsight check-wsl
    ```
 
 2. Check logs:

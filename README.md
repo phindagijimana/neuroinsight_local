@@ -79,7 +79,7 @@ git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local
 
 # For WSL users: Check environment first (optional but recommended)
-./check_wsl.sh
+./neuroinsight check-wsl
 
 # Install (one-time setup - auto-detects Linux/WSL)
 ./neuroinsight install

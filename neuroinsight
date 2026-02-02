@@ -493,6 +493,16 @@ case "$1" in
             echo "Note: Without license, NeuroInsight will use mock processing for demonstrations"
         fi
         ;;
+    check-wsl)
+        echo "Running WSL Environment Check..."
+        if [ -f "check_wsl.sh" ]; then
+            exec ./check_wsl.sh
+        else
+            echo "Error: check_wsl.sh not found in current directory"
+            echo "Please ensure you're in the NeuroInsight project directory"
+            exit 1
+        fi
+        ;;
     reinstall)
         echo "[REINSTALL] NeuroInsight Complete Reinstallation Guide"
         echo ""
@@ -694,6 +704,7 @@ case "$1" in
         echo ""
         echo "Main Commands:"
         echo "  install           - Run NeuroInsight installation"
+        echo "  check-wsl         - Check WSL environment (Windows users)"
         echo "  start             - Start all NeuroInsight services (manual)"
         echo "  stop              - Stop all NeuroInsight services (manual)"
         echo "  status            - Show system status"
@@ -722,6 +733,7 @@ case "$1" in
         echo "Examples:"
         echo ""
         echo "  # Installation & Setup"
+        echo "  $0 check-wsl                  # Check WSL environment (Windows/WSL users)"
         echo "  $0 install                    # Install NeuroInsight"
         echo "  $0 license                    # Setup FreeSurfer license"
         echo ""

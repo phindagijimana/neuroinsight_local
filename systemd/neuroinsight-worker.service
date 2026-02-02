@@ -6,11 +6,9 @@ Requires=neuroinsight-backend.service
 [Service]
 Type=simple
 WorkingDirectory=%h/src/desktop_alone_web_1
+EnvironmentFile=%h/src/desktop_alone_web_1/.env
 Environment="PYTHONPATH=%h/src/desktop_alone_web_1"
 Environment="ENVIRONMENT=production"
-EnvironmentFile=%h/src/desktop_alone_web_1/.env
-Environment="DATABASE_URL=postgresql://neuroinsight:neuroinsight_secure_password@localhost:5432/neuroinsight"
-Environment="POSTGRES_PASSWORD=neuroinsight_secure_password"
 Environment="FREESURFER_CONTAINER_PREFIX=freesurfer-job-"
 Environment="DOCKER_HOST=unix:///var/run/docker.sock"
 # Use sg (set group) to run with docker group access

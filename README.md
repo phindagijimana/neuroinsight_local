@@ -183,8 +183,8 @@ Create/edit `C:\Users\YourUsername\.wslconfig` in Windows:
 
 ```ini
 [wsl2]
-memory=8GB
-processors=4
+memory=12GB
+processors=6
 swap=4GB
 localhostForwarding=true
 ```

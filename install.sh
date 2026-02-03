@@ -927,14 +927,14 @@ if [ $RUNNING_CONTAINERS -gt 0 ]; then
     # Run alembic migrations
     if [ -f "backend/alembic.ini" ]; then
         source venv/bin/activate
-        cd backend
-        if alembic upgrade head > /tmp/neuroinsight_alembic.log 2>&1; then
+        # Set PYTHONPATH to include project root for alembic imports
+        export PYTHONPATH="$PWD:$PYTHONPATH"
+        if alembic -c backend/alembic.ini upgrade head > /tmp/neuroinsight_alembic.log 2>&1; then
             log_success "Database schema initialized"
         else
             log_warning "Database initialization had issues (see /tmp/neuroinsight_alembic.log)"
-            log_info "You may need to run manually: source venv/bin/activate && cd backend && alembic upgrade head"
+            log_info "You may need to run manually: PYTHONPATH=\$PWD:\$PYTHONPATH alembic -c backend/alembic.ini upgrade head"
         fi
-        cd ..
         deactivate
     else
         log_warning "Alembic configuration not found - skipping database initialization"

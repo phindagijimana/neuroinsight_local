@@ -136,7 +136,7 @@ start_docker_containers() {
                 if [ "$schema_ok" = false ]; then
                     echo "  Initializing database schema..."
                     if [ -f "venv/bin/activate" ]; then
-                        (source venv/bin/activate && cd backend && alembic upgrade head > /dev/null 2>&1 && echo "  Database schema initialized") || echo "  Warning: Database initialization may have failed"
+                        (source venv/bin/activate && export PYTHONPATH="$PWD:$PYTHONPATH" && alembic -c backend/alembic.ini upgrade head > /dev/null 2>&1 && echo "  Database schema initialized") || echo "  Warning: Database initialization may have failed"
                     fi
                 fi
             fi

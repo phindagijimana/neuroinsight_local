@@ -889,6 +889,29 @@ else
     log_info "For production PostgreSQL, check: docker ps -a"
 fi
 
+# Install systemd services (if available)
+echo ""
+if command -v systemctl &> /dev/null; then
+    log_info "Setting up systemd services for auto-restart..."
+    
+    if [ -f "systemd/install_systemd.sh" ]; then
+        # Run systemd installation silently
+        if ./systemd/install_systemd.sh > /tmp/neuroinsight_systemd_install.log 2>&1; then
+            log_success "Systemd services installed (auto-restart enabled)"
+            log_info "Services will start automatically with './neuroinsight start'"
+        else
+            log_warning "Systemd service installation had issues (see /tmp/neuroinsight_systemd_install.log)"
+            log_info "You can retry with: ./neuroinsight install-systemd"
+            log_info "Or use manual mode: ./neuroinsight start --manual"
+        fi
+    else
+        log_warning "systemd/install_systemd.sh not found"
+        log_info "Systemd services not installed - will use manual mode"
+    fi
+else
+    log_info "Systemd not available - will use manual start mode"
+fi
+
 log_success "NeuroInsight installation completed successfully!"
 echo
 

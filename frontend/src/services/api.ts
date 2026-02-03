@@ -16,8 +16,8 @@ export class ApiService {
    */
   async getJobs(): Promise<Job[]> {
     try {
-      console.log('Fetching jobs from:', `${this.baseUrl}/jobs/`);
-      const response = await fetch(`${this.baseUrl}/jobs/`);
+      console.log('Fetching jobs from:', `${this.baseUrl}/api/jobs/`);
+      const response = await fetch(`${this.baseUrl}/api/jobs/`);
       console.log('Response status:', response.status, response.statusText);
 
       if (!response.ok) {
@@ -42,7 +42,7 @@ export class ApiService {
   async getJob(jobId: string): Promise<Job | null> {
     try {
       console.log('Fetching job:', jobId);
-      const response = await fetch(`${this.baseUrl}/jobs/${jobId}`);
+      const response = await fetch(`${this.baseUrl}/api/jobs/${jobId}`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -79,7 +79,7 @@ export class ApiService {
       formData.append('patient_data', JSON.stringify(patientData));
 
       console.log('Uploading file:', file.name, 'Size:', file.size);
-      const response = await fetch(`${this.baseUrl}/upload/`, {
+      const response = await fetch(`${this.baseUrl}/api/upload/`, {
         method: 'POST',
         body: formData,
       });

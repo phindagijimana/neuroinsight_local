@@ -182,6 +182,203 @@ exit
 - **Memory**: Docker Desktop may need memory allocation in Windows settings
 - **Updates**: Keep both Windows Docker Desktop and WSL distribution updated
 
+#### Common WSL Installation Issues and Fixes
+
+After installing NeuroInsight on WSL, you may encounter some issues. Here are the fixes:
+
+##### Issue 1: Upload Directory Missing (FileNotFoundError)
+
+**Symptom:** File upload fails with error: `FileNotFoundError: /home/username/.local/share/neuroinsight/uploads/...`
+
+**Solution:**
+```bash
+cd ~/neuro/neuroinsight_local
+
+# Create missing directories
+mkdir -p ~/.local/share/neuroinsight/uploads
+mkdir -p ~/.local/share/neuroinsight/results
+mkdir -p ~/.local/share/neuroinsight/outputs
+
+# Restart services
+./neuroinsight stop
+./neuroinsight start
+```
+
+##### Issue 2: Docker Permission Denied
+
+**Symptom:** Services show `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`
+
+**Root Cause:** During installation, you were added to the `docker` group, but group membership only takes effect after logout/login.
+
+**Solution:**
+```bash
+# Stop services
+cd ~/neuro/neuroinsight_local
+./neuroinsight stop
+
+# Logout from WSL
+exit
+
+# From Windows PowerShell/CMD, shutdown WSL completely:
+wsl --shutdown
+
+# Restart WSL
+wsl
+
+# Navigate back and start services
+cd ~/neuro/neuroinsight_local
+./neuroinsight start
+```
+
+**Alternative (Quick fix without logout):**
+```bash
+# Use newgrp to activate docker group in current session
+newgrp docker
+
+# Restart services
+./neuroinsight stop
+./neuroinsight start
+```
+
+##### Issue 3: Database Schema Error (Invalid enum value)
+
+**Symptom:** Logs show `invalid input value for enum jobstatus: "PENDING"`
+
+**Root Cause:** Database needs to be initialized with the correct schema.
+
+**Solution:**
+```bash
+cd ~/neuro/neuroinsight_local
+
+# Initialize database schema
+source venv/bin/activate
+cd backend
+alembic upgrade head
+cd ..
+deactivate
+
+# Restart services
+./neuroinsight stop
+./neuroinsight start
+```
+
+##### Issue 4: systemd Services Not Starting
+
+**Symptom:** Services fail with `Failed to load environment files: No such file or directory`
+
+**Root Cause:** systemd service files have incorrect paths (old installation paths).
+
+**Solution:**
+```bash
+cd ~/neuro/neuroinsight_local
+
+# Verify .env exists
+ls -la .env
+
+# Reinstall systemd services with correct paths
+./systemd/install_systemd.sh
+
+# Reload systemd daemon
+systemctl --user daemon-reload
+
+# Start services
+./neuroinsight start
+```
+
+##### Issue 5: No Docker Containers Found (Despite Successful Installation)
+
+**Symptom:** During startup, message shows "No Docker containers found" even though installation showed containers running.
+
+**Root Cause:** Container detection filter too broad or Docker group permissions not active.
+
+**Solution:**
+```bash
+# Check if containers actually exist
+docker ps -a --filter "name=neuroinsight"
+
+# If containers exist, restart them
+docker start $(docker ps -a -q --filter "name=neuroinsight-")
+
+# If no containers, restart Docker infrastructure
+./neuroinsight stop
+./neuroinsight start
+```
+
+##### Complete Fresh Start (If Multiple Issues Persist)
+
+If you're experiencing multiple issues, a fresh installation often resolves everything:
+
+```bash
+# Stop all services
+cd ~/neuro/neuroinsight_local
+./neuroinsight stop
+
+# Remove old installation
+cd ~/neuro
+rm -rf neuroinsight_local
+
+# Clone fresh from GitHub (has all latest fixes)
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local
+
+# Check WSL environment (optional but recommended)
+./neuroinsight check-wsl
+
+# Install with all fixes
+./neuroinsight install
+
+# After installation, logout/login for Docker group
+exit
+
+# From PowerShell: wsl --shutdown
+# Then: wsl
+
+# Start NeuroInsight
+cd ~/neuro/neuroinsight_local
+./neuroinsight start
+```
+
+##### Enable systemd in WSL (If Not Enabled)
+
+If systemd is not available in your WSL:
+
+```bash
+# Edit wsl.conf
+sudo nano /etc/wsl.conf
+
+# Add these lines:
+[boot]
+systemd=true
+
+[user]
+default=your_username
+
+# Save and exit (Ctrl+X, Y, Enter)
+
+# From PowerShell, restart WSL:
+# wsl --shutdown
+# wsl
+```
+
+##### Memory Configuration for WSL
+
+If you have less than 16GB RAM or want to optimize WSL memory usage:
+
+**Create/edit `C:\Users\YourName\.wslconfig` on Windows:**
+```ini
+[wsl2]
+memory=16GB          # Allocate 16GB for MRI processing
+processors=4         # Use 4 CPU cores
+swap=8GB             # Swap space
+localhostForwarding=true
+```
+
+**Then restart WSL:**
+```powershell
+wsl --shutdown
+wsl
+```
+
 ### 6. Install and Start NeuroInsight
 
 ```bash

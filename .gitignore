@@ -108,3 +108,5 @@ SYSTEMD_QUICKSTART.md
 
 # Deployment documentation (keep local only)
 DEPLOYMENT.md
+PRODUCTION_CHECKLIST.md
+PRODUCTION_READINESS.md

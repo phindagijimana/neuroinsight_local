@@ -813,7 +813,14 @@ run_docker_cmd() {
     if [ "$USER_IN_DOCKER_GROUP" = true ]; then
         "$@"
     else
-        sg docker -c "$*"
+        # Properly quote all arguments for sg docker -c
+        local cmd_string=""
+        for arg in "$@"; do
+            # Escape single quotes and wrap each argument
+            arg="${arg//\'/\'\\\'\'}"
+            cmd_string="$cmd_string '$arg'"
+        done
+        sg docker -c "$cmd_string"
     fi
 }
 

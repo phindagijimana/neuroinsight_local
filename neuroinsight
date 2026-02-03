@@ -85,19 +85,25 @@ auto_install_systemd() {
 start_docker_containers() {
     # Start Docker containers - check if they exist and start them
     if command -v docker &> /dev/null; then
-        local stopped_containers=$(docker ps -a -q --filter "name=neuroinsight" --filter "status=exited" 2>/dev/null)
-        if [ -n "$stopped_containers" ]; then
-            echo "  Starting stopped Docker containers..."
-            docker start $stopped_containers > /dev/null 2>&1 || true
-            echo "  Docker containers started"
-        else
-            # Check if containers are already running
-            local running_containers=$(docker ps -q --filter "name=neuroinsight" 2>/dev/null)
-            if [ -n "$running_containers" ]; then
-                echo "  Docker containers already running"
+        # Check for stopped containers (including all status types)
+        local all_containers=$(docker ps -a -q --filter "name=neuroinsight-" 2>/dev/null || true)
+        
+        if [ -n "$all_containers" ]; then
+            # Check which ones are stopped
+            local stopped_containers=$(docker ps -a -q --filter "name=neuroinsight-" --filter "status=exited" 2>/dev/null || true)
+            
+            if [ -n "$stopped_containers" ]; then
+                echo "  Starting stopped Docker containers..."
+                docker start $stopped_containers > /dev/null 2>&1 || true
+                echo "  Docker containers started"
             else
-                echo "  No Docker containers found, they will be created when needed"
+                # All containers are already running
+                local running_count=$(docker ps -q --filter "name=neuroinsight-" 2>/dev/null | wc -l || echo "0")
+                echo "  Docker containers already running ($running_count containers)"
             fi
+        else
+            echo "  No Docker containers found"
+            echo "  Infrastructure containers will be created automatically"
         fi
     else
         echo "  Docker not available"

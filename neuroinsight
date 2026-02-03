@@ -95,11 +95,50 @@ start_docker_containers() {
             if [ -n "$stopped_containers" ]; then
                 echo "  Starting stopped Docker containers..."
                 docker start $stopped_containers > /dev/null 2>&1 || true
+                
+                # Wait for PostgreSQL to be ready
+                echo "  Waiting for PostgreSQL to be ready..."
+                for i in {1..15}; do
+                    if docker exec neuroinsight-db pg_isready -U neuroinsight > /dev/null 2>&1; then
+                        echo "  PostgreSQL is ready"
+                        break
+                    fi
+                    sleep 1
+                done
+                
                 echo "  Docker containers started"
             else
                 # All containers are already running
                 local running_count=$(docker ps -q --filter "name=neuroinsight-" 2>/dev/null | wc -l || echo "0")
                 echo "  Docker containers already running ($running_count containers)"
+                
+                # Verify PostgreSQL is responsive
+                if docker exec neuroinsight-db pg_isready -U neuroinsight > /dev/null 2>&1; then
+                    echo "  PostgreSQL is responsive"
+                else
+                    echo "  Warning: PostgreSQL may not be ready"
+                fi
+            fi
+            
+            # Ensure data directories exist
+            mkdir -p "$HOME/.local/share/neuroinsight/uploads" 2>/dev/null || true
+            mkdir -p "$HOME/.local/share/neuroinsight/results" 2>/dev/null || true
+            mkdir -p "$HOME/.local/share/neuroinsight/outputs" 2>/dev/null || true
+            
+            # Check if database schema is initialized
+            if [ -f "backend/alembic.ini" ]; then
+                # Quick check: try to query the database
+                local schema_ok=false
+                if docker exec neuroinsight-db psql -U neuroinsight -d neuroinsight -c "SELECT 1 FROM jobs LIMIT 1" > /dev/null 2>&1; then
+                    schema_ok=true
+                fi
+                
+                if [ "$schema_ok" = false ]; then
+                    echo "  Initializing database schema..."
+                    if [ -f "venv/bin/activate" ]; then
+                        (source venv/bin/activate && cd backend && alembic upgrade head > /dev/null 2>&1 && echo "  Database schema initialized") || echo "  Warning: Database initialization may have failed"
+                    fi
+                fi
             fi
         else
             echo "  No Docker containers found"

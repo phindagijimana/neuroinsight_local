@@ -896,6 +896,53 @@ else
     log_info "For production PostgreSQL, check: docker ps -a"
 fi
 
+# Create required data directories
+log_info "Creating required data directories..."
+mkdir -p "$HOME/.local/share/neuroinsight/uploads"
+mkdir -p "$HOME/.local/share/neuroinsight/results"
+mkdir -p "$HOME/.local/share/neuroinsight/outputs"
+if [ -d "$HOME/.local/share/neuroinsight/uploads" ]; then
+    log_success "Data directories created"
+else
+    log_warning "Failed to create data directories - uploads may fail"
+fi
+
+# Initialize database schema (if PostgreSQL is running)
+if [ $RUNNING_CONTAINERS -gt 0 ]; then
+    log_info "Initializing database schema..."
+    
+    # Wait for PostgreSQL to be fully ready
+    log_info "Waiting for PostgreSQL to be ready..."
+    for i in {1..30}; do
+        if run_docker_cmd docker exec neuroinsight-db pg_isready -U neuroinsight > /dev/null 2>&1; then
+            log_success "PostgreSQL is ready"
+            break
+        fi
+        if [ $i -eq 30 ]; then
+            log_warning "PostgreSQL may not be fully ready - database initialization might fail"
+        fi
+        sleep 1
+    done
+    
+    # Run alembic migrations
+    if [ -f "backend/alembic.ini" ]; then
+        source venv/bin/activate
+        cd backend
+        if alembic upgrade head > /tmp/neuroinsight_alembic.log 2>&1; then
+            log_success "Database schema initialized"
+        else
+            log_warning "Database initialization had issues (see /tmp/neuroinsight_alembic.log)"
+            log_info "You may need to run manually: source venv/bin/activate && cd backend && alembic upgrade head"
+        fi
+        cd ..
+        deactivate
+    else
+        log_warning "Alembic configuration not found - skipping database initialization"
+    fi
+else
+    log_info "Skipping database initialization (no PostgreSQL container)"
+fi
+
 # Install systemd services (if available)
 echo ""
 if command -v systemctl &> /dev/null; then

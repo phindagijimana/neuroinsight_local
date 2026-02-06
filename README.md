@@ -138,13 +138,13 @@ NeuroInsight is now available as a native desktop application with one-click ins
 
 ### Deployment Comparison
 
-| Feature | Native Linux | Linux Docker | Windows Docker |
-|---------|--------------|--------------|----------------|
-| **Platform** | Ubuntu 20.04+ | Ubuntu 20.04+ / WSL2 | Windows 10/11 |
-| **Installation** | Direct on system | Containerized | Containerized via WSL2 |
-| **Updates** | Manual | One command | One command |
-| **Isolation** | System-wide | Containerized | Containerized |
-| **Best For** | Direct Linux install | Isolated environments | Windows users |
+| Feature | Native Linux | Linux Docker | Windows Docker | Desktop App |
+|---------|--------------|--------------|----------------|-------------|
+| **Platform** | Ubuntu 20.04+ | Ubuntu 20.04+ / WSL2 | Windows 10/11 | Windows 10/11, Linux |
+| **Installation** | Direct on system | Containerized | Containerized via WSL2 | One-click installer |
+| **Updates** | Manual | One command | One command | Auto-update |
+| **Isolation** | System-wide | Containerized | Containerized | Containerized |
+| **Best For** | Direct Linux install | Isolated environments | Windows users | Researchers, clinicians |
 
 ---
 

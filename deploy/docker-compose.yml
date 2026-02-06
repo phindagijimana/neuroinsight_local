@@ -2,11 +2,8 @@ version: '3.8'
 
 services:
   neuroinsight:
-    build:
-      context: ../neuroinsight_local
-      dockerfile: ../deploy_docker/Dockerfile
-    image: neuroinsight/allinone:latest
-    container_name: neuroinsight-allinone
+    image: phindagijimana321/neuroinsight:latest
+    container_name: neuroinsight
     ports:
       - "8000:8000"    # Web interface
       - "9000:9000"    # MinIO API

@@ -52,7 +52,7 @@ neuroinsight_local/
 
 ## Quick Start
 
-### Linux / WSL Installation
+### Native Linux/WSL Installation
 
 ```bash
 # Clone repository
@@ -75,6 +75,31 @@ cd neuroinsight_local
 
 # Verify installation
 ./neuroinsight status
+```
+
+### Docker Linux/WSL Installation
+
+```bash
+# Clone repository
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local/deploy
+
+# Build Docker image
+./build.sh v1.0.0
+
+# Install and run (auto-detects port and license)
+./neuroinsight-docker install
+
+# Access at http://localhost:8000 (or shown port)
+
+# Check status
+./neuroinsight-docker status
+
+# View logs
+./neuroinsight-docker logs
+
+# Stop
+./neuroinsight-docker stop
 ```
 
 ## File Requirements

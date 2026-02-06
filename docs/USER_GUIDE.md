@@ -288,11 +288,64 @@ NeuroInsight offers four deployment methods:
 
 Choose Docker/Native deployment for servers, HPC clusters, or multi-user environments.
 
+---
+
 ## Installation
+
+### Option 0: Desktop Application (Recommended for Most Users)
+
+**Best for:** Researchers, clinicians, desktop users wanting the easiest setup
+
+**Download:** [NeuroInsight Desktop v1.0.0](https://github.com/phindagijimana/neuroinsight_desktop/releases/tag/v1.0.0)
+
+**Platforms:**
+- Windows 10/11 (Setup.exe or Portable.exe)
+- Linux (AppImage or DEB package)
+
+**Prerequisites:**
+- Docker Desktop installed (see Docker Installation section above)
+- 16GB+ RAM, 50GB+ disk space
+
+**Quick Start:**
+
+**Windows:**
+1. Download `NeuroInsight-Setup-1.0.0.exe`
+2. Run installer and follow wizard
+3. Launch from Start Menu
+
+**Linux (AppImage):**
+```bash
+wget https://github.com/phindagijimana/neuroinsight_desktop/releases/download/v1.0.0/NeuroInsight-1.0.0.AppImage
+chmod +x NeuroInsight-1.0.0.AppImage
+./NeuroInsight-1.0.0.AppImage
+```
+
+**Linux (DEB - Ubuntu/Debian):**
+```bash
+wget https://github.com/phindagijimana/neuroinsight_desktop/releases/download/v1.0.0/NeuroInsight-1.0.0.deb
+sudo dpkg -i NeuroInsight-1.0.0.deb
+neuroinsight
+```
+
+**First Run:**
+1. Ensure Docker Desktop is running
+2. Launch NeuroInsight
+3. First run downloads FreeSurfer image (~7GB, one-time)
+4. Upload T1-weighted MRI files and start processing
+
+**Documentation:** See [Desktop App Documentation](https://github.com/phindagijimana/neuroinsight_desktop) for full details, troubleshooting, and advanced features.
+
+**Note:** Desktop App uses Docker containers under the hood. For server deployments or advanced configurations, use the options below.
+
+---
 
 ### Option 1: Native Linux Installation
 
 **Best for:** Direct Ubuntu/Debian systems with systemd
+
+**Prerequisites:** 
+- Docker installed (see Docker Installation section above)
+- Ubuntu 20.04+ with systemd
 
 ### 1. Clone Repository
 
@@ -382,230 +435,28 @@ exit
 - **Memory**: Docker Desktop may need memory allocation in Windows settings
 - **Updates**: Keep both Windows Docker Desktop and WSL distribution updated
 
-#### Common WSL Installation Issues and Fixes
+### 5. Troubleshooting
 
-After installing NeuroInsight on WSL, you may encounter some issues. Here are the fixes:
+For installation issues on WSL or native Linux, see the **Troubleshooting** section at the end of this guide or refer to `docs/TROUBLESHOOTING.md`.
 
-##### Issue 1: Upload Directory Missing (FileNotFoundError)
+**Common WSL issues:**
 
-**Symptom:** File upload fails with error: `FileNotFoundError: /home/username/.local/share/neuroinsight/uploads/...`
+- **Upload directory missing** - Run `./neuroinsight install` to create directories
+- **Docker permission denied** - Log out and back in after adding to docker group
+- **Database schema errors** - Run `alembic upgrade head` in backend folder
+- **systemd services not starting** - Reinstall services with `./systemd/install_systemd.sh`
 
-**Solution:**
-```bash
-cd ~/neuro/neuroinsight_local
-
-# Create missing directories
-mkdir -p ~/.local/share/neuroinsight/uploads
-mkdir -p ~/.local/share/neuroinsight/results
-mkdir -p ~/.local/share/neuroinsight/outputs
-
-# Restart services
-./neuroinsight stop
-./neuroinsight start
-```
-
-##### Issue 2: Docker Permission Denied
-
-**Symptom:** Services show `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock`
-
-**Root Cause:** During installation, you were added to the `docker` group, but group membership only takes effect after logout/login.
-
-**Solution:**
-```bash
-# Stop services
-cd ~/neuro/neuroinsight_local
-./neuroinsight stop
-
-# Logout from WSL
-exit
-
-# From Windows PowerShell/CMD, shutdown WSL completely:
-wsl --shutdown
-
-# Restart WSL
-wsl
-
-# Navigate back and start services
-cd ~/neuro/neuroinsight_local
-./neuroinsight start
-```
-
-**Alternative (Quick fix without logout):**
-```bash
-# Use newgrp to activate docker group in current session
-newgrp docker
-
-# Restart services
-./neuroinsight stop
-./neuroinsight start
-```
-
-##### Issue 3: Database Schema Error (Invalid enum value)
-
-**Symptom:** Logs show `invalid input value for enum jobstatus: "PENDING"`
-
-**Root Cause:** Database needs to be initialized with the correct schema.
-
-**Solution:**
-```bash
-cd ~/neuro/neuroinsight_local
-
-# Initialize database schema
-source venv/bin/activate
-cd backend
-alembic upgrade head
-cd ..
-deactivate
-
-# Restart services
-./neuroinsight stop
-./neuroinsight start
-```
-
-##### Issue 4: systemd Services Not Starting
-
-**Symptom:** Services fail with `Failed to load environment files: No such file or directory`
-
-**Root Cause:** systemd service files have incorrect paths (old installation paths).
-
-**Solution:**
-```bash
-cd ~/neuro/neuroinsight_local
-
-# Verify .env exists
-ls -la .env
-
-# Reinstall systemd services with correct paths
-./systemd/install_systemd.sh
-
-# Reload systemd daemon
-systemctl --user daemon-reload
-
-# Start services
-./neuroinsight start
-```
-
-##### Issue 5: No Docker Containers Found (Despite Successful Installation)
-
-**Symptom:** During startup, message shows "No Docker containers found" even though installation showed containers running.
-
-**Root Cause:** Container detection filter too broad or Docker group permissions not active.
-
-**Solution:**
-```bash
-# Check if containers actually exist
-docker ps -a --filter "name=neuroinsight"
-
-# If containers exist, restart them
-docker start $(docker ps -a -q --filter "name=neuroinsight-")
-
-# If no containers, restart Docker infrastructure
-./neuroinsight stop
-./neuroinsight start
-```
-
-##### Complete Fresh Start (If Multiple Issues Persist)
-
-If you're experiencing multiple issues, a fresh installation often resolves everything:
-
-```bash
-# Stop all services
-cd ~/neuro/neuroinsight_local
-./neuroinsight stop
-
-# Remove old installation
-cd ~/neuro
-rm -rf neuroinsight_local
-
-# Clone fresh from GitHub (has all latest fixes)
-git clone https://github.com/phindagijimana/neuroinsight_local.git
-cd neuroinsight_local
-
-# Check WSL environment (optional but recommended)
-./neuroinsight check-wsl
-
-# Install with all fixes
-./neuroinsight install
-
-# After installation, logout/login for Docker group
-exit
-
-# From PowerShell: wsl --shutdown
-# Then: wsl
-
-# Start NeuroInsight
-cd ~/neuro/neuroinsight_local
-./neuroinsight start
-```
-
-##### Enable systemd in WSL (If Not Enabled)
-
-If systemd is not available in your WSL:
-
-```bash
-# Edit wsl.conf
-sudo nano /etc/wsl.conf
-
-# Add these lines:
-[boot]
-systemd=true
-
-[user]
-default=your_username
-
-# Save and exit (Ctrl+X, Y, Enter)
-
-# From PowerShell, restart WSL:
-# wsl --shutdown
-# wsl
-```
-
-##### Memory Configuration for WSL
-
-If you have less than 16GB RAM or want to optimize WSL memory usage:
-
-**Create/edit `C:\Users\YourName\.wslconfig` on Windows:**
-```ini
-[wsl2]
-memory=16GB          # Allocate 16GB for MRI processing
-processors=4         # Use 4 CPU cores
-swap=8GB             # Swap space
-localhostForwarding=true
-```
-
-**Then restart WSL:**
-```powershell
-wsl --shutdown
-wsl
-```
-
-### 6. Install and Start NeuroInsight
-
-```bash
-# Install NeuroInsight (one-time setup)
-./neuroinsight install
-
-# Verify FreeSurfer license
-./neuroinsight license
-
-# IMPORTANT: Configure system sleep settings to prevent processing interruptions
-# System Settings → Power → Set sleep timeout to 7+ hours when inactive
-
-# Start NeuroInsight
-./neuroinsight start
-```
-
-**Access NeuroInsight at:** http://localhost:8000
+**For detailed solutions:** See `docs/TROUBLESHOOTING.md`
 
 ---
 
 ### Option 2: Linux Docker Installation
 
-**Best for:** Isolated containerized deployment on Linux/WSL2
+**Best for:** Isolated containerized environment on Linux/WSL2
 
-#### Prerequisites
-- Docker Engine 20.10+ or Docker Desktop
-- Docker Compose v2.0+
+**Prerequisites:**
+- Docker Engine 20.10+ or Docker Desktop (see Docker Installation above)
+- Docker Compose 2.0+
 - 16GB+ RAM, 50GB disk space
 - Ubuntu 20.04+ or WSL2
 
@@ -616,59 +467,59 @@ wsl
 git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local/deploy
 
-# 2. Get FreeSurfer license
-# Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
-# Save as: ../license.txt (in neuroinsight_local/ root)
-
-# 3. Install and start (pulls from Docker Hub)
+# 2. Install and start
 ./neuroinsight-docker install
 
-# Access at http://localhost:8000 (or shown port)
+# Access at http://localhost:8000
 ```
+
+The install command will:
+- Auto-detect FreeSurfer license in parent directory
+- Pull Docker image from Docker Hub
+- Create Docker volume for data persistence
+- Start all services in one container
 
 #### Docker Management Commands
 
 ```bash
-# Core operations
-./neuroinsight-docker start         # Start container
-./neuroinsight-docker stop          # Stop container
-./neuroinsight-docker restart       # Restart
-./neuroinsight-docker status        # Check status
-./neuroinsight-docker health        # Health check
+cd neuroinsight_local/deploy
 
-# Logs and monitoring
-./neuroinsight-docker logs          # View all logs
-./neuroinsight-docker logs backend  # Backend logs
-./neuroinsight-docker logs worker   # Worker logs
-
-# Data management
-./neuroinsight-docker clean         # Clean old jobs (30+ days)
-./neuroinsight-docker clean 7       # Clean jobs older than 7 days
-./neuroinsight-docker backup        # Backup all data
-./neuroinsight-docker restore backup.tar.gz  # Restore from backup
+# Service management
+./neuroinsight-docker start            # Start services
+./neuroinsight-docker stop             # Stop services
+./neuroinsight-docker restart          # Restart services
+./neuroinsight-docker status           # Check status
 
 # Maintenance
-./neuroinsight-docker update        # Update to latest version
-./neuroinsight-docker license       # Check license status
+./neuroinsight-docker logs             # View logs
+./neuroinsight-docker backup           # Backup data
+./neuroinsight-docker restore backup.tar.gz  # Restore from backup
+./neuroinsight-docker update           # Update to latest version
+
+# Advanced
+./neuroinsight-docker shell            # Access container shell
+./neuroinsight-docker clean            # Remove container and data
 ```
 
 #### What's Included
-- FastAPI backend server
-- Celery workers for processing
-- PostgreSQL database
-- Redis message broker
-- MinIO object storage
-- All dependencies pre-configured
-- Automatic FreeSurfer container spawning
+
+The Docker container includes all components:
+- PostgreSQL 15 (database)
+- Redis 7 (task queue)
+- MinIO (S3-compatible storage)
+- FastAPI backend (port 8000)
+- Celery worker (MRI processing)
+- React frontend
 
 #### Data Persistence
-All data persists in Docker volumes across restarts:
-- Uploaded MRI scans
-- Processing results
-- Database records
-- System logs
 
-**Backup recommended before updates!**
+All data is stored in Docker volume `neuroinsight-data`:
+- MRI uploads
+- Processing results
+- Database
+- Logs
+
+Use `./neuroinsight-docker backup` for regular backups.
 
 ---
 
@@ -676,9 +527,9 @@ All data persists in Docker volumes across restarts:
 
 **Best for:** Windows 10/11 users
 
-#### Prerequisites
+**Prerequisites:**
 - Windows 10/11 (64-bit, version 2004+)
-- Docker Desktop for Windows
+- Docker Desktop for Windows (see Docker Installation above)
 - 16GB+ RAM, 50GB disk space
 - WSL2 (auto-installed by Docker Desktop)
 
@@ -686,61 +537,63 @@ All data persists in Docker volumes across restarts:
 
 **1. Install Docker Desktop**
 - Download: https://www.docker.com/products/docker-desktop/
-- Run installer, enable "Use WSL 2 instead of Hyper-V"
-- Restart when prompted
+- Install and restart if prompted
 - Docker Desktop automatically configures WSL2
 
-**2. Download NeuroInsight Windows Package**
+**2. Install NeuroInsight**
+
 ```powershell
-# Download neuroinsight_windows/ from GitHub
-# Extract to desired location
-cd neuroinsight_windows
-```
+# Clone repository
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local\neuroinsight_windows
 
-**3. Get FreeSurfer License**
-- Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
-- Save as `license.txt` in neuroinsight_windows/ folder
-
-**4. Install NeuroInsight**
-
-PowerShell (recommended):
-```powershell
+# Install and start
 .\neuroinsight-docker.ps1 install
+
+# Access at http://localhost:8000
 ```
 
-Command Prompt:
-```cmd
-install.bat
-```
+The install command will:
+- Auto-detect FreeSurfer license
+- Pull Docker image
+- Create volume for data
+- Start container
 
-**Access at:** http://localhost:8000
+**3. Verify Installation**
+
+Open browser and navigate to: http://localhost:8000
 
 #### Windows Management Commands
 
+**PowerShell:**
 ```powershell
-# Core operations
-.\neuroinsight-docker.ps1 install       # Install and start
-.\neuroinsight-docker.ps1 start         # Start container
-.\neuroinsight-docker.ps1 stop          # Stop container
-.\neuroinsight-docker.ps1 restart       # Restart
-.\neuroinsight-docker.ps1 status        # Check status
-.\neuroinsight-docker.ps1 health        # Health check
+cd neuroinsight_windows
 
-# Logs and monitoring
-.\neuroinsight-docker.ps1 logs          # View all logs
-.\neuroinsight-docker.ps1 logs backend  # Backend logs
-.\neuroinsight-docker.ps1 logs worker   # Worker logs
-
-# Data management
-.\neuroinsight-docker.ps1 clean         # Clean old jobs (30+ days)
-.\neuroinsight-docker.ps1 clean 7       # Clean jobs older than 7 days
-.\neuroinsight-docker.ps1 backup        # Backup all data
-.\neuroinsight-docker.ps1 restore backup.tar.gz  # Restore
+# Service management
+.\neuroinsight-docker.ps1 start        # Start services
+.\neuroinsight-docker.ps1 stop         # Stop services  
+.\neuroinsight-docker.ps1 restart      # Restart services
+.\neuroinsight-docker.ps1 status       # Check status
 
 # Maintenance
-.\neuroinsight-docker.ps1 update        # Update to latest
-.\neuroinsight-docker.ps1 remove        # Uninstall
-.\neuroinsight-docker.ps1 license       # Check license
+.\neuroinsight-docker.ps1 logs         # View logs
+.\neuroinsight-docker.ps1 backup       # Backup data
+.\neuroinsight-docker.ps1 restore backup.tar.gz  # Restore
+.\neuroinsight-docker.ps1 update       # Update to latest
+
+# Advanced
+.\neuroinsight-docker.ps1 shell        # Access container
+.\neuroinsight-docker.ps1 clean        # Remove all data
+```
+
+**Batch Scripts (Alternative):**
+```cmd
+cd neuroinsight_windows\scripts
+
+start.bat          # Start services
+stop.bat           # Stop services
+status.bat         # Check status
+logs.bat           # View logs
 ```
 
 #### Docker Desktop Configuration
@@ -753,8 +606,8 @@ Recommended settings (Docker Desktop → Settings):
 - Disk: 50GB+
 
 **General:**
-- ✅ Use WSL2 based engine
-- ✅ Start Docker Desktop when you log in
+- Use WSL2 based engine
+- Start Docker Desktop when you log in
 
 #### Windows-Specific Notes
 - Uses same Linux Docker image via WSL2
@@ -767,15 +620,15 @@ Recommended settings (Docker Desktop → Settings):
 
 ### Deployment Comparison
 
-| Feature | Native Linux | Linux Docker | Windows Docker |
-|---------|-------------|--------------|----------------|
-| **Installation** | Direct on system | Containerized | Containerized via WSL2 |
-| **Updates** | Manual | One command | One command |
-| **Backup/Restore** | Manual | Built-in | Built-in |
-| **Isolation** | System-wide | Containerized | Containerized |
-| **Performance** | Direct | Minimal overhead | WSL2 overhead |
-| **Portability** | System-specific | Portable | Portable |
-| **Dependencies** | Manual install | Pre-packaged | Pre-packaged |
+| Feature | Native Linux | Linux Docker | Windows Docker | Desktop App |
+|---------|--------------|--------------|----------------|-------------|
+| **Installation** | Direct on system | Containerized | Containerized via WSL2 | One-click installer |
+| **Updates** | Manual | One command | One command | Auto-update |
+| **Backup/Restore** | Manual | Built-in | Built-in | Built-in |
+| **Isolation** | System-wide | Containerized | Containerized | Containerized |
+| **Performance** | Direct | Minimal overhead | WSL2 overhead | Minimal overhead |
+| **Portability** | System-specific | Portable | Portable | Portable |
+| **Dependencies** | Manual install | Pre-packaged | Pre-packaged | Pre-packaged |
 
 ---
 
@@ -819,7 +672,39 @@ docker run -d `
 # Access at http://localhost:8000
 ```
 
-**Note:** For full features and easier management, use the installation methods above (Option 2 or Option 3).
+**Note:** For full features and easier management, use the installation methods above (Option 0, 2, or 3).
+
+---
+
+## Configuration
+
+### Environment Variables
+
+NeuroInsight can be configured using the `.env` file in the project root (Native Linux deployment) or through environment variables passed to Docker containers.
+
+**Key Configuration Options:**
+
+**Processing:**
+- `CELERY_WORKER_CONCURRENCY` - Number of concurrent MRI processing jobs (default: 1)
+- `FREESURFER_LICENSE_PATH` - Path to FreeSurfer license file
+
+**Storage:**
+- `HOST_UPLOAD_DIR` - Directory for uploaded MRI files
+- `HOST_OUTPUT_DIR` - Directory for processing outputs
+- `MINIO_ENDPOINT` - S3-compatible storage endpoint (optional)
+
+**Resources:**
+- `MAX_WORKERS` - Maximum parallel Celery workers
+- `MEMORY_LIMIT` - Container memory limit (Docker deployments)
+
+**Network:**
+- `BACKEND_PORT` - API server port (default: 8000)
+- `CORS_ORIGINS` - Allowed CORS origins for API access
+
+For detailed configuration, see your deployment's specific documentation:
+- **Option 0 (Desktop App)**: Uses default configuration, customizable through UI
+- **Option 1 (Native Linux)**: Edit `.env` in project root
+- **Option 2/3 (Docker)**: Configuration embedded in container, customize via docker-compose.yml or Docker run parameters
 
 ---
 

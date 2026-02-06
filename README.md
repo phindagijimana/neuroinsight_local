@@ -128,38 +128,18 @@ Supported formats: NIfTI (`.nii`, `.nii.gz`) only.
 ## Docker Commands Management
 
 ```bash
-# From deploy/ directory
-cd neuroinsight_local/deploy
-
-# Installation & Setup
+# From deploy/ directory - cd neuroinsight_local/deploy
 ./neuroinsight-docker install      # Install and run (auto-detects port and license)
-./neuroinsight-docker remove       # Remove container and data
-
-# Service Control
 ./neuroinsight-docker start        # Start the container
 ./neuroinsight-docker stop         # Stop the container
 ./neuroinsight-docker restart      # Restart all services
-
-# Monitoring & Status
 ./neuroinsight-docker status       # Check overall status
 ./neuroinsight-docker health       # Check service health
-./neuroinsight-docker logs         # View all logs
-./neuroinsight-docker logs backend # View backend logs
-./neuroinsight-docker logs worker  # View worker logs
-
-# Data Management
-./neuroinsight-docker clean               # Clean old jobs (30+ days)
-./neuroinsight-docker clean --days 7      # Clean jobs older than 7 days
-./neuroinsight-docker bring <job_id>      # Recover specific job
-
-# Backup & Maintenance
-./neuroinsight-docker backup       # Backup all data
-./neuroinsight-docker restore <file>  # Restore from backup
+./neuroinsight-docker logs         # View logs (add backend/worker for specific logs)
+./neuroinsight-docker clean        # Clean old jobs (use --days N for custom)
+./neuroinsight-docker bring <job_id>  # Recover a completed job by ID
+./neuroinsight-docker license      # FreeSurfer license status
 ./neuroinsight-docker update       # Update to latest version
-./neuroinsight-docker shell        # Access container shell
-
-# License Management
-./neuroinsight-docker license      # Check FreeSurfer license status
 ```
 
 ## Further Documentation

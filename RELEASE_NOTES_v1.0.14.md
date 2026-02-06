@@ -1,17 +1,12 @@
 ## Release v1.0.14
 
-## 🎉 Desktop Application Now Available!
+## Desktop Application Now Available
 
-**NEW:** NeuroInsight is now available as a native desktop application!
+NeuroInsight is now available as a native desktop application with one-click installers for Windows and Linux.
 
-- **One-click installers** for Windows and Linux
-- **Easy setup** - No command line needed  
-- **Same powerful FreeSurfer processing**
-- **Perfect for researchers and clinicians**
+**[Download Desktop App v1.0.0](https://github.com/phindagijimana/neuroinsight_desktop/releases/tag/v1.0.0)**
 
-👉 **[Download Desktop App v1.0.0](https://github.com/phindagijimana/neuroinsight_desktop/releases/tag/v1.0.0)**
-
-Choose **Desktop App** for easiest setup, or **Docker Deployment** (below) for servers and advanced users.
+Choose Desktop App for easiest setup, or Docker Deployment (below) for servers and advanced users.
 
 ---
 

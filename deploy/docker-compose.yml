@@ -15,11 +15,8 @@ services:
       - neuroinsight-data:/data
       # FreeSurfer license (auto-detected from parent directory)
       - ../license.txt:/app/license.txt:ro
-    # Add docker group for Docker-in-Docker access (required for FreeSurfer spawning)
-    # On Linux/WSL: group_add dynamically gets the docker GID
-    # Note: Update GID if needed - check with: getent group docker | cut -d: -f3
-    group_add:
-      - "${DOCKER_GID:-999}"  # Default 999, override with env var if needed
+    # Note: Docker group permissions are auto-configured by entrypoint.sh at runtime
+    # This ensures compatibility across Linux, WSL2, and Docker Desktop
     environment:
       # Override default passwords (recommended for production)
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-neuroinsight_secure_password}

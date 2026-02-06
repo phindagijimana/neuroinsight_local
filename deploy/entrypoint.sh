@@ -5,6 +5,68 @@ echo "======================================"
 echo "NeuroInsight All-in-One Container"
 echo "======================================"
 
+# ============================================
+# Docker Socket Permission Fix (Universal)
+# ============================================
+# Automatically configure Docker access for FreeSurfer container spawning
+# Works on Linux, WSL2, and Docker Desktop by detecting socket GID at runtime
+
+if [ -S /var/run/docker.sock ]; then
+    echo ""
+    echo "Configuring Docker socket access..."
+    
+    # Get the actual GID of the Docker socket
+    DOCKER_SOCKET_GID=$(stat -c '%g' /var/run/docker.sock)
+    echo "  Docker socket GID: $DOCKER_SOCKET_GID"
+    
+    # Check if docker group exists and get its current GID
+    if getent group docker > /dev/null 2>&1; then
+        CURRENT_DOCKER_GID=$(getent group docker | cut -d: -f3)
+        echo "  Current docker group GID: $CURRENT_DOCKER_GID"
+        
+        # If GIDs don't match, update the docker group
+        if [ "$DOCKER_SOCKET_GID" != "$CURRENT_DOCKER_GID" ]; then
+            echo "  Updating docker group GID to match socket..."
+            groupmod -g "$DOCKER_SOCKET_GID" docker
+            echo "  ✓ Docker group updated to GID $DOCKER_SOCKET_GID"
+        else
+            echo "  ✓ Docker group GID already matches socket"
+        fi
+    else
+        # Docker group doesn't exist, create it with correct GID
+        echo "  Creating docker group with GID $DOCKER_SOCKET_GID..."
+        groupadd -g "$DOCKER_SOCKET_GID" docker
+        echo "  ✓ Docker group created"
+    fi
+    
+    # Ensure neuroinsight user is in docker group
+    if ! id -nG neuroinsight | grep -qw docker; then
+        echo "  Adding neuroinsight user to docker group..."
+        usermod -aG docker neuroinsight
+        echo "  ✓ User added to docker group"
+    else
+        echo "  ✓ User already in docker group"
+    fi
+    
+    # Verify Docker access
+    if su - neuroinsight -c "docker ps > /dev/null 2>&1"; then
+        echo "  ✓ Docker access verified - FreeSurfer spawning enabled"
+    else
+        echo "  ⚠ Warning: Docker access test failed"
+        echo "  FreeSurfer container spawning may not work"
+        echo "  This is usually fine if Docker daemon is starting up"
+    fi
+    
+    echo "Docker configuration complete"
+    echo ""
+else
+    echo ""
+    echo "⚠ Warning: Docker socket not found at /var/run/docker.sock"
+    echo "FreeSurfer container spawning will not be available"
+    echo "Application will run in demo mode with mock processing"
+    echo ""
+fi
+
 # Function to wait for PostgreSQL to be ready
 wait_for_postgres() {
     echo "Waiting for PostgreSQL to be ready..."

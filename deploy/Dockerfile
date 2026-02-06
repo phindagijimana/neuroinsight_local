@@ -41,13 +41,15 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Docker CLI for FreeSurfer container spawning
-# Note: Docker group GID must match host's docker group to access socket
+# Note: Docker group GID is auto-configured at runtime by entrypoint.sh
+# This ensures compatibility with any host system (Linux, WSL2, Docker Desktop)
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list && \
     apt-get update && \
     apt-get install -y docker-ce-cli && \
     rm -rf /var/lib/apt/lists/* && \
-    groupadd -g 122 docker && \
+    # Create docker group with placeholder GID (will be updated at runtime by entrypoint)
+    groupadd -g 999 docker || true && \
     usermod -aG docker neuroinsight && \
     # Create Docker config directory for neuroinsight user to avoid /root permission errors
     mkdir -p /home/neuroinsight/.docker && \

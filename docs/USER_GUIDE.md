@@ -776,6 +776,50 @@ Recommended settings (Docker Desktop → Settings):
 
 ---
 
+## Quick Docker Deployment (Direct Pull)
+
+For advanced users who want to pull and run the Docker image directly without installation scripts:
+
+### Linux
+
+```bash
+# Pull image
+docker pull phindagijimana321/neuroinsight:latest
+
+# Run container
+docker run -d \
+  --name neuroinsight \
+  -p 8000:8000 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v neuroinsight-data:/data \
+  -v $(pwd)/license.txt:/app/license.txt:ro \
+  phindagijimana321/neuroinsight:latest
+
+# Access at http://localhost:8000
+```
+
+### Windows (PowerShell)
+
+```powershell
+# Pull image
+docker pull phindagijimana321/neuroinsight:latest
+
+# Run container
+docker run -d `
+  --name neuroinsight `
+  -p 8000:8000 `
+  -v /var/run/docker.sock:/var/run/docker.sock `
+  -v neuroinsight-data:/data `
+  -v ${PWD}/license.txt:/app/license.txt:ro `
+  phindagijimana321/neuroinsight:latest
+
+# Access at http://localhost:8000
+```
+
+**Note:** For full features and easier management, use the installation methods above (Option 2 or Option 3).
+
+---
+
 ## Understanding NeuroInsight
 
 ### Concurrency Limits

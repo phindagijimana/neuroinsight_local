@@ -148,48 +148,6 @@ NeuroInsight is now available as a native desktop application with one-click ins
 
 ---
 
-## Docker Deployment (Quick)
-
-For users who want to pull the Docker image directly:
-
-### Linux
-```bash
-# Pull image
-docker pull phindagijimana321/neuroinsight:latest
-
-# Run container
-docker run -d \
-  --name neuroinsight \
-  -p 8000:8000 \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v neuroinsight-data:/data \
-  -v $(pwd)/license.txt:/app/license.txt:ro \
-  phindagijimana321/neuroinsight:latest
-
-# Access at http://localhost:8000
-```
-
-### Windows (PowerShell)
-```powershell
-# Pull image
-docker pull phindagijimana321/neuroinsight:latest
-
-# Run container
-docker run -d `
-  --name neuroinsight `
-  -p 8000:8000 `
-  -v /var/run/docker.sock:/var/run/docker.sock `
-  -v neuroinsight-data:/data `
-  -v ${PWD}/license.txt:/app/license.txt:ro `
-  phindagijimana321/neuroinsight:latest
-
-# Access at http://localhost:8000
-```
-
-**Note**: For full features and easier management, use the installation methods above.
-
----
-
 ## File Requirements
 
 NeuroInsight processes T1-weighted MRI scans only. Filenames must contain:

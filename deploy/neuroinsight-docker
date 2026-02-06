@@ -5,7 +5,7 @@
 set -e
 
 CONTAINER_NAME="neuroinsight"
-IMAGE_NAME="neuroinsight/allinone:latest"
+IMAGE_NAME="phindagijimana321/neuroinsight:latest"
 VOLUME_NAME="neuroinsight-data"
 
 # Colors

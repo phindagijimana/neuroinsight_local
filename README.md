@@ -84,10 +84,7 @@ cd neuroinsight_local
 git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local/deploy
 
-# Build Docker image
-./build.sh v1.0.0
-
-# Install and run (auto-detects port and license)
+# Install and run (automatically pulls from Docker Hub)
 ./neuroinsight-docker install
 
 # Access at http://localhost:8000 (or shown port)

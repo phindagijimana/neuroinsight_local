@@ -9,7 +9,7 @@ echo "======================================"
 echo ""
 
 # Configuration
-IMAGE_NAME="neuroinsight/allinone"
+IMAGE_NAME="phindagijimana321/neuroinsight"
 VERSION="${1:-latest}"
 DOCKERFILE="Dockerfile"
 CONTEXT=".."  # Parent directory (neuroinsight_local)

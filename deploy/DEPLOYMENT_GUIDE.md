@@ -16,8 +16,9 @@ The all-in-one Docker deployment packages the entire NeuroInsight application in
 
 - Docker 20.10 or later
 - 8GB RAM minimum (16GB recommended)
-- 15GB disk space
+- 15GB disk space (additional ~20GB for FreeSurfer image on first use)
 - FreeSurfer license (free for research use)
+- Docker socket access (automatically configured for FreeSurfer processing)
 
 ## Quick Start
 
@@ -133,6 +134,20 @@ FreeSurfer license (`license.txt`) is automatically detected in:
 4. Home directory
 
 Just place your license in any of these locations.
+
+### FreeSurfer Processing Architecture
+
+The all-in-one container uses **Docker-in-Docker** for MRI processing:
+
+**Main Container:** Application services (API, workers, database, Redis, MinIO)
+**FreeSurfer Containers:** Spawned dynamically per job
+- Image: `freesurfer/freesurfer:7.4.1` (~20GB)
+- Naming: `freesurfer-job-{job_id}`
+- Lifecycle: Automatically cleaned up after processing
+
+**First Job Note:** The FreeSurfer image downloads automatically on first use (~20GB, one-time). Subsequent jobs use the cached image.
+
+**Docker Socket:** The container mounts `/var/run/docker.sock` to enable spawning FreeSurfer containers. This is configured automatically.
 
 ### Data Persistence
 

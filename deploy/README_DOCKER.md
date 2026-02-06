@@ -12,6 +12,11 @@ Single container with all services:
 - Celery Workers (Job processing)
 - React Frontend (Web UI)
 
+**FreeSurfer Processing:**
+- Spawns separate FreeSurfer containers per job (Docker-in-Docker)
+- First job downloads FreeSurfer image (~20GB, one-time)
+- Containers automatically cleaned up after processing
+
 ## Quick Start
 
 ### 1. Build the Image
@@ -75,8 +80,9 @@ Open browser to the URL shown (e.g., http://localhost:8000)
 
 - Docker 20.10 or later
 - 8GB RAM minimum (16GB recommended)
-- 15GB disk space
+- 15GB disk space (additional ~20GB for FreeSurfer image)
 - FreeSurfer license (free for research)
+- Docker socket access (for FreeSurfer container spawning)
 
 ## Features
 

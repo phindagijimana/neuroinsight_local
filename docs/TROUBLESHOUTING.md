@@ -18,6 +18,86 @@ tail -f neuroinsight.log     # Follow application logs
 
 ## Deployment-Specific Issues
 
+### Desktop Application Issues
+
+#### App Won't Start or Crashes
+
+**Symptoms:**
+- Desktop app doesn't launch
+- App opens then immediately closes
+- Error message about Docker
+
+**Solutions:**
+
+**Check Docker is Running:**
+```bash
+# Linux
+docker ps
+
+# Windows
+# Check Docker Desktop system tray icon (should be green)
+```
+
+**Restart Docker:**
+```bash
+# Linux
+sudo systemctl restart docker
+
+# Windows
+# Right-click Docker Desktop icon → Restart
+```
+
+**Check App Logs:**
+
+Linux AppImage:
+```bash
+# Run from terminal to see errors
+./NeuroInsight-1.0.0.AppImage
+```
+
+Windows:
+- Check logs in: `%APPDATA%\NeuroInsight\logs\`
+
+**Reinstall:**
+- Delete app and download fresh installer from [releases](https://github.com/phindagijimana/neuroinsight_desktop/releases)
+
+#### Port Already in Use (Desktop App)
+
+**Symptoms:**
+- App shows "Port 8000 in use"
+- Can't access web interface
+
+**Solution:**
+
+Desktop app automatically finds available ports (8000-8050). If all ports are in use:
+
+```bash
+# Linux - Find what's using ports
+sudo netstat -tlnp | grep :800
+
+# Windows - Find processes
+netstat -ano | findstr :800
+
+# Stop conflicting services
+docker stop neuroinsight  # If another instance running
+```
+
+#### Docker Image Download Fails
+
+**Symptoms:**
+- App stuck on "Pulling NeuroInsight image"
+- Download very slow or fails
+
+**Solutions:**
+- Check internet connection
+- Image is large (~2GB for NeuroInsight container)
+- First FreeSurfer image is ~7GB (one-time download)
+- Retry: Restart the app
+
+**For more Desktop App issues:** See [Desktop App Repository](https://github.com/phindagijimana/neuroinsight_desktop/issues)
+
+---
+
 ### Docker Deployment Issues
 
 #### Container Won't Start

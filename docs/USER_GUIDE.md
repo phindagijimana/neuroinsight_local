@@ -275,15 +275,18 @@ Before installing NeuroInsight, verify:
 
 ## Deployment Options
 
-NeuroInsight offers three deployment methods:
+NeuroInsight offers four deployment methods:
 
 | Type | Best For | Requirements |
 |------|----------|--------------|
+| **Desktop App** | Researchers, clinicians | Windows 10/11 or Linux, Docker Desktop |
 | **Native Linux** | Direct Ubuntu/Debian installation | Ubuntu 20.04+, systemd |
 | **Linux Docker** | Isolated containerized environment | Docker + Docker Compose |
 | **Windows Docker** | Windows 10/11 systems | Docker Desktop + WSL2 |
 
-Choose based on your platform and preferences. All methods provide identical functionality.
+**New to NeuroInsight?** Start with the [Desktop App](https://github.com/phindagijimana/neuroinsight_desktop/releases) for the easiest installation.
+
+Choose Docker/Native deployment for servers, HPC clusters, or multi-user environments.
 
 ## Installation
 

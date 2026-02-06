@@ -52,52 +52,17 @@ neuroinsight_local/
 
 ## Quick Start
 
-### Native Linux/WSL Installation
+| Deployment Type | Platform | Installation Commands |
+|----------------|----------|----------------------|
+| **Native Linux** | Ubuntu 20.04+ | ```bash<br># Clone repository<br>git clone https://github.com/phindagijimana/neuroinsight_local.git<br>cd neuroinsight_local<br><br># Install (one-time setup)<br>./neuroinsight install<br><br># Setup FreeSurfer license<br>./neuroinsight license<br><br># Start NeuroInsight<br>./neuroinsight start<br><br># Access at http://localhost:8000<br>``` |
+| **Linux Docker** | Ubuntu 20.04+ / WSL2 | ```bash<br># Clone repository<br>git clone https://github.com/phindagijimana/neuroinsight_local.git<br>cd neuroinsight_local/deploy<br><br># Install and run (auto-pulls from Docker Hub)<br>./neuroinsight-docker install<br><br># Access at http://localhost:8000<br>``` |
+| **Windows Docker** | Windows 10/11 | ```powershell<br># Download from GitHub<br># Extract neuroinsight_windows/<br>cd neuroinsight_windows<br><br># Install Docker Desktop first:<br># https://www.docker.com/products/docker-desktop/<br><br># Install NeuroInsight<br>.\neuroinsight-docker.ps1 install<br><br># Access at http://localhost:8000<br>``` |
 
-```bash
-# Clone repository
-git clone https://github.com/phindagijimana/neuroinsight_local.git
-cd neuroinsight_local
+### Installation Notes
 
-# For WSL users: Check environment first (optional but recommended)
-./neuroinsight check-wsl
-
-# Install (one-time setup - auto-detects Linux/WSL)
-./neuroinsight install
-
-# Setup FreeSurfer license
-./neuroinsight license
-
-# Start NeuroInsight
-./neuroinsight start
-
-# Access at http://localhost:8000
-
-# Verify installation
-./neuroinsight status
-```
-
-### Docker Linux/WSL Installation
-
-```bash
-# Clone repository
-git clone https://github.com/phindagijimana/neuroinsight_local.git
-cd neuroinsight_local/deploy
-
-# Install and run (automatically pulls from Docker Hub)
-./neuroinsight-docker install
-
-# Access at http://localhost:8000 (or shown port)
-
-# Check status
-./neuroinsight-docker status
-
-# View logs
-./neuroinsight-docker logs
-
-# Stop
-./neuroinsight-docker stop
-```
+- **Native Linux:** Direct installation on Ubuntu/Debian systems, uses systemd services
+- **Linux Docker:** Containerized deployment using `docker-compose`, ideal for isolated environments
+- **Windows Docker:** Uses Docker Desktop with WSL2 backend, same Linux container as Linux Docker
 
 ## File Requirements
 
@@ -106,38 +71,72 @@ NeuroInsight processes T1-weighted MRI scans only. Filenames must contain:
 
 Supported formats: NIfTI (`.nii`, `.nii.gz`) only.
 
-## Native Commands Management
+## Commands Management
 
+| Command | Native Linux<br>`./neuroinsight` | Linux Docker<br>`./neuroinsight-docker` | Windows Docker<br>`.\neuroinsight-docker.ps1` |
+|---------|----------------------------------|----------------------------------------|---------------------------------------------|
+| **Installation** | `install` | `install` | `install` |
+| **Start** | `start` | `start` | `start` |
+| **Stop** | `stop` | `stop` | `stop` |
+| **Restart** | _(stop + start)_ | `restart` | `restart` |
+| **Status** | `status` | `status` | `status` |
+| **Health Check** | `monitor` | `health` | `health` |
+| **View Logs** | `logs` | `logs` | `logs` |
+| **Clean Jobs** | `clean` | `clean` | `clean` |
+| **Recover Job** | `bring <job_id>` | `bring <job_id>` | _(not implemented)_ |
+| **License** | `license` | `license` | `license` |
+| **Update** | _(manual)_ | `update` | `update` |
+| **Backup** | _(manual)_ | `backup` | `backup` |
+| **Restore** | _(manual)_ | `restore <file>` | `restore <file>` |
+| **Remove/Uninstall** | `reinstall` | _(manual)_ | `remove` |
+| **Sleep Prevention** | `nosleep` | _(not needed)_ | _(not needed)_ |
+
+### Command Examples
+
+#### Native Linux
 ```bash
-./neuroinsight install   # Install NeuroInsight (one-time setup)
-./neuroinsight reinstall # Full reinstall instructions
-./neuroinsight start     # Start all services
-./neuroinsight stop      # Stops services + no-sleep
-./neuroinsight status    # Check system health
-./neuroinsight monitor   # Advanced monitoring
-./neuroinsight nosleep   # Prevent system sleep while jobs run
-./neuroinsight clean     # Clean old completed/failed jobs
-./neuroinsight bring <job_id>  # Recover a completed job by ID
-./neuroinsight license   # FreeSurfer license setup
-./neuroinsight logs      # View system logs
+cd neuroinsight_local
+./neuroinsight install          # One-time setup
+./neuroinsight start            # Start services
+./neuroinsight status           # Check health
+./neuroinsight logs             # View logs
+./neuroinsight clean            # Clean old jobs
+./neuroinsight bring <job_id>   # Recover completed job
 ```
 
-## Docker Commands Management
-
+#### Linux Docker
 ```bash
-# From deploy/ directory - cd neuroinsight_local/deploy
-./neuroinsight-docker install      # Install and run (auto-detects port and license)
-./neuroinsight-docker start        # Start the container
-./neuroinsight-docker stop         # Stop the container
-./neuroinsight-docker restart      # Restart all services
-./neuroinsight-docker status       # Check overall status
-./neuroinsight-docker health       # Check service health
-./neuroinsight-docker logs         # View logs (add backend/worker for specific logs)
-./neuroinsight-docker clean        # Clean old jobs (use --days N for custom)
-./neuroinsight-docker bring <job_id>  # Recover a completed job by ID
-./neuroinsight-docker license      # FreeSurfer license status
-./neuroinsight-docker update       # Update to latest version
+cd neuroinsight_local/deploy
+./neuroinsight-docker install       # Install and run
+./neuroinsight-docker status        # Check status
+./neuroinsight-docker logs          # View logs
+./neuroinsight-docker logs backend  # Backend logs only
+./neuroinsight-docker clean         # Clean old jobs (30+ days)
+./neuroinsight-docker clean 7       # Clean jobs older than 7 days
+./neuroinsight-docker backup        # Backup data
+./neuroinsight-docker update        # Update to latest version
 ```
+
+#### Windows Docker
+```powershell
+cd neuroinsight_windows
+.\neuroinsight-docker.ps1 install           # Install and run
+.\neuroinsight-docker.ps1 status            # Check status
+.\neuroinsight-docker.ps1 logs              # View all logs
+.\neuroinsight-docker.ps1 logs backend      # Backend logs only
+.\neuroinsight-docker.ps1 clean             # Clean old jobs (30+ days)
+.\neuroinsight-docker.ps1 clean 7           # Clean jobs older than 7 days
+.\neuroinsight-docker.ps1 backup            # Backup data
+.\neuroinsight-docker.ps1 restore backup.tar.gz  # Restore from backup
+.\neuroinsight-docker.ps1 update            # Update to latest version
+```
+
+### Command Notes
+
+- **Native Linux:** Uses systemd services, runs directly on Linux
+- **Linux/Windows Docker:** Uses Docker containers, identical functionality across platforms
+- **Backup/Restore:** Only available in Docker deployments (native uses manual backup)
+- **Update:** Docker deployments can update with one command; native requires manual update
 
 ## Further Documentation
 

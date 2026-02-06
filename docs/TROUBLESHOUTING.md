@@ -16,6 +16,293 @@ docker-compose logs          # View container logs
 tail -f neuroinsight.log     # Follow application logs
 ```
 
+## Deployment-Specific Issues
+
+### Docker Deployment Issues
+
+#### Container Won't Start
+
+**Symptoms:**
+- `docker ps` shows no neuroinsight container
+- Installation completes but container exits
+- `neuroinsight-docker status` shows "not running"
+
+**Diagnosis:**
+```bash
+# Check container status
+docker ps -a | grep neuroinsight
+
+# View container logs
+docker logs neuroinsight
+
+# Check Docker daemon
+systemctl status docker  # Linux
+# or Docker Desktop status icon (Windows)
+```
+
+**Solutions:**
+
+**For Linux Docker:**
+```bash
+# Restart Docker daemon
+sudo systemctl restart docker
+
+# Remove and recreate container
+cd neuroinsight_local/deploy
+./neuroinsight-docker stop
+docker rm -f neuroinsight
+./neuroinsight-docker install
+
+# Check logs for errors
+./neuroinsight-docker logs
+```
+
+**For Windows Docker:**
+```powershell
+# Restart Docker Desktop
+# System tray → Docker → Restart
+
+# Remove and recreate
+cd neuroinsight_windows
+.\neuroinsight-docker.ps1 stop
+docker rm -f neuroinsight
+.\neuroinsight-docker.ps1 install
+```
+
+#### Port Already in Use
+
+**Symptoms:**
+- Installation fails with "port 8000 already in use"
+- Container starts but not accessible
+
+**Solutions:**
+
+**Linux Docker:**
+```bash
+# Find what's using port 8000
+sudo netstat -tlnp | grep :8000
+
+# Stop conflicting service
+sudo systemctl stop <service-name>
+
+# Or use different port
+./neuroinsight-docker install --port 8001
+```
+
+**Windows Docker:**
+```powershell
+# Find what's using port
+netstat -ano | findstr :8000
+
+# Kill process (use PID from output)
+taskkill /PID <pid> /F
+
+# Or install on different port
+.\neuroinsight-docker.ps1 install -Port 8001
+```
+
+#### License Not Detected
+
+**Symptoms:**
+- Container logs show "WARNING: FreeSurfer license not found"
+- Jobs fail with license errors
+
+**Solutions:**
+
+**Linux Docker:**
+```bash
+# Check license location
+ls -la ../license.txt
+
+# License should be in neuroinsight_local/ (parent of deploy/)
+# Not in deploy/ folder
+
+# Verify mount in logs
+./neuroinsight-docker logs | grep license
+
+# Restart after adding license
+./neuroinsight-docker restart
+```
+
+**Windows Docker:**
+```powershell
+# Place license.txt in neuroinsight_windows/ folder
+# Same location as neuroinsight-docker.ps1
+
+# Check detection
+.\neuroinsight-docker.ps1 license
+
+# Restart container
+.\neuroinsight-docker.ps1 restart
+```
+
+#### Docker Permissions (Linux)
+
+**Symptoms:**
+- "permission denied" when running docker commands
+- Must use sudo for docker
+
+**Solution:**
+```bash
+# Add user to docker group
+sudo usermod -aG docker $USER
+
+# Log out and back in, or:
+newgrp docker
+
+# Verify
+docker ps
+```
+
+#### WSL2 Issues (Windows)
+
+**Symptoms:**
+- Docker Desktop shows "WSL integration failed"
+- "There was a problem with WSL" error
+- Containers become unresponsive
+
+**Solutions:**
+
+**Quick Fix:**
+```powershell
+# PowerShell as Administrator
+wsl --shutdown
+# Wait 10 seconds
+# Restart Docker Desktop
+```
+
+**Enable WSL Integration:**
+1. Docker Desktop → Settings
+2. Resources → WSL Integration
+3. Enable for your Ubuntu distribution
+4. Apply & Restart
+
+**Enable Systemd (if needed):**
+```bash
+# In WSL terminal
+sudo nano /etc/wsl.conf
+
+# Add:
+[boot]
+systemd=true
+
+# Save, then:
+exit
+```
+
+```powershell
+# PowerShell
+wsl --shutdown
+wsl
+```
+
+#### Docker Volume Issues
+
+**Symptoms:**
+- Data not persisting between restarts
+- "volume not found" errors
+
+**Solutions:**
+
+**Linux Docker:**
+```bash
+# List volumes
+docker volume ls | grep neuroinsight
+
+# Inspect volume
+docker volume inspect neuroinsight_data
+
+# Recreate if corrupted
+./neuroinsight-docker stop
+docker volume rm neuroinsight_data
+./neuroinsight-docker install
+```
+
+**Windows Docker:**
+```powershell
+# Same commands work in PowerShell
+docker volume ls | Select-String neuroinsight
+.\neuroinsight-docker.ps1 stop
+docker volume rm neuroinsight_data
+.\neuroinsight-docker.ps1 install
+```
+
+#### FreeSurfer Container Spawn Failures
+
+**Symptoms:**
+- Jobs fail during FreeSurfer processing
+- Logs show "Failed to spawn FreeSurfer container"
+
+**Diagnosis:**
+```bash
+# Check Docker socket permissions
+ls -la /var/run/docker.sock
+
+# Check if Docker-in-Docker is possible
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock docker:latest docker ps
+```
+
+**Solutions:**
+
+**Linux Docker:**
+```bash
+# Ensure socket mounted correctly
+# Check docker-compose.yml has:
+# volumes:
+#   - /var/run/docker.sock:/var/run/docker.sock
+
+# Restart with fresh setup
+./neuroinsight-docker stop
+./neuroinsight-docker install
+```
+
+**Windows Docker:**
+```powershell
+# Ensure Docker Desktop is running
+# Check Docker Desktop → Settings → General
+# ✅ "Expose daemon on tcp://localhost:2375 without TLS"
+
+.\neuroinsight-docker.ps1 restart
+```
+
+#### Update Failures
+
+**Symptoms:**
+- `update` command fails
+- New version not pulling
+
+**Solutions:**
+
+**Linux Docker:**
+```bash
+# Backup first
+./neuroinsight-docker backup
+
+# Force pull new image
+docker pull phindagijimana321/neuroinsight:latest
+
+# Reinstall
+./neuroinsight-docker stop
+docker rm -f neuroinsight
+./neuroinsight-docker install
+```
+
+**Windows Docker:**
+```powershell
+# Backup first
+.\neuroinsight-docker.ps1 backup
+
+# Force pull
+docker pull phindagijimana321/neuroinsight:latest
+
+# Reinstall
+.\neuroinsight-docker.ps1 stop
+docker rm -f neuroinsight
+.\neuroinsight-docker.ps1 install
+```
+
+---
+
 ## Common Issues
 
 ### Jobs Stuck in "Pending" Status
@@ -431,7 +718,8 @@ docker-compose up -d db
 - Verify T1 indicators in filename (t1, mprage, etc.)
 - Check RAM (16GB+ required, 32GB+ recommended)
 - Ensure file format supported (.nii, .nii.gz only)
-- Check FreeSurfer license: `./neuroinsight license`
+- Check FreeSurfer license: `./neuroinsight license` (native) or `./neuroinsight-docker license` (Docker)
+- **Docker:** Ensure FreeSurfer container can spawn: `docker ps -a | grep freesurfer`
 
 **Out of memory errors:**
 - Increase system RAM to 32GB+ for large datasets
@@ -497,13 +785,42 @@ docker system prune -a  # Careful: removes all unused containers
 ./neuroinsight reinstall  # Get complete reinstallation guide
 ```
 
+## Quick Diagnostic Commands
+
+### Native Linux
+```bash
+./neuroinsight status        # Overall status
+./neuroinsight logs          # View logs
+./neuroinsight license       # Check license
+ps aux | grep celery         # Check workers
+docker ps                    # Check containers
+```
+
+### Linux Docker
+```bash
+./neuroinsight-docker status      # Container status
+./neuroinsight-docker health      # Health check
+./neuroinsight-docker logs        # View logs
+./neuroinsight-docker logs worker # Worker logs
+docker ps -a | grep neuroinsight  # Container list
+```
+
+### Windows Docker
+```powershell
+.\neuroinsight-docker.ps1 status       # Container status
+.\neuroinsight-docker.ps1 health       # Health check
+.\neuroinsight-docker.ps1 logs         # View logs
+docker ps -a | Select-String neuroinsight  # Container list
+```
+
 ## Support
 
-- Check logs: `tail -f neuroinsight.log`
-- Docker issues: Run `./fix_docker.sh` or `./quick_docker_fix.sh`
-- System diagnostics: `./neuroinsight health` and `./neuroinsight status`
-- GitHub Issues: Report bugs with diagnostic output
-- FreeSurfer Support: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
+- **Native Linux logs:** `tail -f neuroinsight.log` or `./neuroinsight logs`
+- **Docker logs:** `./neuroinsight-docker logs` or `.\neuroinsight-docker.ps1 logs`
+- **Docker issues (Linux):** Run `./fix_docker.sh` or `./quick_docker_fix.sh`
+- **System diagnostics:** `./neuroinsight status` or `./neuroinsight-docker status`
+- **GitHub Issues:** Report bugs with diagnostic output
+- **FreeSurfer Support:** https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
 
 ---
 

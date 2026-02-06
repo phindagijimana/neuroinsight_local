@@ -273,7 +273,23 @@ Before installing NeuroInsight, verify:
 - WSL was shut down after systemd configuration
 - `docker ps` works in Ubuntu terminal without errors
 
+## Deployment Options
+
+NeuroInsight offers three deployment methods:
+
+| Type | Best For | Requirements |
+|------|----------|--------------|
+| **Native Linux** | Direct Ubuntu/Debian installation | Ubuntu 20.04+, systemd |
+| **Linux Docker** | Isolated containerized environment | Docker + Docker Compose |
+| **Windows Docker** | Windows 10/11 systems | Docker Desktop + WSL2 |
+
+Choose based on your platform and preferences. All methods provide identical functionality.
+
 ## Installation
+
+### Option 1: Native Linux Installation
+
+**Best for:** Direct Ubuntu/Debian systems with systemd
 
 ### 1. Clone Repository
 
@@ -577,6 +593,188 @@ wsl
 ```
 
 **Access NeuroInsight at:** http://localhost:8000
+
+---
+
+### Option 2: Linux Docker Installation
+
+**Best for:** Isolated containerized deployment on Linux/WSL2
+
+#### Prerequisites
+- Docker Engine 20.10+ or Docker Desktop
+- Docker Compose v2.0+
+- 16GB+ RAM, 50GB disk space
+- Ubuntu 20.04+ or WSL2
+
+#### Installation Steps
+
+```bash
+# 1. Clone repository
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local/deploy
+
+# 2. Get FreeSurfer license
+# Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
+# Save as: ../license.txt (in neuroinsight_local/ root)
+
+# 3. Install and start (pulls from Docker Hub)
+./neuroinsight-docker install
+
+# Access at http://localhost:8000 (or shown port)
+```
+
+#### Docker Management Commands
+
+```bash
+# Core operations
+./neuroinsight-docker start         # Start container
+./neuroinsight-docker stop          # Stop container
+./neuroinsight-docker restart       # Restart
+./neuroinsight-docker status        # Check status
+./neuroinsight-docker health        # Health check
+
+# Logs and monitoring
+./neuroinsight-docker logs          # View all logs
+./neuroinsight-docker logs backend  # Backend logs
+./neuroinsight-docker logs worker   # Worker logs
+
+# Data management
+./neuroinsight-docker clean         # Clean old jobs (30+ days)
+./neuroinsight-docker clean 7       # Clean jobs older than 7 days
+./neuroinsight-docker backup        # Backup all data
+./neuroinsight-docker restore backup.tar.gz  # Restore from backup
+
+# Maintenance
+./neuroinsight-docker update        # Update to latest version
+./neuroinsight-docker license       # Check license status
+```
+
+#### What's Included
+- FastAPI backend server
+- Celery workers for processing
+- PostgreSQL database
+- Redis message broker
+- MinIO object storage
+- All dependencies pre-configured
+- Automatic FreeSurfer container spawning
+
+#### Data Persistence
+All data persists in Docker volumes across restarts:
+- Uploaded MRI scans
+- Processing results
+- Database records
+- System logs
+
+**Backup recommended before updates!**
+
+---
+
+### Option 3: Windows Docker Installation
+
+**Best for:** Windows 10/11 users
+
+#### Prerequisites
+- Windows 10/11 (64-bit, version 2004+)
+- Docker Desktop for Windows
+- 16GB+ RAM, 50GB disk space
+- WSL2 (auto-installed by Docker Desktop)
+
+#### Installation Steps
+
+**1. Install Docker Desktop**
+- Download: https://www.docker.com/products/docker-desktop/
+- Run installer, enable "Use WSL 2 instead of Hyper-V"
+- Restart when prompted
+- Docker Desktop automatically configures WSL2
+
+**2. Download NeuroInsight Windows Package**
+```powershell
+# Download neuroinsight_windows/ from GitHub
+# Extract to desired location
+cd neuroinsight_windows
+```
+
+**3. Get FreeSurfer License**
+- Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
+- Save as `license.txt` in neuroinsight_windows/ folder
+
+**4. Install NeuroInsight**
+
+PowerShell (recommended):
+```powershell
+.\neuroinsight-docker.ps1 install
+```
+
+Command Prompt:
+```cmd
+install.bat
+```
+
+**Access at:** http://localhost:8000
+
+#### Windows Management Commands
+
+```powershell
+# Core operations
+.\neuroinsight-docker.ps1 install       # Install and start
+.\neuroinsight-docker.ps1 start         # Start container
+.\neuroinsight-docker.ps1 stop          # Stop container
+.\neuroinsight-docker.ps1 restart       # Restart
+.\neuroinsight-docker.ps1 status        # Check status
+.\neuroinsight-docker.ps1 health        # Health check
+
+# Logs and monitoring
+.\neuroinsight-docker.ps1 logs          # View all logs
+.\neuroinsight-docker.ps1 logs backend  # Backend logs
+.\neuroinsight-docker.ps1 logs worker   # Worker logs
+
+# Data management
+.\neuroinsight-docker.ps1 clean         # Clean old jobs (30+ days)
+.\neuroinsight-docker.ps1 clean 7       # Clean jobs older than 7 days
+.\neuroinsight-docker.ps1 backup        # Backup all data
+.\neuroinsight-docker.ps1 restore backup.tar.gz  # Restore
+
+# Maintenance
+.\neuroinsight-docker.ps1 update        # Update to latest
+.\neuroinsight-docker.ps1 remove        # Uninstall
+.\neuroinsight-docker.ps1 license       # Check license
+```
+
+#### Docker Desktop Configuration
+
+Recommended settings (Docker Desktop → Settings):
+
+**Resources:**
+- Memory: 16GB (minimum 8GB)
+- CPUs: 4-8 cores
+- Disk: 50GB+
+
+**General:**
+- ✅ Use WSL2 based engine
+- ✅ Start Docker Desktop when you log in
+
+#### Windows-Specific Notes
+- Uses same Linux Docker image via WSL2
+- No separate Windows image needed
+- Automatic port detection (8000-8050)
+- FreeSurfer license auto-detection
+- PowerShell scripts provide colored output
+
+---
+
+### Deployment Comparison
+
+| Feature | Native Linux | Linux Docker | Windows Docker |
+|---------|-------------|--------------|----------------|
+| **Installation** | Direct on system | Containerized | Containerized via WSL2 |
+| **Updates** | Manual | One command | One command |
+| **Backup/Restore** | Manual | Built-in | Built-in |
+| **Isolation** | System-wide | Containerized | Containerized |
+| **Performance** | Direct | Minimal overhead | WSL2 overhead |
+| **Portability** | System-specific | Portable | Portable |
+| **Dependencies** | Manual install | Pre-packaged | Pre-packaged |
+
+---
 
 ## Understanding NeuroInsight
 

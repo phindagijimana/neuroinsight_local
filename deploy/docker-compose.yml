@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  neuroinsight:
+    build:
+      context: ../neuroinsight_local
+      dockerfile: ../deploy_docker/Dockerfile
+    image: neuroinsight/allinone:latest
+    container_name: neuroinsight-allinone
+    ports:
+      - "8000:8000"    # Web interface
+      - "9000:9000"    # MinIO API
+      - "9001:9001"    # MinIO Console
+    volumes:
+      # Persistent data storage
+      - neuroinsight-data:/data
+      # FreeSurfer license (optional - mount your license file)
+      # - ./license.txt:/app/license.txt:ro
+    environment:
+      # Override default passwords (recommended for production)
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-neuroinsight_secure_password}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secure_password}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin_secure}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  neuroinsight-data:
+    driver: local
+
+networks:
+  default:
+    name: neuroinsight-network

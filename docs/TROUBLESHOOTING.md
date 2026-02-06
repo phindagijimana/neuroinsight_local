@@ -310,40 +310,115 @@ docker volume rm neuroinsight_data
 #### FreeSurfer Container Spawn Failures
 
 **Symptoms:**
-- Jobs fail during FreeSurfer processing
-- Logs show "Failed to spawn FreeSurfer container"
+- Jobs fail with: "No container runtimes available"
+- Jobs fail with: "Failed to spawn FreeSurfer container"
+- Error: "FreeSurfer processing failed"
+- Works during install but fails when processing jobs
 
-**Diagnosis:**
+**This is a Docker-in-Docker (DinD) permission issue** - the NeuroInsight container can't access Docker to spawn FreeSurfer containers.
+
+**Quick Fix:**
+
 ```bash
-# Check Docker socket permissions
+cd /path/to/neuroinsight_local/deploy
+
+# Run automated fix script
+./fix-docker-access.sh
+
+# This will:
+# 1. Diagnose the issue
+# 2. Detect your Docker group ID
+# 3. Recreate container with proper permissions
+# 4. Verify Docker access
+```
+
+**Manual Diagnosis:**
+
+```bash
+# 1. Check Docker socket permissions
 ls -la /var/run/docker.sock
 
-# Check if Docker-in-Docker is possible
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock docker:latest docker ps
+# 2. Get Docker group ID
+getent group docker | cut -d: -f3
+
+# 3. Test if container can access Docker
+docker exec neuroinsight docker ps
+
+# If this fails → DinD is broken, follow fix below
 ```
 
-**Solutions:**
+**Manual Fix for Linux/WSL:**
 
-**Linux Docker:**
 ```bash
-# Ensure socket mounted correctly
-# Check docker-compose.yml has:
-# volumes:
-#   - /var/run/docker.sock:/var/run/docker.sock
+cd neuroinsight_local/deploy
 
-# Restart with fresh setup
+# Stop and remove container
 ./neuroinsight-docker stop
+./neuroinsight-docker remove
+
+# Get Docker group ID
+DOCKER_GID=$(getent group docker | cut -d: -f3)
+echo "Docker GID: $DOCKER_GID"
+
+# Reinstall (script now auto-adds docker group)
 ./neuroinsight-docker install
+
+# Verify Docker access from inside container
+docker exec neuroinsight docker ps
+# Should show running containers if working
 ```
 
-**Windows Docker:**
-```powershell
-# Ensure Docker Desktop is running
-# Check Docker Desktop → Settings → General
-# ✅ "Expose daemon on tcp://localhost:2375 without TLS"
+**For WSL2 Specific Issues:**
 
-.\neuroinsight-docker.ps1 restart
+```bash
+# Ensure Docker Desktop integration is enabled
+# 1. Docker Desktop → Settings → Resources → WSL Integration
+# 2. Enable for your Ubuntu distribution
+# 3. Apply & Restart
+
+# Restart WSL completely (in PowerShell as Admin)
+wsl --shutdown
+
+# Restart Docker Desktop
+# Reopen WSL and try again
 ```
+
+**For docker-compose users:**
+
+Before running `docker-compose up`, set the Docker GID:
+
+```bash
+# Export Docker group ID
+export DOCKER_GID=$(getent group docker | cut -d: -f3)
+
+# Now run docker-compose
+docker-compose up -d
+
+# Verify
+docker exec neuroinsight docker ps
+```
+
+**Verification:**
+
+After applying the fix, test:
+
+```bash
+# 1. Check container can access Docker
+docker exec neuroinsight docker ps
+
+# 2. Check container can pull images
+docker exec neuroinsight docker pull hello-world
+
+# 3. Submit a test job through the web interface
+```
+
+**Why This Happens:**
+
+The NeuroInsight container needs to spawn FreeSurfer containers for processing. This requires:
+1. Docker socket mounted: `/var/run/docker.sock:/var/run/docker.sock` ✓
+2. Container user has permission to access socket ✗ (missing)
+
+The fix adds the Docker group to the container, giving it permission to use Docker.
 
 #### Update Failures
 

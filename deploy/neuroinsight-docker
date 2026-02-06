@@ -292,6 +292,22 @@ cmd_install() {
     # Get absolute path to Docker volume for host path mapping
     local volume_path="/var/lib/docker/volumes/${VOLUME_NAME}/_data"
     
+    # Get Docker group ID for Docker-in-Docker access
+    local docker_gid=""
+    if getent group docker &>/dev/null; then
+        docker_gid=$(getent group docker | cut -d: -f3)
+        log_info "Docker group ID detected: $docker_gid (enabling Docker-in-Docker)"
+    else
+        log_warning "Docker group not found - FreeSurfer container spawning may fail"
+        log_warning "This is common on some systems. If jobs fail, see troubleshooting docs."
+    fi
+    
+    # Build docker run command with optional group-add
+    local group_add_flag=""
+    if [ -n "$docker_gid" ]; then
+        group_add_flag="--group-add ${docker_gid}"
+    fi
+    
     docker run -d \
         --name ${CONTAINER_NAME} \
         -p ${port}:8000 \
@@ -302,6 +318,7 @@ cmd_install() {
         -e HOST_UPLOAD_DIR=${volume_path}/uploads \
         -e HOST_OUTPUT_DIR=${volume_path}/outputs \
         ${license_mount} \
+        ${group_add_flag} \
         --restart unless-stopped \
         ${IMAGE_NAME}
     

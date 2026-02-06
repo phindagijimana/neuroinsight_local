@@ -2,6 +2,27 @@
 
 Automated hippocampal segmentation and analysis from T1-weighted MRI scans using FreeSurfer.
 
+## 🖥️ Desktop Application Available!
+
+**New!** NeuroInsight is now available as a native desktop application with one-click installers:
+
+- **Windows & Linux**: Download from [neuroinsight_desktop releases](https://github.com/phindagijimana/neuroinsight_desktop/releases)
+- **Easy Installation**: No command line required
+- **Native Experience**: System tray, desktop shortcuts, modern UI
+
+**Choose Desktop App if you want:**
+- ✅ Easiest installation (click and run)
+- ✅ Native desktop experience
+- ✅ Perfect for researchers and clinicians
+
+**Choose Docker/Native if you want:**
+- ✅ Server deployments
+- ✅ HPC cluster integration
+- ✅ Multi-user environments
+- ✅ Advanced customization
+
+---
+
 ## Platform Support
 
 - **Linux:** Ubuntu 20.04+ (native installation)

@@ -354,7 +354,7 @@ case "$1" in
         # Check for --manual flag to force manual start
         if [[ "$2" == "--manual" ]]; then
             echo "Starting NeuroInsight (manual mode)..."
-            exec "$PYTHON_BIN" start.py
+            exec "$PYTHON_BIN" scripts/start.py
         fi
         
         # Try systemd first (auto-install if needed)
@@ -364,18 +364,18 @@ case "$1" in
         
         # Fall back to manual start
         echo "Starting NeuroInsight (manual mode)..."
-        exec "$PYTHON_BIN" start.py
+        exec "$PYTHON_BIN" scripts/start.py
         ;;
     dev-start)
         echo "Starting NeuroInsight (dev backend)..."
-        exec "$PYTHON_BIN" start_dev.py
+        exec "$PYTHON_BIN" scripts/start_dev.py
         ;;
     stop)
         # Check for --manual flag to force manual stop
         if [[ "$2" == "--manual" ]]; then
             echo "Stopping NeuroInsight (manual mode)..."
-            "$PYTHON_BIN" nosleep.py stop >/dev/null 2>&1 || true
-            "$PYTHON_BIN" stop.py "${@:2}"
+            "$PYTHON_BIN" scripts/nosleep.py stop >/dev/null 2>&1 || true
+            "$PYTHON_BIN" scripts/stop.py "${@:2}"
             # Stop Docker containers
             echo "Stopping Docker containers..."
             stop_docker_containers
@@ -389,8 +389,8 @@ case "$1" in
         
         # Fall back to manual stop
         echo "Stopping NeuroInsight (manual mode)..."
-        "$PYTHON_BIN" nosleep.py stop >/dev/null 2>&1 || true
-        "$PYTHON_BIN" stop.py "${@:2}"
+        "$PYTHON_BIN" scripts/nosleep.py stop >/dev/null 2>&1 || true
+        "$PYTHON_BIN" scripts/stop.py "${@:2}"
         # Stop Docker containers
         echo "Stopping Docker containers..."
         stop_docker_containers
@@ -398,13 +398,13 @@ case "$1" in
         ;;
     dev-stop)
         echo "Stopping NeuroInsight (dev backend)..."
-        exec "$PYTHON_BIN" stop_dev.py "${@:2}"
+        exec "$PYTHON_BIN" scripts/stop_dev.py "${@:2}"
         ;;
     status)
         # Check for --manual flag to force manual status
         if [[ "$2" == "--manual" ]]; then
             echo "NeuroInsight Status (manual mode)..."
-            exec ./status.sh
+            exec ./scripts/status.sh
         fi
         
         # Try systemd first
@@ -414,19 +414,19 @@ case "$1" in
         
         # Fall back to manual status
         echo "NeuroInsight Status (manual mode)..."
-        exec ./status.sh
+        exec ./scripts/status.sh
         ;;
     dev-status)
         echo "NeuroInsight Dev Status..."
-        exec ./status_dev.sh
+        exec ./scripts/status_dev.sh
         ;;
     restart)
         # Check for --manual flag to force manual restart
         if [[ "$2" == "--manual" ]]; then
             echo "Restarting NeuroInsight (manual mode)..."
-            "$PYTHON_BIN" stop.py
+            "$PYTHON_BIN" scripts/stop.py
             sleep 2
-            exec "$PYTHON_BIN" start.py
+            exec "$PYTHON_BIN" scripts/start.py
         fi
         
         # Try systemd first
@@ -436,29 +436,29 @@ case "$1" in
         
         # Fall back to manual restart
         echo "Restarting NeuroInsight (manual mode)..."
-        "$PYTHON_BIN" stop.py
+        "$PYTHON_BIN" scripts/stop.py
         sleep 2
-        exec "$PYTHON_BIN" start.py
+        exec "$PYTHON_BIN" scripts/start.py
         ;;
     logs)
         shift
-        exec "$PYTHON_BIN" logs.py "$@"
+        exec "$PYTHON_BIN" scripts/logs.py "$@"
         ;;
     monitor)
         echo "NeuroInsight Monitoring..."
-        exec ./monitor.sh "${@:2}"
+        exec ./scripts/monitor.sh "${@:2}"
         ;;
     nosleep)
         echo "NeuroInsight No-Sleep..."
-        exec "$PYTHON_BIN" nosleep.py start
+        exec "$PYTHON_BIN" scripts/nosleep.py start
         ;;
     clean)
         echo "NeuroInsight Cleanup..."
-        exec "$PYTHON_BIN" clean.py "${@:2}"
+        exec "$PYTHON_BIN" scripts/clean.py "${@:2}"
         ;;
     bring)
         echo "NeuroInsight Job Recovery..."
-        exec "$PYTHON_BIN" bring_job.py "${@:2}"
+        exec "$PYTHON_BIN" scripts/bring_job.py "${@:2}"
         ;;
     health)
         echo "[HEALTH] NeuroInsight System Health Check"
@@ -540,10 +540,10 @@ case "$1" in
         ;;
     check-wsl)
         echo "Running WSL Environment Check..."
-        if [ -f "check_wsl.sh" ]; then
-            exec ./check_wsl.sh
+        if [ -f "scripts/check_wsl.sh" ]; then
+            exec ./scripts/check_wsl.sh
         else
-            echo "Error: check_wsl.sh not found in current directory"
+            echo "Error: check_wsl.sh not found in scripts/ directory"
             echo "Please ensure you're in the NeuroInsight project directory"
             exit 1
         fi
@@ -620,11 +620,11 @@ case "$1" in
         ;;
     install)
         echo "NeuroInsight Installation"
-        if [ -f "install.sh" ]; then
+        if [ -f "scripts/install.sh" ]; then
             echo "Running installation script..."
-            exec ./install.sh
+            exec ./scripts/install.sh
         else
-            echo "Error: install.sh not found in current directory"
+            echo "Error: install.sh not found in scripts/ directory"
             echo "Please ensure you're in the NeuroInsight project directory"
             exit 1
         fi

@@ -250,9 +250,9 @@ docker run --rm hello-world
 **Option 3: Temporary Bypass (if Docker works manually)**
 ```bash
 # If Docker works but install check fails
-sed -i '473,477s/^/# /' install.sh  # Comment out Docker test
-./neuroinsight install              # Run installation
-git checkout install.sh             # Restore original file
+sed -i '473,477s/^/# /' scripts/install.sh  # Comment out Docker test
+./neuroinsight install                       # Run installation
+git checkout scripts/install.sh              # Restore original file
 ```
 
 **Verification:**

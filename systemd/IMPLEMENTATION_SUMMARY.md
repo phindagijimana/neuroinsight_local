@@ -304,7 +304,7 @@ Include in installation script:
 ```bash
 #!/bin/bash
 # Install NeuroInsight
-./install.sh
+./neuroinsight install
 
 # Offer systemd setup
 echo "Enable automatic restart with systemd? (recommended)"

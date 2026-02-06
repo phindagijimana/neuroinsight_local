@@ -249,7 +249,7 @@ Systemd automatically manages these dependencies.
 
 ## Comparison: Systemd vs Manual Start
 
-| Feature | Systemd | Manual (`start.py`) |
+| Feature | Systemd | Manual (`./neuroinsight start`) |
 |---------|---------|---------------------|
 | Auto-restart on crash | [YES] Yes | [NO] No |
 | Start on boot | [YES] Yes | [NO] No |

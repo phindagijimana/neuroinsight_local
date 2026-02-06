@@ -21,7 +21,7 @@ Automated hippocampal segmentation and analysis from T1-weighted MRI scans using
 
 Docker is required for NeuroInsight. If you need help installing Docker:
 
-**See USER_GUIDE.md for detailed Docker installation instructions for:**
+**See docs/USER_GUIDE.md for detailed Docker installation instructions for:**
 - Linux (Ubuntu/Debian)
 - Windows (WSL2)
 - Docker Desktop configuration
@@ -141,9 +141,9 @@ Supported formats: NIfTI (`.nii`, `.nii.gz`) only.
 
 ## Further Documentation
 
-- [User Guide](USER_GUIDE.md) - Complete usage instructions
-- [Troubleshooting](TROUBLESHOUTING.md) - Common issues
-- [FreeSurfer License](FREESURFER_LICENSE_README.md) - License setup
+- [User Guide](docs/USER_GUIDE.md) - Complete usage instructions
+- [Troubleshooting](docs/TROUBLESHOUTING.md) - Common issues
+- [FreeSurfer License Setup](https://surfer.nmr.mgh.harvard.edu/registration.html) - Get your license
 
 ## License
 

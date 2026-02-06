@@ -88,6 +88,7 @@ POSTGRES_PASSWORD=neuroinsight_secure_password
 POSTGRES_DB=neuroinsight
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
+DATABASE_URL=postgresql://neuroinsight:neuroinsight_secure_password@localhost:5432/neuroinsight
 
 # Redis
 REDIS_PASSWORD=redis_secure_password
@@ -103,6 +104,10 @@ MINIO_USE_SSL=false
 # API Configuration
 API_PORT=8000
 CORS_ORIGINS=http://localhost:8000
+
+# File Storage
+UPLOAD_DIR=/data/uploads
+OUTPUT_DIR=/data/outputs
 
 # Environment
 ENVIRONMENT=production

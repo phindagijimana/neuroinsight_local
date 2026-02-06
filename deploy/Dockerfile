@@ -70,6 +70,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY backend/ /app/backend/
 COPY workers/ /app/workers/
 COPY pipeline/ /app/pipeline/
+COPY scripts/ /app/scripts/
 COPY frontend/dist/ /app/frontend/dist/
 
 # Copy configuration files

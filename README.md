@@ -98,9 +98,9 @@ cd neuroinsight_local/deploy
 ### Windows Docker (Windows 10/11)
 
 ```powershell
-# Download neuroinsight_windows/ from GitHub
-# Extract to desired location
-cd neuroinsight_windows
+# Clone repository
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local\neuroinsight_windows
 
 # Install Docker Desktop first:
 # https://www.docker.com/products/docker-desktop/

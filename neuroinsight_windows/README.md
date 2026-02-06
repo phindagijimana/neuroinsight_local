@@ -25,9 +25,19 @@ Required for MRI processing (free for research):
 2. Complete registration
 3. Save license as `license.txt` in this folder
 
-### 3. Install NeuroInsight
+### 3. Download NeuroInsight
 
-Open PowerShell or Command Prompt in this folder:
+```powershell
+# Clone repository
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local\neuroinsight_windows
+```
+
+Or download ZIP from GitHub and extract to desired location.
+
+### 4. Install NeuroInsight
+
+Open PowerShell or Command Prompt in the neuroinsight_windows folder:
 
 **PowerShell (recommended):**
 ```powershell
@@ -39,7 +49,7 @@ Open PowerShell or Command Prompt in this folder:
 install.bat
 ```
 
-### 4. Access NeuroInsight
+### 5. Access NeuroInsight
 
 Open browser to: http://localhost:8000
 

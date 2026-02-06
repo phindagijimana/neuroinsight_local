@@ -55,11 +55,22 @@ Required for MRI processing (free for research use).
    - Place in `neuroinsight_windows` folder
    - Ensure filename is exactly `license.txt`
 
-### Step 3: Download NeuroInsight Windows Package
+### Step 3: Download NeuroInsight
 
-1. Download `neuroinsight_windows` folder from GitHub
-2. Extract to desired location (e.g., `C:\NeuroInsight`)
-3. Note the folder path for next step
+**Option 1: Clone Repository (Recommended)**
+
+```powershell
+# Clone repository
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local\neuroinsight_windows
+```
+
+**Option 2: Download ZIP**
+
+1. Visit: https://github.com/phindagijimana/neuroinsight_local
+2. Click "Code" > "Download ZIP"
+3. Extract to desired location (e.g., `C:\NeuroInsight`)
+4. Navigate to `neuroinsight_local\neuroinsight_windows` folder
 
 ### Step 4: Install NeuroInsight
 
@@ -67,9 +78,9 @@ Required for MRI processing (free for research use).
    - Right-click Start Menu
    - Select "Windows PowerShell"
 
-2. **Navigate to NeuroInsight Folder**
+2. **Navigate to NeuroInsight Windows Folder**
    ```powershell
-   cd C:\path\to\neuroinsight_windows
+   cd C:\path\to\neuroinsight_local\neuroinsight_windows
    ```
 
 3. **Run Installation**

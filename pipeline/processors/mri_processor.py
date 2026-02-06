@@ -2614,9 +2614,63 @@ class MRIProcessor:
 
         # Execute with timeout
         try:
-            # Convert all paths to absolute paths (Docker requires absolute paths for volume mounts)
-            abs_input_dir = nifti_path.parent.resolve()
-            abs_license_path = license_path.resolve()
+            # Get host paths for Docker-in-Docker mounting
+            # When worker runs inside Docker and spawns FreeSurfer Docker container,
+            # we need to mount HOST paths, not container paths
+            host_upload_dir = os.getenv('HOST_UPLOAD_DIR')
+            host_output_dir = os.getenv('HOST_OUTPUT_DIR')
+            
+            # If host paths are set (Docker-in-Docker mode), use them
+            # Don't check exists() - we can't verify host paths from inside container!
+            if host_upload_dir and host_upload_dir.strip():
+                abs_input_dir = host_upload_dir
+                logger.info("using_host_upload_path", path=abs_input_dir)
+            else:
+                # Native/desktop mode - use container paths
+                abs_input_dir = str(nifti_path.parent.resolve())
+                logger.info("using_container_upload_path", path=abs_input_dir)
+            
+            if host_output_dir and host_output_dir.strip():
+                # For Docker-in-Docker, include the job_id subdirectory in host path
+                abs_freesurfer_dir = f"{host_output_dir}/{self.job_id}/freesurfer/freesurfer_docker"
+                logger.info("using_host_output_path", path=abs_freesurfer_dir)
+            else:
+                # Native/desktop mode - use container paths
+                abs_freesurfer_dir = freesurfer_dir.resolve()
+                logger.info("using_container_output_path", path=str(abs_freesurfer_dir))
+            
+            # Handle license path for Docker-in-Docker
+            # Check if license is mounted from host (look for HOST_LICENSE_PATH or detect from container inspect)
+            if host_upload_dir:  # Docker-in-Docker mode detected
+                # Try to detect host license path from Docker inspect
+                try:
+                    import subprocess as subprocess_module
+                    import json
+                    inspect_result = subprocess_module.run(
+                        ["docker", "inspect", os.uname().nodename],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if inspect_result.returncode == 0:
+                        container_info = json.loads(inspect_result.stdout)[0]
+                        for mount in container_info.get('Mounts', []):
+                            if mount.get('Destination') == '/app/license.txt':
+                                abs_license_path = mount.get('Source')
+                                logger.info("detected_host_license_path", path=abs_license_path)
+                                break
+                        else:
+                            # License mount not found, use container path
+                            abs_license_path = str(license_path.resolve())
+                            logger.warning("license_mount_not_detected_using_container_path", path=abs_license_path)
+                    else:
+                        abs_license_path = str(license_path.resolve())
+                except Exception as e:
+                    logger.warning("failed_to_detect_license_host_path", error=str(e))
+                    abs_license_path = str(license_path.resolve())
+            else:
+                # Native mode - use container path
+                abs_license_path = str(license_path.resolve())
             
             # Use a unique container name so we can track and kill it if needed
             container_name = f"{settings.freesurfer_container_prefix}{self.job_id}"
@@ -2627,7 +2681,6 @@ class MRIProcessor:
             # Get current user ID and group ID for universal compatibility
             import getpass
             import grp
-            import os
 
             current_user = getpass.getuser()
             current_uid = os.getuid()
@@ -2642,7 +2695,7 @@ class MRIProcessor:
             print(f"DEBUG: Input file size: {os.path.getsize(nifti_path) if os.path.exists(nifti_path) else 'N/A'}")
             print(f"DEBUG: FreeSurfer dir: {abs_freesurfer_dir}")
             print(f"DEBUG: Subject ID: {subject_id}")
-            print(f"DEBUG: License path: {abs_license_path} (exists: {abs_license_path.exists()})")
+            print(f"DEBUG: License path: {abs_license_path} (exists: {os.path.exists(abs_license_path) if isinstance(abs_license_path, str) else abs_license_path.exists()})")
             print(f"DEBUG: Input dir: {abs_input_dir}")
             print(f"DEBUG: Output dir: {abs_freesurfer_dir}")
 
@@ -2678,7 +2731,7 @@ class MRIProcessor:
 
             print(f"DEBUG: Full Docker command: {' '.join(docker_cmd)}")
             print(f"DEBUG: Input file exists: {nifti_path.exists()}")
-            print(f"DEBUG: License file exists: {abs_license_path.exists()}")
+            print(f"DEBUG: License file exists: {os.path.exists(abs_license_path) if isinstance(abs_license_path, str) else abs_license_path.exists()}")
 
             # Store container name in database for cancellation support
             self._store_container_id(container_name)
@@ -2829,19 +2882,9 @@ class MRIProcessor:
 
             if aseg_auto_mgz.exists():
                 # Run mri_segstats to generate aseg.stats
-                # Use absolute paths for Docker volume mounts
-                abs_freesurfer_dir = freesurfer_dir.resolve()
-                abs_license_path = license_path.resolve()
+                # Reuse abs_freesurfer_dir and abs_license_path from earlier
+                # (already calculated with Docker-in-Docker host path support)
                 
-                # Get current user ID and group ID for universal compatibility
-                import getpass
-                import grp
-                import os
-
-                current_user = getpass.getuser()
-                current_uid = os.getuid()
-                current_gid = os.getgid()
-
                 segstats_cmd = [
                     "docker", "run", "--rm",  # Removed user mapping - FreeSurfer needs to run as root
                     "-v", f"{abs_freesurfer_dir}:/subjects",

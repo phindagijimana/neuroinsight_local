@@ -247,15 +247,15 @@ cmd_install() {
     local license_mount=""
     local license_path=""
     
-    # Check current directory first
+    # Check current directory first (deploy/)
     if [ -f "./license.txt" ]; then
         license_path="$(pwd)/license.txt"
         log_success "Found license.txt in current directory"
-    # Check parent directory (neuroinsight_local)
-    elif [ -f "../neuroinsight_local/license.txt" ]; then
-        license_path="$(cd ../neuroinsight_local && pwd)/license.txt"
+    # Check parent directory (neuroinsight_local/)
+    elif [ -f "../license.txt" ]; then
+        license_path="$(cd .. && pwd)/license.txt"
         log_success "Found license.txt in neuroinsight_local directory"
-    # Check src directory
+    # Check src directory (one level up from neuroinsight_local)
     elif [ -f "../../license.txt" ]; then
         license_path="$(cd ../.. && pwd)/license.txt"
         log_success "Found license.txt in src directory"
@@ -289,12 +289,18 @@ cmd_install() {
     log_info "  MinIO API: http://localhost:${minio_api_port}"
     log_info "  MinIO Console: http://localhost:${minio_console_port}"
     
+    # Get absolute path to Docker volume for host path mapping
+    local volume_path="/var/lib/docker/volumes/${VOLUME_NAME}/_data"
+    
     docker run -d \
         --name ${CONTAINER_NAME} \
         -p ${port}:8000 \
         -p ${minio_api_port}:9000 \
         -p ${minio_console_port}:9001 \
+        -v /var/run/docker.sock:/var/run/docker.sock \
         -v ${VOLUME_NAME}:/data \
+        -e HOST_UPLOAD_DIR=${volume_path}/uploads \
+        -e HOST_OUTPUT_DIR=${volume_path}/outputs \
         ${license_mount} \
         --restart unless-stopped \
         ${IMAGE_NAME}

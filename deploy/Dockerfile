@@ -10,9 +10,10 @@ ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive \
     POSTGRES_VERSION=15 \
     REDIS_VERSION=7.0 \
-    MINIO_VERSION=RELEASE.2024-01-18T22-51-28Z
+    MINIO_VERSION=RELEASE.2024-01-18T22-51-28Z \
+    HOME=/home/neuroinsight
 
-# Create application user
+# Create application user and add to docker group for socket access
 RUN useradd -m -u 1000 -s /bin/bash neuroinsight
 
 # Install system dependencies
@@ -38,6 +39,20 @@ RUN apt-get update && apt-get install -y \
     # Redis
     redis-server \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Docker CLI for FreeSurfer container spawning
+# Note: Docker group GID must match host's docker group to access socket
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list && \
+    apt-get update && \
+    apt-get install -y docker-ce-cli && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd -g 122 docker && \
+    usermod -aG docker neuroinsight && \
+    # Create Docker config directory for neuroinsight user to avoid /root permission errors
+    mkdir -p /home/neuroinsight/.docker && \
+    echo '{}' > /home/neuroinsight/.docker/config.json && \
+    chown -R neuroinsight:neuroinsight /home/neuroinsight/.docker
 
 # Add PostgreSQL APT repository and install
 RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg && \

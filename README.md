@@ -52,17 +52,78 @@ neuroinsight_local/
 
 ## Quick Start
 
-| Deployment Type | Platform | Installation Commands |
-|----------------|----------|----------------------|
-| **Native Linux** | Ubuntu 20.04+ | ```bash<br># Clone repository<br>git clone https://github.com/phindagijimana/neuroinsight_local.git<br>cd neuroinsight_local<br><br># Install (one-time setup)<br>./neuroinsight install<br><br># Setup FreeSurfer license<br>./neuroinsight license<br><br># Start NeuroInsight<br>./neuroinsight start<br><br># Access at http://localhost:8000<br>``` |
-| **Linux Docker** | Ubuntu 20.04+ / WSL2 | ```bash<br># Clone repository<br>git clone https://github.com/phindagijimana/neuroinsight_local.git<br>cd neuroinsight_local/deploy<br><br># Install and run (auto-pulls from Docker Hub)<br>./neuroinsight-docker install<br><br># Access at http://localhost:8000<br>``` |
-| **Windows Docker** | Windows 10/11 | ```powershell<br># Download from GitHub<br># Extract neuroinsight_windows/<br>cd neuroinsight_windows<br><br># Install Docker Desktop first:<br># https://www.docker.com/products/docker-desktop/<br><br># Install NeuroInsight<br>.\neuroinsight-docker.ps1 install<br><br># Access at http://localhost:8000<br>``` |
+### Native Linux (Ubuntu 20.04+)
 
-### Installation Notes
+```bash
+# Clone repository
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local
 
-- **Native Linux:** Direct installation on Ubuntu/Debian systems, uses systemd services
-- **Linux Docker:** Containerized deployment using `docker-compose`, ideal for isolated environments
-- **Windows Docker:** Uses Docker Desktop with WSL2 backend, same Linux container as Linux Docker
+# For WSL users: Check environment first (optional but recommended)
+./neuroinsight check-wsl
+
+# Install (one-time setup - auto-detects Linux/WSL)
+./neuroinsight install
+
+# Setup FreeSurfer license
+./neuroinsight license
+
+# Start NeuroInsight
+./neuroinsight start
+
+# Access at http://localhost:8000
+```
+
+**Best for:** Direct Ubuntu/Debian installation with systemd services
+
+---
+
+### Linux Docker (Ubuntu 20.04+ / WSL2)
+
+```bash
+# Clone repository
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local/deploy
+
+# Install and run (auto-pulls from Docker Hub)
+./neuroinsight-docker install
+
+# Access at http://localhost:8000
+```
+
+**Best for:** Containerized deployment, isolated environment, easy updates
+
+---
+
+### Windows Docker (Windows 10/11)
+
+```powershell
+# Download neuroinsight_windows/ from GitHub
+# Extract to desired location
+cd neuroinsight_windows
+
+# Install Docker Desktop first:
+# https://www.docker.com/products/docker-desktop/
+
+# Install NeuroInsight
+.\neuroinsight-docker.ps1 install
+
+# Access at http://localhost:8000
+```
+
+**Best for:** Windows users, uses Docker Desktop with WSL2 backend
+
+---
+
+### Deployment Comparison
+
+| Feature | Native Linux | Linux Docker | Windows Docker |
+|---------|--------------|--------------|----------------|
+| **Platform** | Ubuntu 20.04+ | Ubuntu 20.04+ / WSL2 | Windows 10/11 |
+| **Installation** | Direct on system | Containerized | Containerized via WSL2 |
+| **Updates** | Manual | One command | One command |
+| **Isolation** | System-wide | Containerized | Containerized |
+| **Best For** | Direct Linux install | Isolated environments | Windows users |
 
 ## File Requirements
 

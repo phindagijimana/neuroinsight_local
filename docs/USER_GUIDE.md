@@ -873,6 +873,40 @@ Windows may filter out unrecognized file extensions by default. Switching to "Al
 ```
 **What it does:** Validates your FreeSurfer license file. Checks that `license.txt` exists in the project directory and contains valid FreeSurfer credentials. Required before processing any MRI scans.
 
+### Delete Specific Job
+```bash
+./neuroinsight delete <job_id>
+```
+**What it does:** Permanently deletes a specific job by ID, including:
+- Database record
+- Uploaded MRI file
+- Output directory and all results
+- Associated metrics
+
+**Examples:**
+```bash
+# Interactive deletion (asks for confirmation)
+./neuroinsight delete d1a2c36e
+
+# Force deletion (no confirmation)
+./neuroinsight delete d1a2c36e --force
+```
+
+**Finding Job IDs:**
+- View job IDs in web interface (in URL or job details)
+- Or list jobs: `./neuroinsight status` shows active jobs
+
+**Docker deployments:**
+```bash
+# Linux/WSL Docker
+./neuroinsight-docker delete d1a2c36e
+
+# Windows Docker
+.\neuroinsight-docker.ps1 delete d1a2c36e
+```
+
+**Note:** This only deletes COMPLETED or FAILED jobs. Running/pending jobs should be cancelled through the web interface first.
+
 ### Advanced Monitoring
 ```bash
 ./neuroinsight monitor

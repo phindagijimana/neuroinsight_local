@@ -456,6 +456,10 @@ case "$1" in
         echo "NeuroInsight Cleanup..."
         exec "$PYTHON_BIN" scripts/clean.py "${@:2}"
         ;;
+    delete)
+        echo "NeuroInsight Job Deletion..."
+        exec "$PYTHON_BIN" scripts/delete_job.py "${@:2}"
+        ;;
     bring)
         echo "NeuroInsight Job Recovery..."
         exec "$PYTHON_BIN" scripts/bring_job.py "${@:2}"
@@ -770,6 +774,7 @@ case "$1" in
         echo "  monitor           - Advanced monitoring options"
         echo "  nosleep           - Prevent system sleep while jobs run"
         echo "  clean             - Remove old completed/failed jobs"
+        echo "  delete            - Delete a specific job by ID"
         echo "  bring             - Recover a completed job by ID"
         echo "  dev-start         - Start dev backend services"
         echo "  dev-stop          - Stop dev backend services"
@@ -802,6 +807,7 @@ case "$1" in
         echo "  # Maintenance"
         echo "  $0 health                     # Quick health check"
         echo "  $0 clean --days 90            # Cleanup old jobs"
+        echo "  $0 delete <job_id>            # Delete specific job"
         echo "  $0 bring <job_id>             # Recover job from outputs"
         echo "  $0 monitor cleanup            # Clean up orphaned processes"
         echo ""

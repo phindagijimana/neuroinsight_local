@@ -379,6 +379,38 @@ cmd_clean() {
     fi
 }
 
+# Delete specific job
+cmd_delete() {
+    check_docker
+    
+    local job_id="$1"
+    local force="${2}"
+    
+    if [ -z "$job_id" ]; then
+        log_error "Please specify job ID"
+        echo "Usage: ./neuroinsight-docker delete <job_id> [--force]"
+        echo ""
+        echo "Example: ./neuroinsight-docker delete d1a2c36e"
+        echo "         ./neuroinsight-docker delete d1a2c36e --force"
+        exit 1
+    fi
+    
+    if ! container_running; then
+        log_error "Container is not running"
+        return 1
+    fi
+    
+    log_info "Deleting job: ${job_id}"
+    
+    # Build command with optional force flag
+    local cmd="cd /app && PYTHONPATH=/app python3 scripts/delete_job.py ${job_id}"
+    if [ "$force" = "--force" ] || [ "$force" = "-f" ]; then
+        cmd="${cmd} --force"
+    fi
+    
+    docker exec -it ${CONTAINER_NAME} bash -c "$cmd"
+}
+
 # Bring/recover job
 cmd_bring() {
     check_docker
@@ -578,6 +610,7 @@ Status & Monitoring:
 
 Maintenance:
   clean [--days N]  - Clean up old jobs (default: 30 days)
+  delete <job_id>   - Delete a specific job by ID
   bring <job_id>    - Recover a completed job by ID
   backup            - Create backup of data volume
   restore <file>    - Restore from backup file
@@ -588,6 +621,7 @@ Examples:
   ./neuroinsight-docker license          # Check FreeSurfer license
   ./neuroinsight-docker logs backend     # View backend logs
   ./neuroinsight-docker clean --days 90  # Clean jobs older than 90 days
+  ./neuroinsight-docker delete d1a2c36e  # Delete specific job
   ./neuroinsight-docker bring abc12345   # Recover job by ID
   ./neuroinsight-docker shell            # Access shell
   ./neuroinsight-docker backup           # Create backup
@@ -650,6 +684,9 @@ case "${1:-help}" in
     clean)
         shift
         cmd_clean "$@"
+        ;;
+    delete)
+        cmd_delete "$2" "$3"
         ;;
     bring)
         cmd_bring "$2"

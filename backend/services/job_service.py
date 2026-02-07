@@ -874,6 +874,7 @@ class JobService:
             # Mark job as RUNNING immediately while holding the lock
             # This prevents race conditions when multiple deletion/completion events trigger simultaneously
             pending_job.status = JobStatus.RUNNING
+            pending_job.started_at = datetime.utcnow()  # Set timestamp when transitioning to RUNNING
             db.commit()  # Commit and release lock
             
             # Start the pending job

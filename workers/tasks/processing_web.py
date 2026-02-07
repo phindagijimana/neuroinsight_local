@@ -169,6 +169,7 @@ def start_next_pending_job(db: Session):
         # This prevents other workers from selecting this job in concurrent start_next_pending_job calls
         # The row lock + status change ensures atomic job selection
         pending_job.status = JobStatus.RUNNING
+        pending_job.started_at = datetime.utcnow()  # Set timestamp when transitioning to RUNNING
         db.commit()  # Commit and release lock
         
         logger.info("submitting_job_to_celery", job_id=str(pending_job.id), filename=pending_job.filename)

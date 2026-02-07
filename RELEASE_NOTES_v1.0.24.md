@@ -20,11 +20,13 @@ Result: Jobs automatically picked from queue would fail within seconds before pr
 
 ### What's Fixed
 
-**Three-part fix (Belt + Suspenders approach):**
+**Four-part fix (Belt + Suspenders approach):**
 
-1. **Set started_at in process_job_queue** (fixes root cause)
-   - When marking job as RUNNING, also set `started_at` timestamp
-   - Ensures every RUNNING job has a start time
+1. **Set started_at in ALL queue processing functions** (fixes root cause)
+   - `process_job_queue` - Set `started_at` when marking job as RUNNING
+   - `_start_next_pending_job` - Set `started_at` when marking job as RUNNING (called by delete)
+   - `start_next_pending_job` (worker) - Set `started_at` when marking job as RUNNING
+   - Ensures every RUNNING job has a start time regardless of code path
    - Grace period calculated from correct reference point
 
 2. **Add fallback in job monitor** (defensive coding)
@@ -40,9 +42,9 @@ Result: Jobs automatically picked from queue would fail within seconds before pr
 ### Technical Details
 
 **Files Modified:**
-- `backend/services/job_service.py` - Set `started_at` when marking job as RUNNING in queue
+- `backend/services/job_service.py` - Set `started_at` in `process_job_queue` and `_start_next_pending_job`
 - `backend/services/task_management_service.py` - Use `created_at` as fallback for grace period
-- `workers/tasks/processing_web.py` - Handle edge case of RUNNING job with missing `started_at`
+- `workers/tasks/processing_web.py` - Set `started_at` in `start_next_pending_job` + handle edge case
 
 **Grace Period Logic:**
 - Monitor uses 7-hour grace period (from `processing_timeout` setting)

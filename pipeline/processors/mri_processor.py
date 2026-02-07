@@ -2644,7 +2644,6 @@ class MRIProcessor:
             if host_upload_dir:  # Docker-in-Docker mode detected
                 # Try to detect host license path from Docker inspect
                 try:
-                    import subprocess as subprocess_module
                     import json
                     inspect_result = subprocess_module.run(
                         ["docker", "inspect", os.uname().nodename],
@@ -5118,7 +5117,6 @@ class MRIProcessor:
                     container_name = f"{settings.freesurfer_container_prefix}{self.job_id}"
                     
                     try:
-                        import subprocess as subprocess_module
                         check_result = subprocess_module.run(
                             ["docker", "inspect", "--format", "{{.State.Status}}", container_name],
                             capture_output=True,

@@ -855,14 +855,20 @@ class JobService:
                 logger.info("job_already_running_skipping_auto_start", running_count=running_count)
                 return
             
-            # Get the oldest pending job (FIFO queue)
+            # Get the oldest pending job with row-level locking (FIFO queue)
+            # with_for_update(skip_locked=True) ensures only one worker grabs this job
             pending_job = db.query(Job).filter(
                 Job.status == JobStatus.PENDING
-            ).order_by(Job.created_at.asc()).first()
+            ).with_for_update(skip_locked=True).order_by(Job.created_at.asc()).first()
             
             if not pending_job:
                 logger.info("no_pending_jobs_to_auto_start")
                 return
+            
+            # Mark job as RUNNING immediately while holding the lock
+            # This prevents race conditions when multiple deletion/completion events trigger simultaneously
+            pending_job.status = JobStatus.RUNNING
+            db.commit()  # Commit and release lock
             
             # Start the pending job
             logger.info("auto_starting_next_pending_job_after_completion",

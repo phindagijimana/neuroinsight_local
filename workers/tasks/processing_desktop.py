@@ -326,15 +326,18 @@ def _start_next_pending_job(db: Session):
             logger.info("not_starting_pending_job", reason="jobs_still_running", running_count=running_jobs)
             return
 
-        # Find the oldest pending job
-        pending_job = db.query(Job).filter(Job.status == JobStatus.PENDING).order_by(Job.created_at).first()
+        # Find the oldest pending job with row-level locking to prevent race conditions
+        pending_job = db.query(Job).filter(
+            Job.status == JobStatus.PENDING
+        ).with_for_update(skip_locked=True).order_by(Job.created_at).first()
+        
         if not pending_job:
             logger.info("no_pending_jobs_to_start")
             return
 
         logger.info("starting_next_pending_job", job_id=str(pending_job.id), filename=pending_job.filename)
 
-        # Mark job as running and submit for processing
+        # Mark job as running while holding the lock to prevent duplicate submissions
         JobService.start_job(db, str(pending_job.id))
 
         # Submit to task service for processing

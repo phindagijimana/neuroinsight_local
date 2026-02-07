@@ -165,15 +165,15 @@ def start_next_pending_job(db: Session):
             logger.info("no_pending_jobs_found")
             return
         
-        # DO NOT change status to RUNNING here!
-        # The row lock already prevents other workers from selecting this job.
-        # Let process_mri_task() update the status after the idempotency check passes.
-        # This fixes the deadlock where the job is marked RUNNING before the task runs,
-        # causing the idempotency check to skip processing.
+        # Mark job as RUNNING immediately while holding the lock
+        # This prevents other workers from selecting this job in concurrent start_next_pending_job calls
+        # The row lock + status change ensures atomic job selection
+        pending_job.status = JobStatus.RUNNING
+        db.commit()  # Commit and release lock
         
         logger.info("submitting_job_to_celery", job_id=str(pending_job.id), filename=pending_job.filename)
         
-        # Submit to Celery - the task will mark it as RUNNING
+        # Submit to Celery - task has idempotency check in case this fails
         task = process_mri_task.delay(str(pending_job.id))
         logger.info("job_submitted_to_celery", 
                    job_id=str(pending_job.id), 

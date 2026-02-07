@@ -809,6 +809,11 @@ class JobService:
                               queue_position="next_pending",
                               environment=settings.environment)
 
+                    # Mark job as RUNNING immediately while holding the lock
+                    # This prevents race conditions and duplicate submissions
+                    pending_job.status = JobStatus.RUNNING
+                    db.commit()  # Commit and release lock
+
                     # Start the job using the appropriate method for the environment
                     try:
                         # Use desktop processing only in development/desktop environments

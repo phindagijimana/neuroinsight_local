@@ -205,22 +205,37 @@ def process_mri_task(self, job_id: str):
         if not job:
             raise ValueError(f"Job {job_id} not found")
 
-        # Idempotency check: Only process if job is still PENDING
+        # Idempotency check: Only process if job is PENDING or RUNNING (but not already processed)
+        # RUNNING is acceptable because process_job_queue marks it as RUNNING before submission
         # This prevents duplicate tasks from processing the same job
-        if job.status != JobStatus.PENDING:
+        if job.status not in [JobStatus.PENDING, JobStatus.RUNNING]:
             logger.warning("job_already_processed",
                           job_id=job_id,
                           current_status=job.status.value,
                           task_id=self.request.id,
-                          message="Skipping duplicate task - job is not PENDING")
+                          message="Skipping duplicate task - job is not PENDING or RUNNING")
             return {
                 'status': 'skipped',
                 'reason': f'Job already in {job.status.value} status',
                 'job_id': job_id
             }
+        
+        # If job is already RUNNING but has a different celery_task_id, skip (duplicate)
+        if job.status == JobStatus.RUNNING and job.celery_task_id and job.celery_task_id != self.request.id:
+            logger.warning("job_already_running_by_another_task",
+                          job_id=job_id,
+                          current_task=self.request.id,
+                          assigned_task=job.celery_task_id,
+                          message="Skipping duplicate task - job is already being processed")
+            return {
+                'status': 'skipped',
+                'reason': 'Job already being processed by another task',
+                'job_id': job_id
+            }
 
-        # Update job status to running
-        JobService.start_job(db, job_id)
+        # Update job status to running (if it's still PENDING)
+        if job.status == JobStatus.PENDING:
+            JobService.start_job(db, job_id)
 
         # Check container concurrency limits BEFORE starting processing
         # This prevents jobs from starting when FreeSurfer containers are already at capacity
@@ -288,22 +303,9 @@ def process_mri_task(self, job_id: str):
             print(f"DEBUG: processor.process() failed for job {job_id}: {str(process_error)}")
             logger.error("processor_process_failed", job_id=job_id, error=str(process_error), exc_info=True)
 
-            # Update job status to FAILED using JobService
-            try:
-                JobService.fail_job(db, job_id, str(process_error)[:500])
-                logger.info("job_status_updated_to_failed", job_id=job_id, error=str(process_error))
-            except Exception as db_error:
-                logger.error("failed_to_update_job_status_via_service", job_id=job_id, db_error=str(db_error))
-                # Fallback to direct update if service fails
-                try:
-                    job.status = JobStatus.FAILED
-                    job.error_message = str(process_error)[:500]
-                    job.completed_at = datetime.utcnow()
-                    db.commit()
-                    logger.warning("job_status_updated_via_fallback", job_id=job_id)
-                except Exception as fallback_error:
-                    logger.error("complete_job_status_update_failure", job_id=job_id, error=str(fallback_error))
-
+            # Don't call fail_job here - let the outer exception handler do it
+            # This prevents duplicate fail_job calls and multiple queue processing attempts
+            
             # Re-raise the exception to fail the Celery task
             raise process_error
 
@@ -372,30 +374,8 @@ def process_mri_task(self, job_id: str):
                         job_id=job_id,
                         error=str(db_close_error))
 
-        # Start next job AFTER cleanup (Fix #1)
-        # This ensures previous worker fully completes before next job starts
-        # Uses fresh DB session for complete isolation
-        try:
-            logger.info("attempting_to_start_next_pending_job",
-                       completed_job_id=job_id)
-            
-            # Create a fresh database session for the next job
-            db_for_next = SessionLocal()
-            
-            try:
-                start_next_pending_job(db_for_next)
-                logger.info("next_job_start_attempted", 
-                           completed_job_id=job_id)
-            finally:
-                # Always close the session
-                db_for_next.close()
-                
-        except Exception as next_job_error:
-            # Don't fail the current job if next job fails to start
-            logger.error("failed_to_start_next_pending_job",
-                        completed_job_id=job_id,
-                        error=str(next_job_error),
-                        exc_info=True)
+        # Note: Next job is automatically started by JobService.fail_job() or JobService.complete_job()
+        # No need to call start_next_pending_job here to avoid duplicate submissions
 
 
 @celery_app.task(name="health_check")

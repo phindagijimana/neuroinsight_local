@@ -8,11 +8,6 @@ import ZoomOut from '../components/icons/ZoomOut.jsx'
 import Clock from '../components/icons/Clock.jsx'
 
 function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
-  // FORCE CACHE BUST TEST - If you see this, you have NEW CODE
-  console.log(' NEW CODE LOADED - SLICE NAVIGATION FIX ACTIVE ');
-  console.log('Current selectedJobId:', selectedJobId);
-  console.log('Jobs prop received:', jobs);
-  console.log('Jobs length:', jobs ? jobs.length : 'undefined/null');
 
   // Log jobs every render to see if they change
   console.log('ViewerPage render: jobs =', jobs, 'jobsLoading =', false);

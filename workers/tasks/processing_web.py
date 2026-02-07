@@ -147,6 +147,9 @@ def start_next_pending_job(db: Session):
         db: Database session
     """
     try:
+        # First, clean up any orphaned containers that might be blocking the queue
+        JobService._cleanup_orphaned_containers(db)
+        
         # Check if there are any running jobs
         running_count = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
         

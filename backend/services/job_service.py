@@ -301,16 +301,34 @@ class JobService:
                     )
                     
                     if result.returncode == 0:
-                        logger.info("docker_container_killed", 
+                        logger.info("docker_container_stopped", 
                                    job_id=str(job_id), 
                                    container_id=job.docker_container_id)
                     else:
-                        logger.warning("docker_container_kill_failed",
+                        logger.warning("docker_container_stop_failed",
                                       job_id=str(job_id),
                                       container_id=job.docker_container_id,
                                       stderr=result.stderr.decode() if result.stderr else "")
+                    
+                    # Remove the container to prevent it from becoming orphaned
+                    remove_result = subprocess.run(
+                        ["docker", "rm", "-f", job.docker_container_id],
+                        capture_output=True,
+                        timeout=10
+                    )
+                    
+                    if remove_result.returncode == 0:
+                        logger.info("docker_container_removed", 
+                                   job_id=str(job_id), 
+                                   container_id=job.docker_container_id)
+                    else:
+                        logger.warning("docker_container_remove_failed",
+                                      job_id=str(job_id),
+                                      container_id=job.docker_container_id,
+                                      stderr=remove_result.stderr.decode() if remove_result.stderr else "")
+                        
                 except Exception as e:
-                    logger.warning("docker_container_kill_error", 
+                    logger.warning("docker_container_cleanup_error", 
                                   job_id=str(job_id), 
                                   error=str(e))
             
@@ -793,6 +811,9 @@ class JobService:
         This should be called whenever a job completes or fails.
         """
         try:
+            # First, clean up any orphaned containers that might be blocking the queue
+            JobService._cleanup_orphaned_containers(db)
+            
             # Check current running jobs
             running_jobs = db.query(Job).filter(Job.status == JobStatus.RUNNING).count()
             # Import settings properly
@@ -844,6 +865,96 @@ class JobService:
             logger.error("job_queue_processing_failed", error=str(e))
     
     @staticmethod
+    def _cleanup_orphaned_containers(db: Session):
+        """
+        Find and remove FreeSurfer containers that have no corresponding database record.
+        
+        These "orphaned" containers can block new jobs from starting by consuming
+        the concurrency limit even though they're not tracked in the database.
+        
+        Args:
+            db: Database session
+        """
+        try:
+            import subprocess
+            from backend.core.config import Settings
+            settings = Settings()
+            
+            # Get all FreeSurfer containers
+            result = subprocess.run(
+                ["docker", "ps", "-a", "--filter", f"name={settings.freesurfer_container_prefix}", 
+                 "--format", "{{.Names}}"],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode != 0:
+                logger.warning("failed_to_list_freesurfer_containers", 
+                              stderr=result.stderr if result.stderr else "")
+                return
+            
+            container_names = [name.strip() for name in result.stdout.strip().split('\n') if name.strip()]
+            
+            if not container_names:
+                logger.debug("no_freesurfer_containers_found")
+                return
+            
+            # Extract job IDs from container names
+            prefix_len = len(settings.freesurfer_container_prefix)
+            container_job_ids = {name[prefix_len:]: name for name in container_names}
+            
+            # Get all active job IDs from database
+            active_jobs = db.query(Job.id).filter(
+                Job.status.in_([JobStatus.PENDING, JobStatus.RUNNING])
+            ).all()
+            active_job_ids = {str(job.id) for job in active_jobs}
+            
+            # Find orphaned containers (container exists but no active database record)
+            orphaned_containers = {
+                name: container_name 
+                for name, container_name in container_job_ids.items() 
+                if name not in active_job_ids
+            }
+            
+            if orphaned_containers:
+                logger.info("found_orphaned_containers", 
+                           count=len(orphaned_containers),
+                           containers=list(orphaned_containers.values()))
+                
+                # Remove each orphaned container
+                for job_id, container_name in orphaned_containers.items():
+                    try:
+                        remove_result = subprocess.run(
+                            ["docker", "rm", "-f", container_name],
+                            capture_output=True,
+                            text=True,
+                            timeout=10
+                        )
+                        
+                        if remove_result.returncode == 0:
+                            logger.info("removed_orphaned_container", 
+                                       job_id=job_id,
+                                       container_name=container_name)
+                        else:
+                            logger.warning("failed_to_remove_orphaned_container",
+                                          job_id=job_id,
+                                          container_name=container_name,
+                                          stderr=remove_result.stderr if remove_result.stderr else "")
+                    except Exception as e:
+                        logger.warning("error_removing_orphaned_container",
+                                      job_id=job_id,
+                                      container_name=container_name,
+                                      error=str(e))
+            else:
+                logger.debug("no_orphaned_containers_found", 
+                            active_containers=len(container_names),
+                            active_jobs=len(active_job_ids))
+                
+        except Exception as e:
+            logger.error("orphaned_container_cleanup_failed", error=str(e), exc_info=True)
+    
+    @staticmethod
     def _start_next_pending_job(db: Session):
         """
         Check for pending jobs and start the next one if no jobs are currently running.
@@ -854,6 +965,9 @@ class JobService:
             db: Database session
         """
         try:
+            # First, clean up any orphaned containers that might be blocking the queue
+            JobService._cleanup_orphaned_containers(db)
+            
             # Check if there are any running jobs
             running_count = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
             

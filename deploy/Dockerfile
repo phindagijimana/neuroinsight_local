@@ -91,9 +91,9 @@ COPY scripts/ /app/scripts/
 COPY frontend/dist/ /app/frontend/dist/
 
 # Copy configuration files
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY entrypoint.sh /app/entrypoint.sh
-COPY healthcheck.sh /app/healthcheck.sh
+COPY deploy/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY deploy/entrypoint.sh /app/entrypoint.sh
+COPY deploy/healthcheck.sh /app/healthcheck.sh
 
 # Set up PostgreSQL
 RUN mkdir -p /var/lib/postgresql/data && \

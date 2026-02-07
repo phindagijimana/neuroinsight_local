@@ -56,10 +56,10 @@ Docker configuration complete
 
 ### Key Benefits
 
-✅ **True Universal Compatibility** - Works on Linux, WSL2, and Docker Desktop  
-✅ **Automatic Configuration** - No manual setup required  
-✅ **Runtime GID Detection** - Adapts to any system's Docker setup  
-✅ **Verified on Startup** - Tests Docker access before processing jobs  
+- True Universal Compatibility - Works on Linux, WSL2, and Docker Desktop
+- Automatic Configuration - No manual setup required
+- Runtime GID Detection - Adapts to any system's Docker setup
+- Verified on Startup - Tests Docker access before processing jobs  
 
 ---
 
@@ -123,11 +123,11 @@ This is a **critical build fix** that makes the v1.0.15 code changes actually wo
 
 | Aspect | v1.0.15 | v1.0.16 |
 |--------|---------|---------|
-| Code has Docker fix | ✅ Yes | ✅ Yes |
-| Docker image has fix | ❌ No (wrong file) | ✅ Yes (correct file) |
-| Auto-configures permissions | ❌ No | ✅ Yes |
-| Works on WSL2 | ❌ Hit-or-miss | ✅ Yes |
-| Startup logs show fix | ❌ No | ✅ Yes |
+| Code has Docker fix | Yes | Yes |
+| Docker image has fix | No (wrong file) | Yes (correct file) |
+| Auto-configures permissions | No | Yes |
+| Works on WSL2 | Hit-or-miss | Yes |
+| Startup logs show fix | No | Yes |
 
 ---
 
@@ -145,9 +145,9 @@ All features from previous releases are included:
 ## Testing Results
 
 **Tested on:**
-- ✅ Ubuntu 22.04 (native Docker, socket GID 122)
-- ✅ WSL2 Ubuntu (Docker Desktop for Windows)
-- ✅ Various Docker GID configurations (999, 998, 122, 133)
+- Ubuntu 22.04 (native Docker, socket GID 122)
+- WSL2 Ubuntu (Docker Desktop for Windows)
+- Various Docker GID configurations (999, 998, 122, 133)
 
 **All tests passed:**
 - Docker access configured automatically on all systems
@@ -179,10 +179,10 @@ All features from previous releases are included:
 
 ## Backwards Compatibility
 
-✅ **100% Compatible** - No breaking changes  
-✅ **Data Preserved** - Existing jobs and data remain intact  
-✅ **Same Commands** - All CLI commands work identically  
-✅ **Same Ports** - Default ports unchanged (8000, 9000, 9001)  
+- 100% Compatible - No breaking changes
+- Data Preserved - Existing jobs and data remain intact
+- Same Commands - All CLI commands work identically
+- Same Ports - Default ports unchanged (8000, 9000, 9001)  
 
 ---
 

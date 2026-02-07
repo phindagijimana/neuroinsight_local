@@ -256,8 +256,10 @@ class TaskManagementService:
                 container_name = job.docker_container_id or f"{settings.freesurfer_container_prefix}{job.id}"
 
                 # Avoid false positives right after job start
-                if job.started_at:
-                    elapsed_seconds = (datetime.utcnow() - job.started_at).total_seconds()
+                # Use created_at as fallback if started_at not yet set (defensive coding)
+                reference_time = job.started_at or job.created_at
+                if reference_time:
+                    elapsed_seconds = (datetime.utcnow() - reference_time).total_seconds()
                     if elapsed_seconds < mismatch_grace_seconds:
                         continue
 

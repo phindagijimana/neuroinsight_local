@@ -221,8 +221,15 @@ def process_mri_task(self, job_id: str):
             }
 
         # Update job status to running (if it's still PENDING)
+        # If already RUNNING from queue, started_at is already set
         if job.status == JobStatus.PENDING:
             JobService.start_job(db, job_id)
+        elif job.status == JobStatus.RUNNING and not job.started_at:
+            # Edge case: job marked as RUNNING but started_at missing
+            # (shouldn't happen with process_job_queue fix, but defensive)
+            job.started_at = datetime.utcnow()
+            db.commit()
+            logger.info("job_started_at_set_by_worker", job_id=job_id)
 
         # Check container concurrency limits BEFORE starting processing
         # This prevents jobs from starting when FreeSurfer containers are already at capacity

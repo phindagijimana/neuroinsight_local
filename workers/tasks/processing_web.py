@@ -219,19 +219,6 @@ def process_mri_task(self, job_id: str):
                 'reason': f'Job already in {job.status.value} status',
                 'job_id': job_id
             }
-        
-        # If job is already RUNNING but has a different celery_task_id, skip (duplicate)
-        if job.status == JobStatus.RUNNING and job.celery_task_id and job.celery_task_id != self.request.id:
-            logger.warning("job_already_running_by_another_task",
-                          job_id=job_id,
-                          current_task=self.request.id,
-                          assigned_task=job.celery_task_id,
-                          message="Skipping duplicate task - job is already being processed")
-            return {
-                'status': 'skipped',
-                'reason': 'Job already being processed by another task',
-                'job_id': job_id
-            }
 
         # Update job status to running (if it's still PENDING)
         if job.status == JobStatus.PENDING:

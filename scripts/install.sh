@@ -793,9 +793,9 @@ MINIO_SECRET_KEY=minioadmin_secure
 # Docker group ID (for container permissions)
 DOCKER_GID=999
 
-# Host paths (for Docker-in-Docker)
-HOST_UPLOAD_DIR=$(pwd)/data/uploads
-HOST_OUTPUT_DIR=$(pwd)/data/outputs
+# Host paths - use absolute paths for native mode compatibility
+HOST_UPLOAD_DIR=$INSTALL_DIR/data/uploads
+HOST_OUTPUT_DIR=$INSTALL_DIR/data/outputs
 EOF
     log_success ".env file created"
 else

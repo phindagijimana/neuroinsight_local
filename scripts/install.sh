@@ -793,9 +793,10 @@ MINIO_SECRET_KEY=minioadmin_secure
 # Docker group ID (for container permissions)
 DOCKER_GID=999
 
-# Host paths - use absolute paths for native mode compatibility
-HOST_UPLOAD_DIR=$INSTALL_DIR/data/uploads
-HOST_OUTPUT_DIR=$INSTALL_DIR/data/outputs
+# Host paths for Docker-in-Docker (native mode uses ~/.local/share/neuroinsight)
+# These are only needed when worker runs inside a container and spawns FreeSurfer containers
+HOST_UPLOAD_DIR=$HOME/.local/share/neuroinsight/uploads
+HOST_OUTPUT_DIR=$HOME/.local/share/neuroinsight/outputs
 EOF
     log_success ".env file created"
 else

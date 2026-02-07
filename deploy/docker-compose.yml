@@ -22,9 +22,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-neuroinsight_secure_password}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secure_password}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin_secure}
-      # Host paths for Docker-in-Docker FreeSurfer spawning
-      - HOST_UPLOAD_DIR=/var/lib/docker/volumes/neuroinsight-data/_data/uploads
-      - HOST_OUTPUT_DIR=/var/lib/docker/volumes/neuroinsight-data/_data/outputs
+      # Note: HOST_UPLOAD_DIR and HOST_OUTPUT_DIR are auto-detected from volume mounts
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "/app/healthcheck.sh"]

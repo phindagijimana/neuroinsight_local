@@ -289,11 +289,9 @@ cmd_install() {
     log_info "  MinIO API: http://localhost:${minio_api_port}"
     log_info "  MinIO Console: http://localhost:${minio_console_port}"
     
-    # Get absolute path to Docker volume for host path mapping
-    local volume_path="/var/lib/docker/volumes/${VOLUME_NAME}/_data"
-    
     log_info "Docker permissions will be auto-configured at container startup"
     log_info "This ensures compatibility with Linux, WSL2, and Docker Desktop"
+    log_info "Host paths will be auto-detected from volume mounts"
     
     docker run -d \
         --name ${CONTAINER_NAME} \
@@ -302,8 +300,6 @@ cmd_install() {
         -p ${minio_console_port}:9001 \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v ${VOLUME_NAME}:/data \
-        -e HOST_UPLOAD_DIR=${volume_path}/uploads \
-        -e HOST_OUTPUT_DIR=${volume_path}/outputs \
         ${license_mount} \
         --restart unless-stopped \
         ${IMAGE_NAME}

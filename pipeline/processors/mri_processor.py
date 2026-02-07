@@ -2620,13 +2620,39 @@ class MRIProcessor:
             host_upload_dir = os.getenv('HOST_UPLOAD_DIR')
             host_output_dir = os.getenv('HOST_OUTPUT_DIR')
             
+            # Auto-detect host paths by inspecting our own container
+            if not host_upload_dir or not host_output_dir:
+                try:
+                    import json
+                    # Inspect our own container to find volume mount sources
+                    inspect_result = subprocess_module.run(
+                        ["docker", "inspect", os.uname().nodename],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if inspect_result.returncode == 0:
+                        container_info = json.loads(inspect_result.stdout)[0]
+                        for mount in container_info.get('Mounts', []):
+                            dest = mount.get('Destination')
+                            source = mount.get('Source')
+                            if dest == '/data' and not host_upload_dir:
+                                host_upload_dir = f"{source}/uploads"
+                                host_output_dir = f"{source}/outputs"
+                                logger.info("auto_detected_host_paths",
+                                          upload_dir=host_upload_dir,
+                                          output_dir=host_output_dir)
+                                break
+                except Exception as e:
+                    logger.warning("failed_to_auto_detect_host_paths", error=str(e))
+            
             # If host paths are set (Docker-in-Docker mode), use them
             # Don't check exists() - we can't verify host paths from inside container!
             if host_upload_dir and host_upload_dir.strip():
                 abs_input_dir = host_upload_dir
                 logger.info("using_host_upload_path", path=abs_input_dir)
             else:
-                # Native/desktop mode - use container paths
+                # Fallback - use container paths
                 abs_input_dir = str(nifti_path.parent.resolve())
                 logger.info("using_container_upload_path", path=abs_input_dir)
             
@@ -2635,7 +2661,7 @@ class MRIProcessor:
                 abs_freesurfer_dir = f"{host_output_dir}/{self.job_id}/freesurfer/freesurfer_docker"
                 logger.info("using_host_output_path", path=abs_freesurfer_dir)
             else:
-                # Native/desktop mode - use container paths
+                # Fallback - use container paths
                 abs_freesurfer_dir = freesurfer_dir.resolve()
                 logger.info("using_container_output_path", path=str(abs_freesurfer_dir))
             

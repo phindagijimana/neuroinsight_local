@@ -781,8 +781,20 @@ except ImportError as e:
 log_info "Setting up Docker infrastructure..."
 
 # Create .env file if it doesn't exist
+# Also recreate if it contains broken HOST_*_DIR values (literal $(pwd) or $HOME)
+RECREATE_ENV=false
 if [ ! -f ".env" ]; then
+    RECREATE_ENV=true
     log_info "Creating .env configuration file..."
+elif grep -q 'HOST_UPLOAD_DIR=\$(pwd)\|HOST_UPLOAD_DIR=\$HOME\|HOST_UPLOAD_DIR=\${HOME}' .env 2>/dev/null; then
+    log_warning "Detected broken HOST_*_DIR paths in existing .env"
+    log_info "Backing up old .env to .env.backup"
+    cp .env .env.backup
+    RECREATE_ENV=true
+    log_info "Recreating .env with correct configuration..."
+fi
+
+if [ "$RECREATE_ENV" = true ]; then
     cat > .env << 'EOF'
 # PostgreSQL Database
 POSTGRES_USER=neuroinsight
@@ -805,8 +817,16 @@ DOCKER_GID=999
 # For native mode: Python uses ~/.local/share/neuroinsight/ (XDG standard)
 EOF
     log_success ".env file created"
+    
+    # Show what changed if we recreated
+    if [ -f ".env.backup" ]; then
+        log_info "Changes made to .env:"
+        echo "  - Removed broken HOST_UPLOAD_DIR and HOST_OUTPUT_DIR"
+        echo "  - Native mode now auto-detects paths from ~/.local/share/neuroinsight/"
+        echo "  - Backup saved to: .env.backup"
+    fi
 else
-    log_info ".env file already exists, skipping"
+    log_info ".env file already exists and is valid, skipping"
 fi
 
 # Start Docker containers

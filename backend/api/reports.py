@@ -271,8 +271,8 @@ async def generate_pdf_report(
 
         viz_note = Paragraph(
             "The following images show coronal slices with anatomical T1-weighted background and hippocampal segmentation overlays "
-            "(30% opacity) combined. Images are rotated 180 degrees for optimal report viewing. Slices 3, 4, 5, and 6 are displayed "
-            "in a 2x2 grid to provide comprehensive visualization of the hippocampal regions.",
+            "(30% opacity) combined. Slices 3, 4, 5, and 6 are displayed in a 2x2 grid to provide comprehensive visualization "
+            "of the hippocampal regions.",
             styles['Normal']
         )
         story.append(viz_note)
@@ -325,17 +325,8 @@ async def generate_pdf_report(
                         # Resize anatomical to match overlay (overlay has hippocampus segmentation at correct resolution)
                         anatomical_img = anatomical_img.resize(overlay_img.size, PILImage.LANCZOS)
 
-                    # Composite with 15% opacity for hippocampus overlays
+                    # Composite with 30% opacity for hippocampus overlays
                     # Convert to numpy arrays for pixel-level control
-                    anatomical_array = np.array(anatomical_img)
-                    overlay_array = np.array(overlay_img)
-
-                    # Apply 180-degree rotation to coronal slices for report display
-                    anatomical_img = anatomical_img.rotate(180)
-                    overlay_img = overlay_img.rotate(180)
-                    logger.info(f"Applied 180-degree rotation to coronal slice {slice_idx} for report")
-
-                    # Convert back to arrays after rotation
                     anatomical_array = np.array(anatomical_img)
                     overlay_array = np.array(overlay_img)
 

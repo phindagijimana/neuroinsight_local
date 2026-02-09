@@ -461,7 +461,7 @@ async def generate_pdf_report(
 
             # Add caption for the entire grid
             grid_caption = Paragraph(
-                "Figure: Coronal slices 3, 4 (top row) and 5, 6 (bottom row) showing T1-weighted anatomical images with hippocampal segmentation overlays at 30% opacity (rotated 180 degrees for optimal viewing).",
+                "Figure: Coronal slices 3, 4 (top row) and 5, 6 (bottom row) showing T1-weighted anatomical images with hippocampal segmentation overlays at 30% opacity.",
                 ParagraphStyle('GridCaption', parent=styles['Normal'], fontSize=9, textColor=colors.gray, alignment=1)
             )
             story.append(grid_caption)

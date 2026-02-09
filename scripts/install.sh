@@ -231,6 +231,12 @@ if (( PYTHON_MAJOR < 3 )) || (( PYTHON_MAJOR == 3 && PYTHON_MINOR < 9 )); then
     exit 1
 fi
 
+# Check for Python 3.13+ (tested compatibility range: 3.9-3.13)
+if (( PYTHON_MAJOR == 3 && PYTHON_MINOR >= 13 )); then
+    log_warning "Python 3.13 detected - using updated dependencies"
+    log_info "Tested with Python 3.9-3.13. If you encounter issues, Python 3.10-3.12 is recommended."
+fi
+
 log_success "Python version check passed: $PYTHON_VERSION"
 
 # Detect if running on WSL

@@ -799,11 +799,10 @@ MINIO_SECRET_KEY=minioadmin_secure
 # Docker group ID (for container permissions)
 DOCKER_GID=999
 
-# Host paths for Docker-in-Docker (native mode uses ~/.local/share/neuroinsight)
-# These are only needed when worker runs inside a container and spawns FreeSurfer containers  
-# Note: Uses $(pwd) for compatibility - actual paths auto-detected at runtime
-HOST_UPLOAD_DIR=$(pwd)/data/uploads
-HOST_OUTPUT_DIR=$(pwd)/data/outputs
+# Host paths for Docker-in-Docker
+# Note: These are NOT needed for native installation (auto-detected at runtime)
+# Only required when backend runs inside Docker container and spawns FreeSurfer containers
+# For native mode: Python uses ~/.local/share/neuroinsight/ (XDG standard)
 EOF
     log_success ".env file created"
 else

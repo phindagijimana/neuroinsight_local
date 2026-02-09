@@ -1348,7 +1348,5 @@ docker rm neuroinsight
 ---
 
 **For complete documentation, see:**
-- `TROUBLESHOOTING.md` - Main troubleshooting guide
-- `CLEANUP_GUIDE.md` - Data management and cleanup
-- `UPDATING.md` - Update procedures
-- `README.md` - Installation and setup
+- `README.md` - Installation and quick start
+- `docs/USER_GUIDE.md` - How to use the application

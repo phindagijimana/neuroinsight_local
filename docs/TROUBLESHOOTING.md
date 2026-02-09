@@ -415,8 +415,8 @@ docker exec neuroinsight docker pull hello-world
 **Why This Happens:**
 
 The NeuroInsight container needs to spawn FreeSurfer containers for processing. This requires:
-1. Docker socket mounted: `/var/run/docker.sock:/var/run/docker.sock` ✓
-2. Container user has permission to access socket ✗ (missing)
+1. Docker socket mounted: `/var/run/docker.sock:/var/run/docker.sock` [OK]
+2. Container user has permission to access socket [X] (missing)
 
 The fix adds the Docker group to the container, giving it permission to use Docker.
 
@@ -1035,11 +1035,11 @@ curl -X DELETE http://localhost:8000/api/jobs/delete/<job_id>
 
 **What persists:**
 ```
-✓ PostgreSQL database (job records)
-✓ Uploaded MRI files
-✓ Processing outputs
-✓ Generated reports
-✓ User settings
+[OK] PostgreSQL database (job records)
+[OK] Uploaded MRI files
+[OK] Processing outputs
+[OK] Generated reports
+[OK] User settings
 ```
 
 **To remove old jobs:**
@@ -1065,7 +1065,7 @@ rm -rf ~/.local/share/neuroinsight/
 ./neuroinsight install
 ```
 
-⚠️ **Warning:** Option 3 deletes ALL jobs, uploads, and settings!
+[WARNING] **Warning:** Option 3 deletes ALL jobs, uploads, and settings!
 
 **See also:** `CLEANUP_GUIDE.md` for complete cleanup documentation
 
@@ -1100,9 +1100,9 @@ rm -rf venv/
 ```
 
 **Supported Python versions:**
-- ✅ Python 3.9-3.13 (tested and supported)
-- ⚠️ Python 3.13: Latest dependencies required (in v1.0.26+)
-- 💡 Recommended: Python 3.10-3.12 for best stability
+- [OK] Python 3.9-3.13 (tested and supported)
+- [WARNING] Python 3.13: Latest dependencies required (in v1.0.26+)
+-  Recommended: Python 3.10-3.12 for best stability
 
 **Manual fix for older versions:**
 ```bash
@@ -1196,9 +1196,9 @@ git pull origin master
 ```
 
 **What was fixed:**
-- ❌ Before: Images flipped twice (once in code, once in report)
-- ✅ After: Single flip for correct anatomical orientation
-- ✅ Removed misleading "rotated 180 degrees" text from reports
+- [X] Before: Images flipped twice (once in code, once in report)
+- [OK] After: Single flip for correct anatomical orientation
+- [OK] Removed misleading "rotated 180 degrees" text from reports
 
 **Image orientation now:**
 - **Web viewer:** Correct anatomical orientation
@@ -1220,10 +1220,10 @@ Fixed in v1.0.28+ - Added L/R markers and color legend.
 
 **What's new:**
 ```
-✓ "L" marker at bottom-left of coronal images
-✓ "R" marker at bottom-right of coronal images
-✓ Color legend in PDF: Red = Left, Blue = Right
-✓ Radiological view convention documented
+[OK] "L" marker at bottom-left of coronal images
+[OK] "R" marker at bottom-right of coronal images
+[OK] Color legend in PDF: Red = Left, Blue = Right
+[OK] Radiological view convention documented
 ```
 
 **Update to get these features:**
@@ -1239,8 +1239,8 @@ docker pull phindagijimana321/neuroinsight:v1.0.28
 ```
 
 **Color coding reference:**
-- 🔴 **Red (#FF3333)** = Left Hippocampus
-- 🔵 **Blue (#3399FF)** = Right Hippocampus
+- Red **Red (#FF3333)** = Left Hippocampus
+- Blue **Blue (#3399FF)** = Right Hippocampus
 - Markers show patient orientation (radiological view)
 
 ---
@@ -1253,7 +1253,7 @@ docker pull phindagijimana321/neuroinsight:v1.0.28
 "Does `./neuroinsight delete` or `clean` actually remove jobs from the UI?"
 
 **Answer:**
-✅ YES - Verified and tested! Jobs are removed from:
+[OK] YES - Verified and tested! Jobs are removed from:
 1. PostgreSQL database
 2. File system (uploads + outputs)
 3. Web UI (automatic refresh)
@@ -1285,10 +1285,10 @@ curl http://localhost:8000/api/jobs/ | grep "total"
 ```
 
 **All deletion methods work:**
-- ✅ Command line: `./neuroinsight delete <id>`
-- ✅ UI delete button (trash icon)
-- ✅ API call: `curl -X DELETE .../jobs/delete/<id>`
-- ✅ Clean command: `./neuroinsight clean --days 0`
+- [OK] Command line: `./neuroinsight delete <id>`
+- [OK] UI delete button (trash icon)
+- [OK] API call: `curl -X DELETE .../jobs/delete/<id>`
+- [OK] Clean command: `./neuroinsight clean --days 0`
 
 **Cleanup commands:**
 ```bash

@@ -252,7 +252,7 @@ journalctl --user -u neuroinsight-worker -f
 
 ---
 
-## 🔍 Verification
+##  Verification
 
 ### Installation Test
 

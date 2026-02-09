@@ -399,13 +399,13 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
 
                 return (
                   <div key={job.id} className="p-6 hover:bg-blue-50 transition">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
-                      <div className={`p-2 rounded-lg ${(statusInfo[normalizedStatus] || statusInfo.queued).bgColor}`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
+                      <div className={`p-2 rounded-lg ${(statusInfo[normalizedStatus] || statusInfo.queued).bgColor} flex-shrink-0`}>
                         <StatusIcon className={`w-5 h-5 ${(statusInfo[normalizedStatus] || statusInfo.queued).color}`} />
                       </div>
 
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-gray-900">{job.filename}</h3>
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${statusColor}`}>
@@ -591,7 +591,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 ml-4">
+                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
                       {normalizedStatus === 'completed' && (
                         <>
                           <button

@@ -980,3 +980,375 @@ docker ps -a | Select-String neuroinsight  # Container list
 ---
 
 © 2025 University of Rochester. All rights reserved.
+# Troubleshooting Guide - Recent Additions
+
+## Additions for TROUBLESHOOTING.md
+
+### Section: UI/Frontend Issues
+
+#### Delete Button Not Visible for Failed Jobs
+
+**Symptoms:**
+- Failed jobs show large error message boxes
+- Delete button (trash icon) is pushed off-screen or hidden
+- Cannot easily delete failed jobs from UI
+
+**Solution:**
+Fixed in v1.0.28+ - Delete button now always visible regardless of error message size.
+
+**Workaround for older versions:**
+```bash
+# Option 1: Use command line
+./neuroinsight delete <job_id>                    # Native
+./neuroinsight-docker delete <job_id>             # Docker
+
+# Option 2: Use API directly
+curl -X DELETE http://localhost:8000/api/jobs/delete/<job_id>
+
+# Option 3: Clean all failed jobs
+./neuroinsight clean --days 0                     # Native
+./neuroinsight-docker clean --days 0              # Docker
+```
+
+**Verification:**
+- Update to latest version: `git pull origin master`
+- Rebuild Docker image or restart native deployment
+- Delete button now visible in top-right corner of job cards
+
+---
+
+### Section: Data Management
+
+#### Jobs Persist After Stop/Restart
+
+**Symptoms:**
+- Old jobs still visible after `./neuroinsight stop` and `./neuroinsight install`
+- Previous uploads appear after container recreate
+- Job count doesn't reset to zero
+
+**This is INTENTIONAL behavior** - Data persists between restarts!
+
+**Why:**
+- **Docker:** Uses persistent volumes (`neuroinsight-data`)
+- **Native:** Uses standard data directories (`~/.local/share/neuroinsight/`)
+- Prevents data loss during updates/restarts
+
+**What persists:**
+```
+✓ PostgreSQL database (job records)
+✓ Uploaded MRI files
+✓ Processing outputs
+✓ Generated reports
+✓ User settings
+```
+
+**To remove old jobs:**
+
+```bash
+# Option 1: Clean specific jobs (recommended)
+./neuroinsight delete <job_id>
+./neuroinsight-docker delete <job_id>
+
+# Option 2: Clean old completed/failed jobs
+./neuroinsight clean --days 30              # Remove jobs older than 30 days
+./neuroinsight-docker clean --days 0        # Remove all completed/failed jobs
+
+# Option 3: Fresh start (removes ALL data)
+## Docker:
+./neuroinsight-docker stop
+docker volume rm neuroinsight-data
+./neuroinsight-docker install
+
+## Native:
+./neuroinsight stop
+rm -rf ~/.local/share/neuroinsight/
+./neuroinsight install
+```
+
+⚠️ **Warning:** Option 3 deletes ALL jobs, uploads, and settings!
+
+**See also:** `CLEANUP_GUIDE.md` for complete cleanup documentation
+
+---
+
+### Section: Installation Issues
+
+#### Python 3.13 Compatibility Errors
+
+**Symptoms:**
+```bash
+error: subprocess-exited-with-error
+× pip failed to build wheels for pandas
+ERROR: Failed building wheel for pandas
+too few arguments to function '_PyLong_AsByteArray'
+```
+
+**Cause:**
+Python 3.13 changed C API, breaking older versions of `pandas`, `numpy`, etc.
+
+**Solution:**
+Fixed in v1.0.26+ - Updated dependencies for Python 3.13 compatibility.
+
+```bash
+# Update to latest version
+git pull origin master
+
+# Reinstall
+./neuroinsight stop
+rm -rf venv/
+./neuroinsight install
+```
+
+**Supported Python versions:**
+- ✅ Python 3.9-3.13 (tested and supported)
+- ⚠️ Python 3.13: Latest dependencies required (in v1.0.26+)
+- 💡 Recommended: Python 3.10-3.12 for best stability
+
+**Manual fix for older versions:**
+```bash
+# Upgrade dependencies
+pip install --upgrade pandas==2.2.3 numpy==2.2.3 scipy==1.15.2
+```
+
+---
+
+#### Native Deployment: Environment Variable Issues
+
+**Symptoms:**
+```bash
+FreeSurfer Docker failed (exit code: 125)
+docker: Error response from daemon: create $HOME/.local/share/neuroinsight/...
+# or
+docker: Error response from daemon: create $(pwd)/data/outputs/...
+```
+
+**Cause:**
+`.env` file contains literal `$HOME`, `${HOME}`, or `$(pwd)` instead of expanded paths.
+
+**Solution:**
+Fixed in v1.0.26+ with auto-detection and repair.
+
+```bash
+# Update to latest version
+git pull origin master
+
+# Reinstall (automatically fixes .env)
+./neuroinsight stop
+./neuroinsight install
+
+# Or manually fix existing installation
+cd /path/to/neuroinsight_local
+
+# Backup old .env
+cp .env .env.backup
+
+# Remove problematic lines
+sed -i '/HOST_UPLOAD_DIR=/d' .env
+sed -i '/HOST_OUTPUT_DIR=/d' .env
+
+# Restart
+./neuroinsight restart
+```
+
+**Verification:**
+```bash
+# Check .env file doesn't contain literal variables
+grep -E '\$HOME|\$\(pwd\)|\$\{HOME\}' .env
+# Should return nothing
+
+# Test job submission
+# Upload a small MRI file and verify it starts processing
+```
+
+**Why this happened:**
+- Older install scripts used shell heredocs that prevented variable expansion
+- Native deployments don't need `HOST_*_DIR` variables (auto-detected at runtime)
+- Fixed by removing these variables from native `.env` files
+
+---
+
+### Section: Image Display Issues
+
+#### Images Appear Upside Down in Reports
+
+**Symptoms:**
+- PDF report shows brain images rotated 180 degrees
+- Images appear different between web viewer and PDF
+- Report text mentions "rotated 180 degrees"
+
+**Solution:**
+Fixed in v1.0.27+ - Removed duplicate image rotations.
+
+```bash
+# Update to latest version
+git pull origin master
+
+# Docker deployment
+docker pull phindagijimana321/neuroinsight:latest
+./neuroinsight-docker stop
+docker rm neuroinsight
+./neuroinsight-docker install
+
+# Native deployment
+./neuroinsight stop
+git pull origin master
+./neuroinsight start
+```
+
+**What was fixed:**
+- ❌ Before: Images flipped twice (once in code, once in report)
+- ✅ After: Single flip for correct anatomical orientation
+- ✅ Removed misleading "rotated 180 degrees" text from reports
+
+**Image orientation now:**
+- **Web viewer:** Correct anatomical orientation
+- **PDF reports:** Matches web viewer
+- **L/R markers:** Added to indicate patient orientation
+- **Color coding:** Red = Left Hippocampus, Blue = Right Hippocampus
+
+---
+
+#### L/R Orientation Unclear
+
+**Symptoms:**
+- Cannot tell which side is left or right hippocampus
+- Color coding not explained in reports
+- No orientation markers on images
+
+**Solution:**
+Fixed in v1.0.28+ - Added L/R markers and color legend.
+
+**What's new:**
+```
+✓ "L" marker at bottom-left of coronal images
+✓ "R" marker at bottom-right of coronal images
+✓ Color legend in PDF: Red = Left, Blue = Right
+✓ Radiological view convention documented
+```
+
+**Update to get these features:**
+```bash
+git pull origin master
+
+# Docker
+docker pull phindagijimana321/neuroinsight:v1.0.28
+./neuroinsight-docker restart
+
+# Native
+./neuroinsight restart
+```
+
+**Color coding reference:**
+- 🔴 **Red (#FF3333)** = Left Hippocampus
+- 🔵 **Blue (#3399FF)** = Right Hippocampus
+- Markers show patient orientation (radiological view)
+
+---
+
+### Section: Cleanup & Maintenance
+
+#### Verify Cleanup Removes Jobs from UI
+
+**Question:**
+"Does `./neuroinsight delete` or `clean` actually remove jobs from the UI?"
+
+**Answer:**
+✅ YES - Verified and tested! Jobs are removed from:
+1. PostgreSQL database
+2. File system (uploads + outputs)
+3. Web UI (automatic refresh)
+
+**How it works:**
+```
+Delete Command
+    ↓
+Delete from database
+    ↓
+API returns updated list
+    ↓
+UI polls API (every 10 seconds)
+    ↓
+UI auto-updates (job disappears)
+```
+
+**Test it yourself:**
+```bash
+# 1. Check current jobs
+curl http://localhost:8000/api/jobs/ | grep "total"
+
+# 2. Delete a job
+./neuroinsight delete <job_id> --force
+
+# 3. Verify deletion (< 10 seconds)
+curl http://localhost:8000/api/jobs/ | grep "total"
+# Job count should decrease
+```
+
+**All deletion methods work:**
+- ✅ Command line: `./neuroinsight delete <id>`
+- ✅ UI delete button (trash icon)
+- ✅ API call: `curl -X DELETE .../jobs/delete/<id>`
+- ✅ Clean command: `./neuroinsight clean --days 0`
+
+**Cleanup commands:**
+```bash
+# Delete specific job
+./neuroinsight delete <job_id>
+
+# Delete all old jobs
+./neuroinsight clean --days 0          # All completed/failed
+./neuroinsight clean --days 30         # Older than 30 days
+
+# Fresh start (removes everything)
+docker volume rm neuroinsight-data     # Docker
+rm -rf ~/.local/share/neuroinsight/    # Native
+```
+
+**See also:**
+- `CLEANUP_GUIDE.md` - Complete cleanup documentation
+- `DELETE_COMMAND_VERIFICATION.md` - Test reports and verification
+
+---
+
+## Quick Reference
+
+### Recent Version Changes
+
+| Version | Key Fixes |
+|---------|-----------|
+| v1.0.28 | L/R markers, color legend, delete button fix |
+| v1.0.27 | Image orientation fix, removed rotation text |
+| v1.0.26 | Python 3.13 support, native .env auto-fix |
+
+### Most Common Recent Issues
+
+1. **Delete button hidden** → Update to v1.0.28+
+2. **Jobs persist after restart** → Intentional! Use `clean` or `delete`
+3. **Python 3.13 errors** → Update to v1.0.26+
+4. **Images upside down** → Update to v1.0.27+
+5. **$HOME literal in .env** → Update to v1.0.26+ or manual fix
+
+### Quick Fixes
+
+```bash
+# Update to latest version
+git pull origin master
+
+# Docker: Rebuild and restart
+docker pull phindagijimana321/neuroinsight:latest
+./neuroinsight-docker stop
+docker rm neuroinsight
+./neuroinsight-docker install
+
+# Native: Just restart
+./neuroinsight stop
+./neuroinsight start
+```
+
+---
+
+**For complete documentation, see:**
+- `TROUBLESHOOTING.md` - Main troubleshooting guide
+- `CLEANUP_GUIDE.md` - Data management and cleanup
+- `UPDATING.md` - Update procedures
+- `README.md` - Installation and setup

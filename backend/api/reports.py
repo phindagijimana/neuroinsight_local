@@ -276,7 +276,17 @@ async def generate_pdf_report(
             styles['Normal']
         )
         story.append(viz_note)
-        story.append(Spacer(1, 18))
+        story.append(Spacer(1, 6))
+        
+        # Add color legend for hippocampus regions
+        legend_text = Paragraph(
+            "<b>Color coding:</b> <font color='#FF3333'>■</font> Red = Left Hippocampus  |  "
+            "<font color='#3399FF'>■</font> Blue = Right Hippocampus  |  "
+            "L/R markers indicate patient orientation (radiological view)",
+            ParagraphStyle('Legend', parent=styles['Normal'], fontSize=9, textColor=colors.gray)
+        )
+        story.append(legend_text)
+        story.append(Spacer(1, 12))
 
         # Add coronal visualizations for slices 3, 4, 5, 6 in 2x2 grid
         # Use viewer positions 3, 4, 5, 6 which correspond to file indices 3, 4, 5, 6

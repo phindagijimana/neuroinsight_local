@@ -478,6 +478,49 @@ def generate_segmentation_overlays(
                 plt.savefig(anatomical_path, bbox_inches='tight', dpi=150, facecolor='white')
                 plt.close()
                 logger.info("saved_anatomical_slice", slice_num=slice_num, idx=idx, path=str(anatomical_path), orientation=orientation)
+                
+                # Add L/R orientation markers for coronal slices
+                if orientation == 'coronal':
+                    try:
+                        from PIL import Image, ImageDraw, ImageFont
+                        img = Image.open(anatomical_path)
+                        draw = ImageDraw.Draw(img)
+                        width, height = img.size
+                        
+                        # Marker styling
+                        margin = 15
+                        font_size = 28
+                        
+                        # Try to load font, fallback to default if not available
+                        try:
+                            font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', font_size)
+                        except:
+                            font = ImageFont.load_default()
+                        
+                        # Add "L" at bottom-left corner
+                        draw.text(
+                            (margin, height - margin - font_size),
+                            "L",
+                            fill='white',
+                            stroke_width=2,
+                            stroke_fill='black',
+                            font=font
+                        )
+                        
+                        # Add "R" at bottom-right corner
+                        draw.text(
+                            (width - margin - font_size, height - margin - font_size),
+                            "R",
+                            fill='white',
+                            stroke_width=2,
+                            stroke_fill='black',
+                            font=font
+                        )
+                        
+                        img.save(anatomical_path)
+                        logger.info("added_lr_markers", slice=idx, path=str(anatomical_path))
+                    except Exception as e:
+                        logger.warning("failed_to_add_lr_markers", slice=idx, error=str(e))
             else:
                 logger.warning("empty_t1_slice", slice_num=slice_num, idx=idx, orientation=orientation)
                 # Create empty placeholder
@@ -560,6 +603,49 @@ def generate_segmentation_overlays(
             overlay_path = output_dir / f"hippocampus_overlay_slice_{idx:02d}.png"
             plt.savefig(overlay_path, bbox_inches='tight', dpi=150, transparent=True)
             plt.close()
+            
+            # Add L/R orientation markers for coronal overlay slices
+            if orientation == 'coronal':
+                try:
+                    from PIL import Image, ImageDraw, ImageFont
+                    img = Image.open(overlay_path)
+                    draw = ImageDraw.Draw(img)
+                    width, height = img.size
+                    
+                    # Marker styling (same as anatomical)
+                    margin = 15
+                    font_size = 28
+                    
+                    # Try to load font, fallback to default if not available
+                    try:
+                        font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', font_size)
+                    except:
+                        font = ImageFont.load_default()
+                    
+                    # Add "L" at bottom-left corner
+                    draw.text(
+                        (margin, height - margin - font_size),
+                        "L",
+                        fill='white',
+                        stroke_width=2,
+                        stroke_fill='black',
+                        font=font
+                    )
+                    
+                    # Add "R" at bottom-right corner
+                    draw.text(
+                        (width - margin - font_size, height - margin - font_size),
+                        "R",
+                        fill='white',
+                        stroke_width=2,
+                        stroke_fill='black',
+                        font=font
+                    )
+                    
+                    img.save(overlay_path)
+                    logger.info("added_lr_markers_to_overlay", slice=idx, path=str(overlay_path))
+                except Exception as e:
+                    logger.warning("failed_to_add_lr_markers_to_overlay", slice=idx, error=str(e))
             
             logger.info("saved_overlay_slice", slice_num=slice_num, idx=idx, path=str(overlay_path), orientation=orientation)
             

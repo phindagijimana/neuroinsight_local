@@ -24,7 +24,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
   const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
   const [rotation, setRotation] = useState(0); // Rotation: 0, 90, 180, 270 degrees (works for both axial and coronal)
   const [jobVisualizations, setJobVisualizations] = useState(null); // Store visualization data from API
-  const shouldFlipVertical = orientation === 'coronal'; // Coronal slices are upside down; flip vertically
+  const shouldFlipVertical = false; // Images are already correctly oriented by visualization.py
 
   // Zoom handlers
   const handleZoomIn = () => {

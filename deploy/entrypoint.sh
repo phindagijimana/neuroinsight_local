@@ -140,6 +140,49 @@ chown -R neuroinsight:neuroinsight /data/minio
 mkdir -p /data/uploads /data/outputs /data/logs
 chown -R neuroinsight:neuroinsight /data/uploads /data/outputs /data/logs
 
+# ============================================
+# Auto-detect Host Paths for Docker-in-Docker
+# ============================================
+# For FreeSurfer container spawning to work, we need to mount host paths
+# not container paths. Detect them from our own container's volume mounts.
+
+echo ""
+echo "Detecting host paths for Docker-in-Docker..."
+
+# Try to get our own container name/ID
+SELF_CONTAINER=$(cat /proc/self/cgroup | grep -o -P '(?<=docker/).*' | head -n 1 | cut -d'/' -f1)
+if [ -z "$SELF_CONTAINER" ]; then
+    # Try alternative method (hostname is often the container ID)
+    SELF_CONTAINER=$(hostname)
+fi
+
+echo "  Container ID: $SELF_CONTAINER"
+
+# Inspect our own container to find host mount paths
+if [ -n "$SELF_CONTAINER" ] && docker inspect "$SELF_CONTAINER" > /dev/null 2>&1; then
+    echo "  Inspecting container mounts..."
+    
+    # Extract host paths for /data volume
+    HOST_DATA_DIR=$(docker inspect "$SELF_CONTAINER" | grep -A 3 '"Destination": "/data"' | grep '"Source"' | sed 's/.*"Source": "\([^"]*\)".*/\1/' | head -n 1)
+    
+    if [ -n "$HOST_DATA_DIR" ]; then
+        export HOST_UPLOAD_DIR="$HOST_DATA_DIR/uploads"
+        export HOST_OUTPUT_DIR="$HOST_DATA_DIR/outputs"
+        echo "  [OK] Detected host data directory: $HOST_DATA_DIR"
+        echo "  [OK] Host upload directory: $HOST_UPLOAD_DIR"
+        echo "  [OK] Host output directory: $HOST_OUTPUT_DIR"
+    else
+        echo "  [WARNING] Could not detect host data directory"
+        echo "  [WARNING] FreeSurfer processing may fail due to volume mount issues"
+    fi
+else
+    echo "  [WARNING] Could not inspect container"
+    echo "  [WARNING] Docker-in-Docker path detection failed"
+fi
+
+echo "Docker-in-Docker configuration complete"
+echo ""
+
 # Create .env file if it doesn't exist
 if [ ! -f /app/.env ]; then
     echo "Creating .env configuration file..."
@@ -170,6 +213,10 @@ CORS_ORIGINS=http://localhost:8000
 # File Storage
 UPLOAD_DIR=/data/uploads
 OUTPUT_DIR=/data/outputs
+
+# Docker-in-Docker Host Paths (auto-detected for FreeSurfer container spawning)
+HOST_UPLOAD_DIR=${HOST_UPLOAD_DIR:-}
+HOST_OUTPUT_DIR=${HOST_OUTPUT_DIR:-}
 
 # Environment
 ENVIRONMENT=production

@@ -162,8 +162,9 @@ echo "  Container ID: $SELF_CONTAINER"
 if [ -n "$SELF_CONTAINER" ] && docker inspect "$SELF_CONTAINER" > /dev/null 2>&1; then
     echo "  Inspecting container mounts..."
     
-    # Extract host paths for /data volume
-    HOST_DATA_DIR=$(docker inspect "$SELF_CONTAINER" | grep -A 3 '"Destination": "/data"' | grep '"Source"' | sed 's/.*"Source": "\([^"]*\)".*/\1/' | head -n 1)
+    # Extract host paths for /data volume using docker inspect --format
+    # This is more reliable than grep as it directly queries the mount structure
+    HOST_DATA_DIR=$(docker inspect --format '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Source}}{{end}}{{end}}' "$SELF_CONTAINER")
     
     if [ -n "$HOST_DATA_DIR" ]; then
         export HOST_UPLOAD_DIR="$HOST_DATA_DIR/uploads"

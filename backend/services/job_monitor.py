@@ -107,8 +107,8 @@ class JobMonitor:
 
                     db = SessionLocal()
                     try:
-                        pending_count = JobService.count_jobs_by_status(db, ['PENDING'])
-                        running_count = JobService.count_jobs_by_status(db, ['RUNNING'])
+                        pending_count = JobService.count_jobs_by_status(db, [JobStatus.PENDING])
+                        running_count = JobService.count_jobs_by_status(db, [JobStatus.RUNNING])
 
                         if pending_count > 0 and running_count == 0:
                             logger.info("monitor_found_pending_jobs_processing_queue",

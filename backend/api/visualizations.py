@@ -309,17 +309,14 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
             elif orientation == "coronal":
                 # Coronal: front-back cuts, slice along Y-axis (axis 2, flipped)
                 slice_data = data[:, :, optimal_slice_num]  # Shape: (L, S) or (L, S, 4) for RGBA
-                # For proper coronal display:
-                # - Vertical should be Superior→Inferior (top of head→bottom)
-                # - Horizontal should be Left→Right
-                # Current: vertical=L-R, horizontal=S-I (rotated 90 degrees!)
-                # Fix: transpose spatial axes only (preserve channel axis if present)
+                # For proper coronal display: vertical = Superior→Inferior (head at top), horizontal = Left→Right
+                # Transpose so vertical = S (axis 1), then flip so row 0 = superior (head at top)
                 if len(slice_data.shape) == 3:
-                    # RGBA data with shape (L, S, 4) - transpose only first 2 axes
                     slice_data = np.transpose(slice_data, (1, 0, 2))  # Now (S, L, 4)
+                    slice_data = np.flipud(slice_data)  # Superior at top
                 else:
-                    # Grayscale with shape (L, S) - simple transpose
                     slice_data = slice_data.T  # Now (S, L)
+                    slice_data = np.flipud(slice_data)  # Superior at top
             else:
                 logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
                 return False
@@ -359,8 +356,15 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
             elif orientation == "sagittal":
                 slice_data = data[optimal_slice_num, :, :] if layer == "anatomical" else data[optimal_slice_num, :, :]
             elif orientation == "coronal":
-                # Coronal: vary x,z, fix y
+                # Coronal: slice fixes A-P (axis 1) -> shape (X, Z) = (R-L, S-I)
+                # For display: vertical = S-I (superior at top), horizontal = L-R
                 slice_data = data[:, optimal_slice_num, :] if layer == "anatomical" else data[:, optimal_slice_num, :]
+                if len(slice_data.shape) == 3:
+                    slice_data = np.transpose(slice_data, (1, 0, 2))  # (Z, X) = (S-I, R-L)
+                    slice_data = np.flipud(slice_data)  # Superior at top
+                else:
+                    slice_data = slice_data.T  # (S-I, R-L)
+                    slice_data = np.flipud(slice_data)  # Superior at top
             else:
                 logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
                 return False
@@ -377,6 +381,13 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
                 slice_data = data[optimal_slice_num, :, :] if layer == "anatomical" else data[optimal_slice_num, :, :]
             elif orientation == "coronal":
                 slice_data = data[:, optimal_slice_num, :] if layer == "anatomical" else data[:, optimal_slice_num, :]
+                # Same as RAS: transpose so vertical = S-I, flipud so superior at top
+                if len(slice_data.shape) == 3:
+                    slice_data = np.transpose(slice_data, (1, 0, 2))
+                    slice_data = np.flipud(slice_data)
+                else:
+                    slice_data = slice_data.T
+                    slice_data = np.flipud(slice_data)
             else:
                 logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
                 return False

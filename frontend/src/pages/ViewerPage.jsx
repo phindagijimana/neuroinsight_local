@@ -20,7 +20,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
   const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
   const [rotation, setRotation] = useState(0); // Rotation: 0, 90, 180, 270 degrees (works for both axial and coronal)
   const [jobVisualizations, setJobVisualizations] = useState(null); // Store visualization data from API
-  const shouldFlipVertical = orientation === 'coronal'; // Coronal slices are upside down; flip vertically
+  const shouldFlipVertical = false; // Backend writes coronal with superior at top; no flip needed
 
   // Zoom handlers
   const handleZoomIn = () => {
@@ -302,7 +302,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
             {/* L/R and color legend (viewer only) */}
             <div className="mb-4 rounded-lg border border-[#003d7a]/30 bg-[#003d7a]/10 px-4 py-3 text-center">
               <p className="text-sm font-medium text-gray-800">
-                <span className="font-semibold text-[#003d7a]">L/R markers</span> indicate patient orientation (radiological view).
+                <span className="font-semibold text-[#003d7a]">L/R markers</span> indicate patient orientation (radiological view: image left = patient right, image right = patient left).
                 <span className="mx-2 text-gray-500">|</span>
                 <span className="inline-flex items-center gap-2">
                   <span className="w-4 h-4 rounded-full border border-gray-400 bg-[#0064ff] shrink-0" aria-hidden />
@@ -313,6 +313,8 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                   <span className="w-4 h-4 rounded-full border border-gray-400 bg-[#e53935] shrink-0" aria-hidden />
                   <span>Red = right hippocampus</span>
                 </span>
+                <span className="mx-2 text-gray-500">|</span>
+                <span className="text-gray-600">Coronal: superior at top (head at top).</span>
               </p>
             </div>
 

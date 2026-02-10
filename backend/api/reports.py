@@ -212,7 +212,7 @@ async def generate_pdf_report(
         story.append(Spacer(1, 12))
         viz_note = Paragraph(
             "The following images show coronal slices with anatomical T1-weighted background and hippocampal segmentation overlays "
-            "(30% opacity) combined. Images are rotated 180 degrees for optimal report viewing. Slices 3, 4, 5, and 6 are displayed "
+            "(30% opacity) combined. Orientation matches the viewer page. Slices 3, 4, 5, and 6 are displayed "
             "in a 2x2 grid to provide comprehensive visualization of the hippocampal regions.",
             styles['Normal']
         )
@@ -230,8 +230,8 @@ async def generate_pdf_report(
             spaceAfter=6,
         )
         orientation_legend = Paragraph(
-            "<b>L/R markers</b> indicate patient orientation (radiological view): left side of image = patient's left, right side = patient's right. "
-            "<b>Color coding:</b> Blue = left hippocampus, Red = right hippocampus.",
+            "<b>L/R markers</b> indicate patient orientation (radiological view): left side of image = patient's right, right side of image = patient's left. "
+            "<b>Color coding:</b> Blue = left hippocampus, Red = right hippocampus. Coronal images are displayed with superior at top (head at top).",
             orientation_style
         )
         story.append(orientation_legend)
@@ -260,10 +260,7 @@ async def generate_pdf_report(
                     if anatomical_img.size != overlay_img.size:
                         anatomical_img = anatomical_img.resize(overlay_img.size, PILImage.LANCZOS)
 
-                    anatomical_array = np.array(anatomical_img)
-                    overlay_array = np.array(overlay_img)
-                    anatomical_img = anatomical_img.rotate(180)
-                    overlay_img = overlay_img.rotate(180)
+                    # Backend now writes coronal PNGs with superior at top; use as-is (no flip).
                     anatomical_array = np.array(anatomical_img)
                     overlay_array = np.array(overlay_img)
 
@@ -312,11 +309,11 @@ async def generate_pdf_report(
                 images_data.append([Paragraph(f"Slice {display_slice_num}", ParagraphStyle('SliceTitle', parent=styles['Normal'], fontSize=10, alignment=1, spaceAfter=6)), error_placeholder])
 
         if images_data:
-            # L/R row above grid (clearly visible)
-            l_style = ParagraphStyle('Llabel', parent=styles['Normal'], fontSize=12, alignment=0, textColor=colors.HexColor('#003d7a'))
-            r_style = ParagraphStyle('Rlabel', parent=styles['Normal'], fontSize=12, alignment=2, textColor=colors.HexColor('#003d7a'))
+            # L/R row above grid: radiological view — image left = patient right (red), image right = patient left (blue)
+            r_style = ParagraphStyle('Rlabel', parent=styles['Normal'], fontSize=12, alignment=0, textColor=colors.HexColor('#003d7a'))
+            l_style = ParagraphStyle('Llabel', parent=styles['Normal'], fontSize=12, alignment=2, textColor=colors.HexColor('#003d7a'))
             lr_row = Table(
-                [[Paragraph("<b>L</b> (patient left)", l_style), Paragraph("<b>R</b> (patient right)", r_style)]],
+                [[Paragraph("<b>R</b> (patient right)", r_style), Paragraph("<b>L</b> (patient left)", l_style)]],
                 colWidths=[3.5*inch, 3.5*inch], rowHeights=[0.28*inch]
             )
             lr_row.setStyle(TableStyle([
@@ -345,14 +342,14 @@ async def generate_pdf_report(
             story.append(img_table)
             story.append(Spacer(1, 12))
             grid_caption = Paragraph(
-                "Figure: Coronal slices 3, 4 (top row) and 5, 6 (bottom row) showing T1-weighted anatomical images with hippocampal segmentation overlays at 30% opacity (rotated 180 degrees for optimal viewing).",
+                "Figure: Coronal slices 3, 4 (top row) and 5, 6 (bottom row) showing T1-weighted anatomical images with hippocampal segmentation overlays at 30% opacity. Orientation matches viewer (head at top, radiological L/R).",
                 ParagraphStyle('GridCaption', parent=styles['Normal'], fontSize=9, textColor=colors.gray, alignment=1)
             )
             story.append(grid_caption)
             story.append(Spacer(1, 8))
             # Repeat legend below figure so it is visible
             legend_below = Paragraph(
-                "L/R = patient orientation (radiological view). Blue = left hippocampus, Red = right hippocampus.",
+                "L/R = radiological view (image left = patient right, image right = patient left). Blue = left hippocampus, Red = right hippocampus.",
                 ParagraphStyle('LegendBelow', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#333333'), alignment=1)
             )
             story.append(legend_below)

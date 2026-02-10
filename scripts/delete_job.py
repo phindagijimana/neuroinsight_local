@@ -56,7 +56,7 @@ def main():
         print(f"Job ID:       {job.id}")
         print(f"Patient:      {job.patient_name}")
         print(f"Status:       {job.status.value}")
-        print(f"File:         {job.original_filename}")
+        print(f"File:         {job.filename}")
         print(f"Uploaded:     {job.created_at}")
         if job.completed_at:
             print(f"Completed:    {job.completed_at}")

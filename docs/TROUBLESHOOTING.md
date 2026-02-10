@@ -884,7 +884,7 @@ docker-compose up -d db
 
 **File format issues:**
 - Only NIfTI files (.nii, .nii.gz) are supported
-- DICOM files must be converted locally first
+- DICOM files must be converted to NIfTI first using MRIcron (https://www.nitrc.org/projects/mricron)
 - Verify T1 sequence indicators in filename
 
 ### Web Interface Issues

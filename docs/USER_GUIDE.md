@@ -765,7 +765,7 @@ NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
 1. **NIfTI Uncompressed** (`.nii`) - Direct processing
 2. **NIfTI Compressed** (`.nii.gz`) - Direct processing
 
-**Note:** DICOM files must be converted to NIfTI format before upload using tools like `dcm2niix`.
+**Note:** DICOM files must be converted to NIfTI format before upload. We recommend using **MRIcron** (free, cross-platform tool available at https://www.nitrc.org/projects/mricron).
 
 #### T1 Filename Requirements
 **All uploaded files must have T1-related keywords in their filenames.** This ensures only appropriate T1-weighted images are processed for accurate hippocampus analysis.
@@ -1251,7 +1251,7 @@ Yes, supports queuing system with configurable concurrency limits.
 Hippocampal volume measurements, shape analysis, asymmetry calculations, quality metrics.
 
 ### File formats supported?
-NIfTI (.nii, .nii.gz) only. DICOM files must be converted to NIfTI format before upload using tools like `dcm2niix`.
+NIfTI (.nii, .nii.gz) only. DICOM files must be converted to NIfTI format before upload. We recommend using **MRIcron** (free, cross-platform tool available at https://www.nitrc.org/projects/mricron).
 
 ### Can I export results?
 Yes: PDF reports, CSV data, PNG/PDF images.

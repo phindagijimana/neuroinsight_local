@@ -58,7 +58,7 @@ async def upload_file(
     if not file.filename.lower().endswith(('.nii', '.nii.gz')):
         raise HTTPException(
             status_code=400,
-            detail="Only .nii and .nii.gz files are supported. Please convert your DICOM files to NIfTI format first."
+            detail="Only .nii and .nii.gz files are supported. Please convert your DICOM files to NIfTI format first using MRIcron (https://www.nitrc.org/projects/mricron)."
         )
 
     # Read file data

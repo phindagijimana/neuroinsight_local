@@ -62,7 +62,8 @@ def convert_dicom_to_nifti(dicom_path: Path, output_path: Path) -> Path:
     """
     Convert DICOM file/directory to NIfTI format.
     
-    Uses dcm2niix for conversion.
+    Uses dcm2niix for conversion (internal processing).
+    For manual conversion, we recommend MRIcron: https://www.nitrc.org/projects/mricron
     
     Args:
         dicom_path: Path to DICOM file or directory

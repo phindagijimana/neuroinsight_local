@@ -2,7 +2,8 @@
 MRI Processor for hippocampal analysis pipeline.
 
 This module orchestrates the complete MRI processing workflow,
-from DICOM conversion through hippocampal asymmetry calculation.
+from DICOM conversion (if needed) through hippocampal asymmetry calculation.
+For manual DICOM to NIfTI conversion, we recommend MRIcron: https://www.nitrc.org/projects/mricron
 """
 
 import json
@@ -1251,7 +1252,8 @@ class MRIProcessor:
         """
         Prepare input file for processing.
         
-        Converts DICOM to NIfTI if needed, validates format.
+        Validates NIfTI format. For DICOM files, manual conversion is required using
+        MRIcron (https://www.nitrc.org/projects/mricron) before upload.
         
         Args:
             input_path: Path to input file

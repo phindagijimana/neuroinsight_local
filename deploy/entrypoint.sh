@@ -223,6 +223,21 @@ HOST_OUTPUT_DIR=${HOST_OUTPUT_DIR:-}
 ENVIRONMENT=production
 EOF
     chown neuroinsight:neuroinsight /app/.env
+else
+    echo ".env file already exists"
+fi
+
+# Always update HOST paths in .env (even if file existed before)
+# This ensures they reflect current container mount configuration
+if [ -n "$HOST_UPLOAD_DIR" ] && [ -n "$HOST_OUTPUT_DIR" ]; then
+    echo "Updating HOST paths in .env file..."
+    # Remove old HOST path lines if they exist
+    sed -i '/^HOST_UPLOAD_DIR=/d' /app/.env
+    sed -i '/^HOST_OUTPUT_DIR=/d' /app/.env
+    # Append current HOST paths
+    echo "HOST_UPLOAD_DIR=$HOST_UPLOAD_DIR" >> /app/.env
+    echo "HOST_OUTPUT_DIR=$HOST_OUTPUT_DIR" >> /app/.env
+    echo "  [OK] Updated .env with detected host paths"
 fi
 
 # Check for FreeSurfer license

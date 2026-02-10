@@ -63,6 +63,24 @@ def _find_optimal_hippocampus_slice(seg_data: np.ndarray, orientation: str, slic
             # Fallback to linear mapping
             logger.warning("unknown_orientation_density_fallback", orientation=orientation)
             return slice_idx * (total_slices // 10)
+    elif actual_orientation == ('L', 'I', 'A'):
+        # FreeSurfer variant: Axis 0=L-R (X), Axis 1=I-S (inferior-superior, Z), Axis 2=A-P (Y)
+        if orientation == "axial":
+            # Axial: horizontal cuts, sum over X and Y axes (0,2) for each Z slice (axis 1)
+            hippocampus_density = np.sum(hippocampus_mask, axis=(0, 2))
+            total_slices = seg_data.shape[1]
+        elif orientation == "sagittal":
+            # Sagittal: left-right cuts, sum over Y and Z axes (1,2) for each X slice (axis 0)
+            hippocampus_density = np.sum(hippocampus_mask, axis=(1, 2))
+            total_slices = seg_data.shape[0]
+        elif orientation == "coronal":
+            # Coronal: front-back cuts, sum over X and Z axes (0,1) for each A-P slice (axis 2)
+            hippocampus_density = np.sum(hippocampus_mask, axis=(0, 1))
+            total_slices = seg_data.shape[2]
+        else:
+            # Fallback to linear mapping
+            logger.warning("unknown_orientation_density_fallback", orientation=orientation)
+            return slice_idx * (total_slices // 10)
     elif actual_orientation == ('R', 'A', 'S'):
         # Standard RAS+ orientation: Axis 0=R-L (X), Axis 1=A-P (Y), Axis 2=S-I (Z)
         if orientation == "axial":
@@ -291,6 +309,28 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
             elif orientation == "coronal":
                 # Coronal: front-back cuts, slice along Y-axis (axis 2, flipped)
                 slice_data = data[:, :, optimal_slice_num] if layer == "anatomical" else data[:, :, optimal_slice_num]
+            else:
+                logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
+                return False
+        elif actual_orientation == ('L', 'I', 'A'):
+            # FreeSurfer variant: Axis 0=L-R (X), Axis 1=I-S (inferior-superior, reversed Z), Axis 2=A-P (Y)
+            if orientation == "axial":
+                # Axial: horizontal cuts through brain, slice along Z-axis (axis 1)
+                slice_data = data[:, optimal_slice_num, :]
+                # For LIA: axis 1 is I-S (inferior to superior), so no flip needed for axial
+            elif orientation == "sagittal":
+                # Sagittal: left-right cuts, slice along X-axis (axis 0)
+                slice_data = data[optimal_slice_num, :, :]
+            elif orientation == "coronal":
+                # Coronal: front-back cuts, slice along A-P axis (axis 2)
+                slice_data = data[:, :, optimal_slice_num]  # Shape: (L, I) = (L-R, Inferior-Superior)
+                # For proper coronal display:
+                # - Vertical should be Superior→Inferior (top of head→bottom)
+                # - Horizontal should be Left→Right
+                # Current: vertical=L-R, horizontal=I-S (WRONG!)
+                # Fix: transpose to get vertical=I-S, then flip to get S→I order
+                slice_data = slice_data.T  # Now shape: (I, L) - vertical=I-S, horizontal=L-R
+                slice_data = np.flipud(slice_data)  # Flip to get Superior at top
             else:
                 logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
                 return False

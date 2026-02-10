@@ -68,10 +68,42 @@ find_available_port() {
     return 1
 }
 
+# Find available port in a custom range
+find_available_port_in_range() {
+    local start=$1
+    local end=$2
+    local exclude_port=$3  # Optional: port to exclude from search
+    
+    for port in $(seq $start $end); do
+        if [ -n "$exclude_port" ] && [ "$port" -eq "$exclude_port" ]; then
+            continue  # Skip excluded port
+        fi
+        if port_available $port; then
+            echo $port
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Get the port the container is using
 get_container_port() {
     if container_exists; then
         docker port ${CONTAINER_NAME} 8000 2>/dev/null | cut -d':' -f2
+    fi
+}
+
+# Get the MinIO API port the container is using
+get_container_minio_api_port() {
+    if container_exists; then
+        docker port ${CONTAINER_NAME} 9000 2>/dev/null | cut -d':' -f2
+    fi
+}
+
+# Get the MinIO Console port the container is using
+get_container_minio_console_port() {
+    if container_exists; then
+        docker port ${CONTAINER_NAME} 9001 2>/dev/null | cut -d':' -f2
     fi
 }
 
@@ -82,8 +114,16 @@ cmd_start() {
     if container_running; then
         log_warning "NeuroInsight container is already running"
         local port=$(get_container_port)
+        local minio_api=$(get_container_minio_api_port)
+        local minio_console=$(get_container_minio_console_port)
         if [ -n "$port" ]; then
             echo "Web Interface: http://localhost:${port}"
+        fi
+        if [ -n "$minio_api" ]; then
+            echo "MinIO API: http://localhost:${minio_api}"
+        fi
+        if [ -n "$minio_console" ]; then
+            echo "MinIO Console: http://localhost:${minio_console}"
         fi
         cmd_status
         return 0
@@ -96,10 +136,19 @@ cmd_start() {
         log_success "Container started"
         
         local port=$(get_container_port)
+        local minio_api=$(get_container_minio_api_port)
+        local minio_console=$(get_container_minio_console_port)
+        
+        echo ""
+        log_success "NeuroInsight is ready!"
         if [ -n "$port" ]; then
-            echo ""
-            log_success "NeuroInsight is ready!"
             echo "Web Interface: http://localhost:${port}"
+        fi
+        if [ -n "$minio_api" ]; then
+            echo "MinIO API: http://localhost:${minio_api}"
+        fi
+        if [ -n "$minio_console" ]; then
+            echo "MinIO Console: http://localhost:${minio_console}"
         fi
     else
         log_error "Container does not exist. Please run: ./neuroinsight-docker install"
@@ -150,12 +199,21 @@ cmd_status() {
         log_success "Container is running"
         echo ""
         
-        # Get the port
+        # Get all ports
         local port=$(get_container_port)
+        local minio_api=$(get_container_minio_api_port)
+        local minio_console=$(get_container_minio_console_port)
+        
         if [ -n "$port" ]; then
             echo "Web Interface: http://localhost:${port}"
-            echo ""
         fi
+        if [ -n "$minio_api" ]; then
+            echo "MinIO API: http://localhost:${minio_api}"
+        fi
+        if [ -n "$minio_console" ]; then
+            echo "MinIO Console: http://localhost:${minio_console}"
+        fi
+        echo ""
         
         # Show container info
         docker ps --filter name=${CONTAINER_NAME} --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
@@ -227,8 +285,8 @@ cmd_install() {
     
     log_info "Installing NeuroInsight..."
     
-    # Find available port
-    log_info "Finding available port (range: 8000-8050)..."
+    # Find available port for web interface
+    log_info "Finding available port for web interface (range: 8000-8050)..."
     local port=$(find_available_port)
     
     if [ -z "$port" ]; then
@@ -237,11 +295,31 @@ cmd_install() {
         exit 1
     fi
     
-    log_success "Selected port: $port"
+    log_success "Selected web port: $port"
     
-    # Calculate MinIO ports based on selected port
-    local minio_api_port=$((port + 1000))
-    local minio_console_port=$((port + 1001))
+    # Find available port for MinIO API
+    log_info "Finding available port for MinIO API (range: 9000-9050)..."
+    local minio_api_port=$(find_available_port_in_range 9000 9050)
+    
+    if [ -z "$minio_api_port" ]; then
+        log_error "No available ports found in range 9000-9050 for MinIO API"
+        log_error "Please stop other services or free up a port in this range"
+        exit 1
+    fi
+    
+    log_success "Selected MinIO API port: $minio_api_port"
+    
+    # Find available port for MinIO Console (exclude API port)
+    log_info "Finding available port for MinIO Console (range: 9000-9050)..."
+    local minio_console_port=$(find_available_port_in_range 9000 9050 $minio_api_port)
+    
+    if [ -z "$minio_console_port" ]; then
+        log_error "No available ports found in range 9000-9050 for MinIO Console"
+        log_error "Please stop other services or free up a port in this range"
+        exit 1
+    fi
+    
+    log_success "Selected MinIO Console port: $minio_console_port"
     
     # Check for license in multiple locations (like native deployment)
     local license_mount=""

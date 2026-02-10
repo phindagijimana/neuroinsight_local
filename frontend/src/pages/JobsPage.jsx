@@ -350,7 +350,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                             </div>
                           )}
                           {status === 'failed' && job.error_message && (
-                            <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div className="mt-3 max-h-52 overflow-auto bg-red-50 border border-red-200 rounded-lg p-3">
                               <p className="text-sm text-red-800 font-semibold">Job Failed</p>
                               <details className="text-xs mt-1">
                                 <summary className="cursor-pointer text-red-700 font-semibold">Show error details</summary>

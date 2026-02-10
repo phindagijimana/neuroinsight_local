@@ -17,6 +17,10 @@ Single container with all services:
 - First job downloads FreeSurfer image (~20GB, one-time)
 - Containers automatically cleaned up after processing
 
+**Frontend (same as native deployment):**
+- The container serves the **native** single-file frontend (`index.dev.html`) at `/` so the Jobs page and full UI match your native deployment exactly.
+- This is controlled by `SERVE_NATIVE_FRONTEND=true` (set in supervisord). To use the Vite-built React app instead, set `SERVE_NATIVE_FRONTEND=false` in the backend environment and rebuild.
+
 ## Quick Start
 
 ### 1. Build the Image
@@ -83,6 +87,16 @@ Open browser to the URL shown (e.g., http://localhost:8000)
 - 15GB disk space (additional ~20GB for FreeSurfer image)
 - FreeSurfer license (free for research)
 - Docker socket access (for FreeSurfer container spawning)
+
+## Platform support (Windows, Linux, macOS)
+
+The image is a **Linux** image and runs on:
+
+- **Linux:** Docker or Podman on the host.
+- **Windows:** Docker Desktop for Windows with WSL2 backend. Use "Linux containers" mode. The same image runs inside WSL2; the entrypoint configures Docker socket access for FreeSurfer.
+- **macOS:** Docker Desktop for Mac. Same image and behavior as Linux.
+
+No separate Windows-native image is provided; use Docker Desktop and the published image as above.
 
 ## Features
 

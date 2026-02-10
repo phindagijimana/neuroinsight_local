@@ -45,6 +45,6 @@ To switch to the more comprehensive upload.py implementation:
 ## Current Status
 
 - [OK] `upload_simple.py` - Active and working
-- 📦 `upload.py.backup` - Archived for reference
+- `upload.py.backup` - Archived for reference
 - [OK] No route conflicts
 - [OK] Clear which file is production

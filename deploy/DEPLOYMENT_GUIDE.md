@@ -20,6 +20,8 @@ The all-in-one Docker deployment packages the entire NeuroInsight application in
 - FreeSurfer license (free for research use)
 - Docker socket access (automatically configured for FreeSurfer processing)
 
+**Supported platforms:** Linux (Docker or Podman), Windows (Docker Desktop with WSL2, Linux containers), macOS (Docker Desktop). The image is Linux-based; on Windows/macOS use Docker Desktop to run it.
+
 ## Quick Start
 
 ### Step 1: Build the Image

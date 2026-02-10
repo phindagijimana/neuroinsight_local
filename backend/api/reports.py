@@ -260,7 +260,6 @@ async def generate_pdf_report(
                     if anatomical_img.size != overlay_img.size:
                         anatomical_img = anatomical_img.resize(overlay_img.size, PILImage.LANCZOS)
 
-                    # Backend now writes coronal PNGs with superior at top; use as-is (no flip).
                     anatomical_array = np.array(anatomical_img)
                     overlay_array = np.array(overlay_img)
 
@@ -272,6 +271,7 @@ async def generate_pdf_report(
                         (1 - opacity) * anatomical_array[overlay_mask]
                     ).astype(np.uint8)
 
+                    # Backend writes coronal PNGs with superior at top; use as-is (no flip).
                     composite_img = PILImage.fromarray(composite_array, 'RGBA')
                     if composite_img.mode != 'RGB':
                         composite_img = composite_img.convert('RGB')

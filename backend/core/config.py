@@ -59,6 +59,8 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     environment: str = Field(default="production", env="ENVIRONMENT")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
+    # When True, serve the native single-file frontend (index.dev.html) at / so Docker matches native deployment UI
+    serve_native_frontend: bool = Field(default=False, env="SERVE_NATIVE_FRONTEND")
 
     # API Configuration
     api_host: str = Field(default="0.0.0.0", env="API_HOST")

@@ -1,7 +1,17 @@
 # NeuroInsight All-in-One Docker Container
 # This Dockerfile packages the entire NeuroInsight application into a single container
-# including PostgreSQL, Redis, MinIO, Backend, Worker, and Frontend
+# including PostgreSQL, Redis, MinIO, Backend, Worker, and Frontend.
+# Frontend is built from source in the first stage so the image always matches the repo (e.g. GitHub).
 
+# Stage 1: Build frontend from source (matches frontend on GitHub)
+FROM node:20-slim AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+# Stage 2: Main application
 FROM python:3.10-slim
 
 # Set environment variables
@@ -78,8 +88,8 @@ RUN mkdir -p \
     /data/minio \
     /var/log/supervisor
 
-# Copy requirements and install Python dependencies
-COPY requirements.txt /app/
+# Copy requirements and install Python dependencies (use deploy/requirements.txt for Python 3.10 compatibility)
+COPY deploy/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
@@ -88,7 +98,11 @@ COPY backend/ /app/backend/
 COPY workers/ /app/workers/
 COPY pipeline/ /app/pipeline/
 COPY scripts/ /app/scripts/
-COPY frontend/dist/ /app/frontend/dist/
+# Use frontend built from source (stage 1) so image matches repo/GitHub
+COPY --from=frontend-builder /frontend/dist /app/frontend/dist
+# Native deployment UI (index.dev.html + static/) so Docker can serve same Jobs page as native when SERVE_NATIVE_FRONTEND=true
+COPY frontend/index.dev.html /app/frontend/index.dev.html
+COPY static/ /app/static/
 
 # Copy configuration files
 COPY deploy/supervisord.conf /etc/supervisor/conf.d/supervisord.conf

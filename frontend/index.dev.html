@@ -1811,8 +1811,8 @@
       const [zoomLevel, setZoomLevel] = useState(1.0);  // Zoom level: 1.0 = 100%, 2.0 = 200%, etc.
       const [overlayOpacity, setOverlayOpacity] = useState(0.6);  // Overlay opacity: 0.0 = only anatomical, 1.0 = full overlay
       const [imageLoadError, setImageLoadError] = useState(false);  // Track if current slice image failed to load
-      // Coronal slices render upside down; flip vertically for coronal only
-      const shouldFlipVertical = orientation === 'coronal';
+      // Backend writes coronal with superior at top; no flip needed (matches report).
+      const shouldFlipVertical = false;
       
       // Zoom handlers
       const handleZoomIn = () => {

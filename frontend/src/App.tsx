@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Navigation from './components/Navigation'
+import { FileUpload } from './components/FileUpload'
 import HomePage from './pages/HomePage'
 import JobsPage from './pages/JobsPage'
 import DashboardPage from './pages/DashboardPage'
@@ -137,6 +138,14 @@ function App() {
           pollJobUntilDone={pollJobUntilDone}
           pollingJobId={pollingJobId}
         />
+      )}
+      {activePage === 'upload' && (
+        <main className="max-w-7xl mx-auto px-6 py-8">
+          <FileUpload
+            onUploadComplete={() => { handleJobsUpdate(); setActivePage('jobs'); }}
+            onBack={() => setActivePage('jobs')}
+          />
+        </main>
       )}
       {activePage === 'dashboard' && <DashboardPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}
       {activePage === 'viewer' && <ViewerPage selectedJobId={selectedJobId} setSelectedJobId={setSelectedJobId} />}

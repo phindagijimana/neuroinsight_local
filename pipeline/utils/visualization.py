@@ -447,30 +447,28 @@ def generate_segmentation_overlays(
                 t1_slice = t1_normalized[:, :, slice_num]
                 seg_slice = seg_data[:, :, slice_num]
             
-            # Reorder axes if needed for consistent display
-            # Flip 180 degrees for both axial and coronal to ensure correct anatomical orientation
-            # Axial: view from below (looking up) - neurological convention
-            # Coronal: anterior up (front of brain at top) - standard radiological view
-            if orientation in ['axial', 'coronal']:
+            # Reorder axes for display (match backend API so viewer and report see same orientation)
+            # Coronal: transpose then flipud so superior at top (head at top) - same as API
+            # Axial: flip both axes for neurological convention
+            if orientation == 'coronal':
+                t1_slice = t1_slice.T
+                t1_slice = np.flipud(t1_slice)
+                seg_slice = seg_slice.T
+                seg_slice = np.flipud(seg_slice)
+            elif orientation == 'axial':
                 t1_slice = np.flip(t1_slice, axis=(0, 1))
                 seg_slice = np.flip(seg_slice, axis=(0, 1))
-            
+
             # ====================================================================
             # STEP 1: Generate anatomical-only image (grayscale T1 brain)
             # ====================================================================
             fig, ax = plt.subplots(figsize=(8, 8))
 
             # Ensure we have valid data and proper scaling
-            # Ensure we have valid data and proper scaling
             if t1_slice.size > 0 and np.any(t1_slice != 0):
-                # Use the already correctly extracted and oriented t1_slice
-                t1_display = t1_slice
-
-                # Simple display without complex extent calculation
-                ax.imshow(t1_display.T, cmap="gray", origin="upper", interpolation="bilinear")
-                ax.axis("off")
-                # Simple display without complex extent calculation
-                ax.imshow(t1_display.T, cmap='gray', origin='upper', interpolation='bilinear')
+                # Coronal: already (S, L) with row 0 = superior; axial: use .T for imshow
+                t1_display = t1_slice if orientation == 'coronal' else t1_slice.T
+                ax.imshow(t1_display, cmap='gray', origin='upper', interpolation='bilinear')
                 ax.axis('off')
 
                 # Save anatomical-only image
@@ -572,29 +570,35 @@ def generate_segmentation_overlays(
                     bounds.append(max(specific_labels) + 1)
                     cmap = ListedColormap(colors)
                     norm = BoundaryNorm(bounds, cmap.N)
-                    
-                    # Display overlay with full opacity (opacity will be controlled by frontend)
+                    # Coronal: seg_slice already (S, L); axial: use .T for imshow
+                    overlay_display = overlay_masked if orientation == 'coronal' else overlay_masked.T
+                    # Extent: coronal t1_slice is (S, L) so width=L, height=S
+                    w, h = (t1_slice.shape[1], t1_slice.shape[0]) if orientation == 'coronal' else (t1_slice.shape[0], t1_slice.shape[1])
+                    ext = [0, voxel_sizes[0] * w, 0, voxel_sizes[1] * h]
                     ax.imshow(
-                        overlay_masked.T,
+                        overlay_display,
                         cmap=cmap,
                         norm=norm,
                         alpha=1.0,  # Full opacity - frontend will control the blending
                         origin='upper',
                         interpolation='nearest',
-                        extent=[0, voxel_sizes[0] * t1_slice.shape[0], 0, voxel_sizes[1] * t1_slice.shape[1]],
+                        extent=ext,
                         aspect='equal',
                     )
             else:
                 # Show all labels with generic hot colormap
                 overlay_masked = np.ma.masked_where(seg_slice == 0, seg_slice)
                 if np.any(overlay_masked):
+                    overlay_display = overlay_masked if orientation == 'coronal' else overlay_masked.T
+                    w, h = (t1_slice.shape[1], t1_slice.shape[0]) if orientation == 'coronal' else (t1_slice.shape[0], t1_slice.shape[1])
+                    ext = [0, voxel_sizes[0] * w, 0, voxel_sizes[1] * h]
                     ax.imshow(
-                        overlay_masked.T,
+                        overlay_display,
                         cmap='hot',
                         alpha=1.0,  # Full opacity - frontend will control the blending
                         origin='upper',
                         interpolation='nearest',
-                        extent=[0, voxel_sizes[0] * t1_slice.shape[0], 0, voxel_sizes[1] * t1_slice.shape[1]],
+                        extent=ext,
                         aspect='equal',
                     )
             

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { apiService } from './utils/api.js'
 import { CONFIG } from './utils/config.ts'
 import Navigation from './components/Navigation.jsx'
+import { FileUpload } from './components/FileUpload'
 import HomePage from './pages/HomePage.jsx'
 import JobsPage from './pages/JobsPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
@@ -57,6 +58,14 @@ function App() {
           lastRefreshTime={lastRefreshTime}
           isRefreshing={isRefreshing}
         />
+      )}
+      {activePage === 'upload' && (
+        <main className="max-w-7xl mx-auto px-6 py-8">
+          <FileUpload
+            onUploadComplete={() => { loadJobs(true); setActivePage('jobs'); }}
+            onBack={() => setActivePage('jobs')}
+          />
+        </main>
       )}
       {activePage === 'dashboard' && (
         <DashboardPage

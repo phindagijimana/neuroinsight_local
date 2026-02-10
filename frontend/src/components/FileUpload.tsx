@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { apiService } from '../services/api';
+import { apiService } from '../utils/api.js';
 
 interface FileUploadProps {
   onUploadComplete: () => void;
@@ -27,7 +27,12 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, onBack
     setError(null);
 
     try {
-      await apiService.uploadFile(selectedFile);
+      const patientInfo = {
+        patient_name: selectedFile.name.replace(/\.(nii|nii\.gz|mgz)$/i, ''),
+        patient_id: `WEB_${Date.now()}`,
+        notes: 'Uploaded via web interface',
+      };
+      await apiService.uploadFile(selectedFile, patientInfo);
 
       onUploadComplete();
     } catch (err) {
@@ -46,7 +51,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete, onBack
           onClick={onBack}
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
         >
-          ← Back to Home
+          ← Back to Jobs
         </button>
       </div>
 

@@ -121,9 +121,9 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("outputs_directory_not_found", path=str(outputs_dir))
 
-    # Mount frontend static files (after outputs so /outputs takes precedence)
-    if settings.environment == "production":
-        # Serve from dist directory (contains index.dev.html for identical UI/UX)
+    # Mount frontend: either Vite dist (default) or native index.dev.html via root() when SERVE_NATIVE_FRONTEND=true
+    if settings.environment == "production" and not getattr(settings, "serve_native_frontend", False):
+        # Serve from dist directory (Vite-built React app)
         frontend_dir = Path(__file__).parent.parent / "frontend" / "dist"
         if frontend_dir.exists():
             index_file = frontend_dir / "index.html"
@@ -133,6 +133,8 @@ async def lifespan(app: FastAPI):
             logger.info("frontend_static_files_enabled", path=str(frontend_dir))
         else:
             logger.warning("frontend_directory_not_found", path=str(frontend_dir))
+    elif getattr(settings, "serve_native_frontend", False):
+        logger.info("serve_native_frontend_enabled", msg="Serving native index.dev.html at / (same UI as native deployment)")
 
     yield
 
@@ -279,13 +281,16 @@ async def health_check():
 async def root():
     """
     Root endpoint - serves the React frontend for web deployment.
+    When SERVE_NATIVE_FRONTEND=true (e.g. Docker), serves index.dev.html so UI matches native deployment.
     """
-    # Serve the React frontend directly based on environment
     from pathlib import Path
-    if settings.environment == "production":
-        frontend_path = Path(__file__).parent.parent / "frontend" / "dist" / "index.html"
+    base = Path(__file__).parent.parent
+    if getattr(settings, "serve_native_frontend", False):
+        frontend_path = base / "frontend" / "index.dev.html"
+    elif settings.environment == "production":
+        frontend_path = base / "frontend" / "dist" / "index.html"
     else:
-        frontend_path = Path(__file__).parent.parent / "frontend" / "index.dev.html"
+        frontend_path = base / "frontend" / "index.dev.html"
 
     if frontend_path.exists():
         with open(frontend_path, "r", encoding="utf-8") as f:

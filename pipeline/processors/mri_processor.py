@@ -1145,7 +1145,8 @@ class MRIProcessor:
         Execute the complete processing pipeline.
 
         Args:
-            input_path: Path to input MRI file (DICOM or NIfTI)
+            input_path: Path to input MRI file (NIfTI format: .nii or .nii.gz)
+                       For DICOM conversion, use MRIcron: https://www.nitrc.org/projects/mricron
 
         Returns:
             Dictionary containing processing results and metrics

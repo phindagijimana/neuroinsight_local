@@ -725,26 +725,28 @@ class MRIProcessor:
         """
         Update current progress and notify callback if available.
         Also persist progress to database in worker context.
+        Progress never decreases (avoids UI showing e.g. 80% -> 24% when
+        FreeSurfer phase monitor transitions to a new phase).
 
         Args:
             progress: Progress percentage (0-100)
             step: Current processing step description
         """
-        # Cap progress at 100% for storage and callbacks
+        # Cap at 100% and never decrease (phase transitions can otherwise report lower %)
         capped_progress = min(progress, 100)
-        self._current_progress = capped_progress
+        self._current_progress = max(self._get_current_progress(), capped_progress)
 
         # Update database if we're in a worker context (has db_session)
         if hasattr(self, 'db_session') and self.db_session:
             try:
                 from workers.tasks.processing_web import update_job_progress
-                update_job_progress(self.db_session, self.job_id, capped_progress, step)
+                update_job_progress(self.db_session, self.job_id, self._current_progress, step)
             except Exception as e:
                 logger.warning("failed_to_update_job_progress_in_db", error=str(e), progress=progress, step=step)
 
         # Notify callback if available (for Celery task state)
         if self.progress_callback:
-            self.progress_callback(capped_progress, step)
+            self.progress_callback(self._current_progress, step)
 
     def _store_container_id(self, container_id: str):
         """

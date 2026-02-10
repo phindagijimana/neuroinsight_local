@@ -8,10 +8,6 @@ import ZoomOut from '../components/icons/ZoomOut.jsx'
 import Clock from '../components/icons/Clock.jsx'
 
 function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
-
-  // Log jobs every render to see if they change
-  console.log('ViewerPage render: jobs =', jobs, 'jobsLoading =', false);
-
   const [activeView, setActiveView] = useState(0);
   const [orientation, setOrientation] = useState('coronal'); // coronal or axial
   const [loading, setLoading] = useState(false);
@@ -24,7 +20,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
   const [slicesLoaded, setSlicesLoaded] = useState(new Set()); // Track which job/orientation combinations have had slices loaded
   const [rotation, setRotation] = useState(0); // Rotation: 0, 90, 180, 270 degrees (works for both axial and coronal)
   const [jobVisualizations, setJobVisualizations] = useState(null); // Store visualization data from API
-  const shouldFlipVertical = false; // Images are already correctly oriented by visualization.py
+  const shouldFlipVertical = orientation === 'coronal'; // Coronal slices are upside down; flip vertically
 
   // Zoom handlers
   const handleZoomIn = () => {
@@ -42,37 +38,24 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
   // Rotation handlers for both axial and coronal views
   const handleRotateClockwise = () => {
     setRotation(prev => (prev + 90) % 360);
-    console.log('ROTATION: Clockwise clicked');
-    console.log(`ROTATION: ${rotation} degrees → ${(rotation + 90) % 360} degrees`);
   };
 
   const handleRotateCounterClockwise = () => {
     setRotation(prev => (prev - 90 + 360) % 360);
-    console.log('ROTATION: Counter-clockwise clicked');
-    console.log(`ROTATION: ${rotation} degrees to ${(rotation - 90 + 360) % 360} degrees`);
   };
 
   const handleRotateReset = () => {
     setRotation(0);
-    console.log('ROTATION: Reset clicked');
-    console.log('ROTATION: Reset to 0 degrees');
   };
 
   // Load available completed jobs from props
   useEffect(() => {
-    console.log('ViewerPage useEffect: jobs prop changed:', jobs, 'length:', jobs ? jobs.length : 'null');
     if (jobs && jobs.length > 0) {
-      const completedJobs = jobs.filter(j => j.status === 'completed');
-      console.log('ViewerPage: Found completed jobs:', completedJobs.length, completedJobs);
+      const completedJobs = jobs.filter(j => (j.status || '').toLowerCase() === 'completed');
       setAvailableJobs(completedJobs);
-
-      // Auto-select first completed job if none selected
       if (!selectedJobId && completedJobs.length > 0) {
-        console.log('ViewerPage: Auto-selecting first completed job:', completedJobs[0].id);
         setSelectedJobId(completedJobs[0].id);
       }
-    } else {
-      console.log('ViewerPage: No jobs prop or empty jobs array');
     }
   }, [jobs, selectedJobId]);
 
@@ -84,18 +67,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
     const jobChanged = prevSelectedJobId.current !== selectedJobId;
     const orientationChanged = prevOrientation.current !== orientation;
 
-    console.log('useEffect triggered:', {
-      selectedJobId_changed: jobChanged,
-      orientation_changed: orientationChanged,
-      prev_selectedJobId: prevSelectedJobId.current,
-      new_selectedJobId: selectedJobId,
-      prev_orientation: prevOrientation.current,
-      new_orientation: orientation
-    });
-
-    // Clear slicesLoaded and visualizations when job or orientation changes
     if (jobChanged || orientationChanged) {
-      console.log('Clearing slicesLoaded cache due to job/orientation change');
       setSlicesLoaded(new Set());
       setJobVisualizations(null);
     }
@@ -105,52 +77,27 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
 
     if (selectedJobId) {
       loadSlices();
-      setImageLoadError(false); // Reset error state when switching slices/orientation
+      setImageLoadError(false);
     }
-  }, [selectedJobId, orientation]); // Removed activeView dependency to prevent infinite loop
-
-  // Debug: Watch all state changes
-  useEffect(() => {
-    console.log(`SELECTEDJOBID CHANGED: "${selectedJobId}"`);
-    console.log(`Stack trace:`, new Error().stack);
-  }, [selectedJobId]);
-
-  useEffect(() => {
-    console.log(`ORIENTATION CHANGED: "${orientation}"`);
-    console.log(`Stack trace:`, new Error().stack);
-  }, [orientation]);
-
-  useEffect(() => {
-    console.log(`ACTIVEVIEW CHANGED: ${activeView}`);
-    console.log(`Stack trace:`, new Error().stack);
-  }, [activeView]);
-
+  }, [selectedJobId, orientation]);
 
   const loadSlices = async () => {
     if (!selectedJobId) return;
 
     const cacheKey = `${selectedJobId}_${orientation}`;
-    if (slicesLoaded.has(cacheKey)) {
-      console.log(`Slices already loaded for ${cacheKey}, skipping`);
-      return;
-    }
+    if (slicesLoaded.has(cacheKey)) return;
 
     try {
       setLoading(true);
-      console.log(`Loading slices for job ${selectedJobId}, orientation ${orientation}`);
 
-      // Fetch job data to get visualization URLs
       const jobData = await apiService.getJob(selectedJobId);
-      console.log('Job data received:', jobData);
 
       if (jobData && jobData.visualizations && jobData.visualizations.overlays) {
         const vizData = jobData.visualizations.overlays;
         setJobVisualizations(vizData);
 
-        // Create slice data using actual visualization URLs
         const actualSlices = [];
         if (vizData[orientation]) {
-          // We have specific anatomical and hippocampus overlay images
           actualSlices.push({
             slice: 0,
             anatomical: vizData[orientation].anatomical,
@@ -158,12 +105,10 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
           });
         }
 
-        // Also add some additional slices (for now, reuse the same images)
-        // In a full implementation, we'd have multiple slices per orientation
         for (let i = 1; i < 10; i++) {
           if (vizData[orientation]) {
             actualSlices.push({
-        slice: i,
+              slice: i,
               anatomical: vizData[orientation].anatomical,
               overlay: vizData[orientation].hippocampus
             });
@@ -171,12 +116,8 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
         }
 
         setSlices(actualSlices);
-      setSlicesLoaded(prev => new Set([...prev, cacheKey]));
-        console.log(`Loaded ${actualSlices.length} slices for ${cacheKey} using real visualization data`);
-        console.log('Visualization URLs:', vizData[orientation]);
+        setSlicesLoaded(prev => new Set([...prev, cacheKey]));
       } else {
-        console.warn('No visualization data found in job response');
-        // Fallback to empty slices
         setSlices([]);
       }
     } catch (error) {
@@ -188,18 +129,14 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
   };
 
   const getSliceUrls = (sliceIndex) => {
-    // Build URLs dynamically based on slice index
     if (!selectedJobId) return { anatomical: '', overlay: '' };
-    
-    // Generate URL based on slice index and orientation
-    // Format: slice_00, slice_01, ..., slice_99, slice_100, etc.
-    const sliceId = sliceIndex < 100 
+
+    const sliceId = sliceIndex < 100
       ? `slice_${String(sliceIndex).padStart(2, '0')}`
       : `slice_${sliceIndex}`;
-    
-    // Add cache-busting query to avoid stale cached PNGs
+
     const ts = Date.now();
-    
+
     return {
       anatomical: `${API_BASE_URL}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=anatomical&v=${ts}`,
       overlay: `${API_BASE_URL}/api/visualizations/${selectedJobId}/overlay/${sliceId}?orientation=${orientation}&layer=overlay&v=${ts}`
@@ -219,29 +156,31 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
               <h2 className="text-xl font-semibold text-gray-900 mb-2">
                 {selectedJobId ? 'Loading Visualizations...' : 'No Job Selected'}
               </h2>
-            <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 mb-6">
                 {selectedJobId
                   ? 'Loading brain slice visualizations for the selected job...'
                   : 'Please select a completed job to view 2D slice visualizations'
                 }
-            </p>
-            {availableJobs.length > 0 ? (
+              </p>
+              {availableJobs.length > 0 ? (
                 <div className="max-w-md mx-auto">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select Job:</label>
-                <select
-                  value={selectedJobId || ''}
-                  onChange={(e) => setSelectedJobId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
-                >
-                  <option value="">-- Select a job --</option>
-                  {availableJobs.map(job => (
-                    <option key={job.id} value={job.id}>{job.id} - {job.filename}</option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <p className="text-gray-500">No completed jobs available. Please upload and process an MRI scan first.</p>
-            )}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Job:</label>
+                  <select
+                    value={selectedJobId || ''}
+                    onChange={(e) => setSelectedJobId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm"
+                  >
+                    <option value="">-- Select a job --</option>
+                    {availableJobs.map(job => (
+                      <option key={job.id} value={job.id}>
+                        {job.id} - {job.input_file || job.filename || job.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p className="text-gray-500">No completed jobs available. Please upload and process an MRI scan first.</p>
+              )}
             </div>
           </div>
         </div>
@@ -251,7 +190,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="max-w-7xl mx-auto px-6 py-4">
 
         <div className="grid md:grid-cols-1 gap-8">
           {/* Main Viewer */}
@@ -359,6 +298,24 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                 </div>
               </div>
             </div>
+
+            {/* L/R and color legend (viewer only) */}
+            <div className="mb-4 rounded-lg border border-[#003d7a]/30 bg-[#003d7a]/10 px-4 py-3 text-center">
+              <p className="text-sm font-medium text-gray-800">
+                <span className="font-semibold text-[#003d7a]">L/R markers</span> indicate patient orientation (radiological view).
+                <span className="mx-2 text-gray-500">|</span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full border border-gray-400 bg-[#0064ff] shrink-0" aria-hidden />
+                  <span>Blue = left hippocampus</span>
+                </span>
+                <span className="mx-2 text-gray-500">|</span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="w-4 h-4 rounded-full border border-gray-400 bg-[#e53935] shrink-0" aria-hidden />
+                  <span>Red = right hippocampus</span>
+                </span>
+              </p>
+            </div>
+
             <div className="relative bg-black rounded-xl overflow-auto mb-4" style={{ height: '600px' }}>
               {loading ? (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -382,23 +339,18 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                     <img
                       src={getSliceUrls(activeView).anatomical}
                       alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${activeView} - Anatomical`}
-                      onLoad={() => console.log(`ANATOMICAL IMAGE LOADED: ${getSliceUrls(activeView).anatomical}`)}
                       className="block"
                       style={{
                         display: 'block',
                         width: 'auto',
                         height: 'auto'
                       }}
-                      onError={(e) => {
-                        console.error(`ANATOMICAL IMAGE LOAD ERROR: ${e.target.src}`);
-                        setImageLoadError(true);
-                      }}
+                      onError={() => setImageLoadError(true)}
                     />
                     {/* Overlay layer: Hippocampus segmentation (colored, transparent PNG) */}
                     <img
                       src={getSliceUrls(activeView).overlay}
                       alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${activeView} - Overlay`}
-                      onLoad={() => console.log(`OVERLAY IMAGE LOADED: ${getSliceUrls(activeView).overlay}`)}
                       className="block absolute top-0 left-0"
                       style={{
                         opacity: overlayOpacity,
@@ -407,11 +359,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                         width: '100%',
                         height: '100%'
                       }}
-                      onError={(e) => {
-                        console.error(`OVERLAY IMAGE LOAD ERROR: ${e.target.src}`);
-                        // Just hide overlay if it fails, anatomical will still show
-                        e.target.style.display = 'none';
-                      }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
                     />
                   </div>
                 </div>
@@ -434,10 +382,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
             {/* Slice Navigation */}
             <div className="flex items-center gap-4 mb-6">
               <button
-                onClick={() => {
-                  console.log(`PREV BUTTON: current activeView=${activeView}, setting to ${Math.max(0, activeView - 1)}`);
-                  setActiveView(Math.max(0, activeView - 1));
-                }}
+                onClick={() => setActiveView(Math.max(0, activeView - 1))}
                 className="p-3 bg-[#003d7a] hover:bg-[#002b55] text-white rounded-lg transition"
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -448,19 +393,12 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                   min="0"
                   max={maxSlice}
                   value={activeView}
-                  onChange={(e) => {
-                    const newValue = parseInt(e.target.value);
-                    console.log(`Range slider: current activeView=${activeView}, setting to ${newValue}`);
-                    setActiveView(newValue);
-                  }}
+                  onChange={(e) => setActiveView(parseInt(e.target.value))}
                   className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-[#003d7a]"
                 />
               </div>
               <button
-                onClick={() => {
-                  console.log(`NEXT BUTTON: current activeView=${activeView}, setting to ${Math.min(maxSlice, activeView + 1)}`);
-                  setActiveView(Math.min(maxSlice, activeView + 1));
-                }}
+                onClick={() => setActiveView(Math.min(maxSlice, activeView + 1))}
                 className="p-3 bg-[#003d7a] hover:bg-[#002b55] text-white rounded-lg transition"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -471,7 +409,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
             <div className="border-t border-blue-100 pt-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Multi-Slice Overview (All 10 {orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slices)</h3>
               <div className="grid grid-cols-5 gap-3">
-                {previewSlices.map((slice, idx) => {
+                {previewSlices.map((slice) => {
                   const sliceUrls = getSliceUrls(slice);
                   return (
                     <div
@@ -482,17 +420,13 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                       }`}
                     >
                       <div className="w-24 h-24 flex items-center justify-center overflow-hidden relative">
-                        {/* Base anatomical layer */}
                         <img
                           src={sliceUrls.anatomical}
                           alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Anatomical`}
                           className="w-full h-full object-cover"
                           style={shouldFlipVertical ? { transform: 'scaleY(-1)' } : {}}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
+                          onError={(e) => { e.target.style.display = 'none'; }}
                         />
-                        {/* Overlay layer with opacity */}
                         <img
                           src={sliceUrls.overlay}
                           alt={`${orientation.charAt(0).toUpperCase() + orientation.slice(1)} Slice ${slice} - Overlay`}
@@ -502,9 +436,7 @@ function ViewerPage({ selectedJobId, setSelectedJobId, jobs }) {
                             pointerEvents: 'none',
                             ...(shouldFlipVertical ? { transform: 'scaleY(-1)' } : {})
                           }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
+                          onError={(e) => { e.target.style.display = 'none'; }}
                         />
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/80 to-transparent p-2">

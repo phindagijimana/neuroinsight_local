@@ -308,7 +308,18 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
                 slice_data = data[optimal_slice_num, :, :] if layer == "anatomical" else data[optimal_slice_num, :, :]
             elif orientation == "coronal":
                 # Coronal: front-back cuts, slice along Y-axis (axis 2, flipped)
-                slice_data = data[:, :, optimal_slice_num] if layer == "anatomical" else data[:, :, optimal_slice_num]
+                slice_data = data[:, :, optimal_slice_num]  # Shape: (L, S) or (L, S, 4) for RGBA
+                # For proper coronal display:
+                # - Vertical should be Superior→Inferior (top of head→bottom)
+                # - Horizontal should be Left→Right
+                # Current: vertical=L-R, horizontal=S-I (rotated 90 degrees!)
+                # Fix: transpose spatial axes only (preserve channel axis if present)
+                if len(slice_data.shape) == 3:
+                    # RGBA data with shape (L, S, 4) - transpose only first 2 axes
+                    slice_data = np.transpose(slice_data, (1, 0, 2))  # Now (S, L, 4)
+                else:
+                    # Grayscale with shape (L, S) - simple transpose
+                    slice_data = slice_data.T  # Now (S, L)
             else:
                 logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
                 return False
@@ -323,14 +334,20 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
                 slice_data = data[optimal_slice_num, :, :]
             elif orientation == "coronal":
                 # Coronal: front-back cuts, slice along A-P axis (axis 2)
-                slice_data = data[:, :, optimal_slice_num]  # Shape: (L, I) = (L-R, Inferior-Superior)
+                slice_data = data[:, :, optimal_slice_num]  # Shape: (L, I) or (L, I, 4) for RGBA
                 # For proper coronal display:
                 # - Vertical should be Superior→Inferior (top of head→bottom)
                 # - Horizontal should be Left→Right
                 # Current: vertical=L-R, horizontal=I-S (WRONG!)
-                # Fix: transpose to get vertical=I-S, then flip to get S→I order
-                slice_data = slice_data.T  # Now shape: (I, L) - vertical=I-S, horizontal=L-R
-                slice_data = np.flipud(slice_data)  # Flip to get Superior at top
+                # Fix: transpose spatial axes to get vertical=I-S, then flip to get S→I order
+                if len(slice_data.shape) == 3:
+                    # RGBA data with shape (L, I, 4) - transpose only first 2 axes
+                    slice_data = np.transpose(slice_data, (1, 0, 2))  # Now (I, L, 4)
+                    slice_data = np.flipud(slice_data)  # Flip to get Superior at top
+                else:
+                    # Grayscale with shape (L, I) - simple transpose and flip
+                    slice_data = slice_data.T  # Now (I, L)
+                    slice_data = np.flipud(slice_data)  # Flip to get Superior at top
             else:
                 logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
                 return False
@@ -402,9 +419,13 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
                         # RGBA data
                         r, g, b, a = slice_data[y, x]
                         overlay_pixels[x, y] = (r, g, b, a)
-                    elif slice_data[y, x] > 0:
-                        # Binary mask - make red with transparency
-                        overlay_pixels[x, y] = (255, 0, 0, 128)
+                    else:
+                        # Binary mask or grayscale - check if pixel has value
+                        pixel_val = slice_data[y, x]
+                        # Handle both scalar and array pixel values
+                        if np.any(pixel_val > 0):
+                            # Binary mask - make red with transparency
+                            overlay_pixels[x, y] = (255, 0, 0, 128)
 
         # Save the image
         img_pil.save(str(output_path), 'PNG')

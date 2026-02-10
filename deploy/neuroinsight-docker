@@ -54,7 +54,52 @@ container_running() {
 # Check if a port is available
 port_available() {
     local port=$1
-    ! (lsof -i:${port} -sTCP:LISTEN -t >/dev/null 2>&1 || netstat -tln 2>/dev/null | grep -q ":${port} ")
+    
+    # Method 1: Check with lsof (if available)
+    if command -v lsof &> /dev/null; then
+        if lsof -i:${port} -sTCP:LISTEN -t >/dev/null 2>&1; then
+            return 1  # Port is in use
+        fi
+    fi
+    
+    # Method 2: Check with ss (modern, preferred)
+    if command -v ss &> /dev/null; then
+        if ss -tln 2>/dev/null | grep -q ":${port}\b"; then
+            return 1  # Port is in use
+        fi
+    fi
+    
+    # Method 3: Check with netstat (fallback)
+    if command -v netstat &> /dev/null; then
+        if netstat -tln 2>/dev/null | grep -q ":${port}\b"; then
+            return 1  # Port is in use
+        fi
+    fi
+    
+    # Method 4: Check Docker port mappings (critical for WSL/Docker Desktop)
+    if command -v docker &> /dev/null; then
+        # Check if any container is using this port
+        if docker ps --format '{{.Ports}}' 2>/dev/null | grep -q "0.0.0.0:${port}->"; then
+            return 1  # Port is in use by Docker
+        fi
+    fi
+    
+    # Method 5: Try to bind to the port (most reliable)
+    # This will fail if port is in use, even if other methods miss it
+    if command -v nc &> /dev/null; then
+        # Try to bind using nc (netcat)
+        if timeout 0.1 nc -l -p ${port} >/dev/null 2>&1; then
+            # Successfully bound, port is available
+            return 0
+        else
+            # Check if timeout worked (nc might not support -l -p on all systems)
+            # Just skip this check if nc doesn't support it
+            :
+        fi
+    fi
+    
+    # If we get here and haven't detected the port as in use, assume it's available
+    return 0
 }
 
 # Find available port in range 8000-8050

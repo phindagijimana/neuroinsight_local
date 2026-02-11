@@ -336,15 +336,11 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
             elif orientation == "coronal":
                 # Coronal: front-back cuts, slice along A-P axis (axis 2)
                 slice_data = data[:, :, optimal_slice_num]  # Shape: (L, I) or (L, I, 4) for RGBA
-                # For proper coronal display: transpose then flipud to get superior at top
+                # LIA: I axis voxel array already goes S→I after transpose (no flip needed)
                 if len(slice_data.shape) == 3:
-                    # RGBA data with shape (L, I, 4) - transpose only first 2 axes
-                    slice_data = np.transpose(slice_data, (1, 0, 2))  # Now (I, L, 4)
-                    slice_data = np.flipud(slice_data)  # Superior at top
+                    slice_data = np.transpose(slice_data, (1, 0, 2))  # (I, L, 4)
                 else:
-                    # Grayscale with shape (L, I)
-                    slice_data = slice_data.T  # Now (I, L)
-                    slice_data = np.flipud(slice_data)  # Superior at top
+                    slice_data = slice_data.T  # (I, L) - superior already at top for LIA
             else:
                 logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
                 return False

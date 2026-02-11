@@ -121,20 +121,23 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("outputs_directory_not_found", path=str(outputs_dir))
 
-    # Mount frontend: either Vite dist (default) or native index.dev.html via root() when SERVE_NATIVE_FRONTEND=true
-    if settings.environment == "production" and not getattr(settings, "serve_native_frontend", False):
-        # Serve from dist directory (Vite-built React app)
-        frontend_dir = Path(__file__).parent.parent / "frontend" / "dist"
-        if frontend_dir.exists():
-            index_file = frontend_dir / "index.html"
-            if index_file.exists():
-                logger.info("serving_production_frontend_from", path=str(index_file))
-            app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
-            logger.info("frontend_static_files_enabled", path=str(frontend_dir))
-        else:
-            logger.warning("frontend_directory_not_found", path=str(frontend_dir))
-    elif getattr(settings, "serve_native_frontend", False):
+    # Mount frontend: prefer native index.dev.html when present (Docker/native parity); else Vite dist
+    frontend_base = Path(__file__).parent.parent / "frontend"
+    native_index = frontend_base / "index.dev.html"
+    dist_index = frontend_base / "dist" / "index.html"
+    use_native = getattr(settings, "serve_native_frontend", False) or (
+        settings.environment == "production" and native_index.exists()
+    )
+    if use_native and native_index.exists():
         logger.info("serve_native_frontend_enabled", msg="Serving native index.dev.html at / (same UI as native deployment)")
+    elif settings.environment == "production" and dist_index.exists():
+        frontend_dir = frontend_base / "dist"
+        logger.info("serving_production_frontend_from", path=str(dist_index))
+        app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+        logger.info("frontend_static_files_enabled", path=str(frontend_dir))
+    else:
+        if settings.environment == "production":
+            logger.warning("frontend_directory_not_found", path=str(frontend_base), native_missing=not native_index.exists())
 
     yield
 
@@ -281,16 +284,18 @@ async def health_check():
 async def root():
     """
     Root endpoint - serves the React frontend for web deployment.
-    When SERVE_NATIVE_FRONTEND=true (e.g. Docker), serves index.dev.html so UI matches native deployment.
+    Prefers index.dev.html when present (same UI as native); else dist/index.html.
     """
     from pathlib import Path
     base = Path(__file__).parent.parent
-    if getattr(settings, "serve_native_frontend", False):
-        frontend_path = base / "frontend" / "index.dev.html"
-    elif settings.environment == "production":
-        frontend_path = base / "frontend" / "dist" / "index.html"
+    native_path = base / "frontend" / "index.dev.html"
+    dist_path = base / "frontend" / "dist" / "index.html"
+    if native_path.exists():
+        frontend_path = native_path
+    elif dist_path.exists():
+        frontend_path = dist_path
     else:
-        frontend_path = base / "frontend" / "index.dev.html"
+        frontend_path = native_path  # will trigger "not found" below
 
     if frontend_path.exists():
         with open(frontend_path, "r", encoding="utf-8") as f:

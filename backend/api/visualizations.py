@@ -335,16 +335,14 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
                 # For proper coronal display:
                 # - Vertical should be Superior→Inferior (top of head→bottom)
                 # - Horizontal should be Left→Right
-                # Current: vertical=L-R, horizontal=I-S (WRONG!)
-                # Fix: transpose spatial axes to get vertical=I-S, then flip to get S→I order
+                # For LIA: I axis in voxel array already goes from S→I (due to affine permutation)
+                # So we transpose but DON'T flip (unlike RAS where we need flipud)
                 if len(slice_data.shape) == 3:
                     # RGBA data with shape (L, I, 4) - transpose only first 2 axes
-                    slice_data = np.transpose(slice_data, (1, 0, 2))  # Now (I, L, 4)
-                    slice_data = np.flipud(slice_data)  # Flip to get Superior at top
+                    slice_data = np.transpose(slice_data, (1, 0, 2))  # Now (I, L, 4) - already S→I
                 else:
-                    # Grayscale with shape (L, I) - simple transpose and flip
-                    slice_data = slice_data.T  # Now (I, L)
-                    slice_data = np.flipud(slice_data)  # Flip to get Superior at top
+                    # Grayscale with shape (L, I) - simple transpose (NO flip for LIA)
+                    slice_data = slice_data.T  # Now (I, L) - already S→I, superior at top
             else:
                 logger.error("unsupported_orientation", orientation=orientation, file_orientation=actual_orientation)
                 return False

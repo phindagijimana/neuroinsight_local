@@ -448,13 +448,17 @@ def generate_segmentation_overlays(
                 seg_slice = seg_data[:, :, slice_num]
             
             # Reorder axes for display (match backend API so viewer and report see same orientation)
-            # Coronal: transpose then flipud so superior at top (head at top) - same as API
+            # Coronal: transpose, then conditionally flip based on file orientation
+            # - RAS: needs flipud to put superior at top
+            # - LIA: transpose only (I axis already has superior at correct end)
             # Axial: flip both axes for neurological convention
             if orientation == 'coronal':
                 t1_slice = t1_slice.T
-                t1_slice = np.flipud(t1_slice)
                 seg_slice = seg_slice.T
-                seg_slice = np.flipud(seg_slice)
+                # Only flip for RAS-like orientations; LIA doesn't need it
+                if actual_orientation != ('L', 'I', 'A'):
+                    t1_slice = np.flipud(t1_slice)
+                    seg_slice = np.flipud(seg_slice)
             elif orientation == 'axial':
                 t1_slice = np.flip(t1_slice, axis=(0, 1))
                 seg_slice = np.flip(seg_slice, axis=(0, 1))

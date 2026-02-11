@@ -3,6 +3,11 @@
 # published Docker image (no local repo, no source code).
 # Uses Docker Hub image only; creates a temporary volume; cleans up after.
 #
+# License: We look for license.txt only in the current directory and $HOME
+# (same as a random user who has no repo—e.g. license in the same folder as
+# where they run this script, or in home). We do NOT use repo paths like
+# neuroinsight_local/ or deploy/ so the test reflects real user experience.
+#
 # Usage: ./isolated-test-wsl.sh [--cleanup]
 #   --cleanup  Stop and remove the container after the test (default: keep running on 18000)
 
@@ -33,12 +38,33 @@ fi
 echo "Pulling image from Docker Hub..."
 docker pull "$IMAGE"
 
-echo "Starting container (no license mount - app should still start)..."
+# Mount license at /app/license.txt (first path the app checks) when present.
+# Random-user behavior: look only in current directory and home (no repo paths).
+# User places license.txt in the same directory as where they run this script, or in $HOME.
+LICENSE_MOUNT=""
+for candidate in "./license.txt" "$HOME/license.txt"; do
+  if [ -f "$candidate" ]; then
+    if ! grep -q "REPLACE THIS EXAMPLE\|FreeSurfer License File - EXAMPLE" "$candidate" 2>/dev/null; then
+      # Resolve to absolute path for docker -v
+      abspath="$(cd "$(dirname "$candidate")" 2>/dev/null && pwd)/$(basename "$candidate")"
+      LICENSE_MOUNT="-v ${abspath}:/app/license.txt:ro"
+      echo "License will be mounted at /app/license.txt (from $candidate)"
+      break
+    fi
+  fi
+done
+if [ -z "$LICENSE_MOUNT" ]; then
+  echo "No license.txt found in current directory or $HOME - app will start; FreeSurfer jobs will need a license."
+  echo "  To use a license: put license.txt in this directory ($(pwd)) or in $HOME, then re-run."
+fi
+
+echo "Starting container..."
 # Bind 0.0.0.0 so WSL/Windows can reach localhost:18000
 docker run -d \
   --name "$CONTAINER_NAME" \
   -p "0.0.0.0:${HOST_PORT}:8000" \
   -v "${VOLUME_NAME}:/data" \
+  $LICENSE_MOUNT \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -e POSTGRES_PASSWORD=neuroinsight_secure_password \
   -e REDIS_PASSWORD=redis_secure_password \

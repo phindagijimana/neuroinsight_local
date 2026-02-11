@@ -2850,6 +2850,11 @@ class MRIProcessor:
 
                 # Extract more detailed error information
                 error_details = []
+                if result.returncode == 137:
+                    error_details.append(
+                        "Process was killed (exit 137). This usually means the system ran out of memory. "
+                        "Try running on a machine with more RAM or run fewer jobs at once."
+                    )
                 if "license" in stderr_output.lower():
                     error_details.append("FreeSurfer license issue - check license.txt file")
                 if "no such file" in stderr_output.lower():

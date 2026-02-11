@@ -90,6 +90,11 @@ class Settings(BaseSettings):
 
     max_upload_size: int = Field(default=1073741824, env="MAX_UPLOAD_SIZE")  # 1GB for web
 
+    @property
+    def data_dir(self) -> str:
+        """Base data directory (parent of upload_dir). Used for temp cleanup; works for both native and Docker."""
+        return str(Path(self.upload_dir).parent)
+
     # PostgreSQL Database Configuration (Native Deployment)
     postgres_host: str = Field(default="localhost", env="POSTGRES_HOST")
     postgres_port: int = Field(default=5432, env="POSTGRES_PORT")

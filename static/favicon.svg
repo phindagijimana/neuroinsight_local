@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Light bulb lamp icon -->
+  <defs>
+    <linearGradient id="bulbGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FDB813;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F59E0B;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Bulb glow -->
+  <circle cx="50" cy="40" r="28" fill="url(#bulbGradient)" opacity="0.3"/>
+  
+  <!-- Main bulb -->
+  <path d="M 50 15 Q 35 15 28 28 Q 25 35 25 42 Q 25 52 32 60 L 32 68 Q 32 70 34 70 L 66 70 Q 68 70 68 68 L 68 60 Q 75 52 75 42 Q 75 35 72 28 Q 65 15 50 15 Z" 
+        fill="url(#bulbGradient)" 
+        stroke="#D97706" 
+        stroke-width="2"/>
+  
+  <!-- Light rays -->
+  <line x1="50" y1="8" x2="50" y2="2" stroke="#FDB813" stroke-width="3" stroke-linecap="round"/>
+  <line x1="72" y1="18" x2="77" y2="13" stroke="#FDB813" stroke-width="3" stroke-linecap="round"/>
+  <line x1="28" y1="18" x2="23" y2="13" stroke="#FDB813" stroke-width="3" stroke-linecap="round"/>
+  <line x1="82" y1="40" x2="88" y2="40" stroke="#FDB813" stroke-width="3" stroke-linecap="round"/>
+  <line x1="18" y1="40" x2="12" y2="40" stroke="#FDB813" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Base/socket -->
+  <rect x="38" y="70" width="24" height="6" rx="2" fill="#94A3B8"/>
+  <rect x="36" y="76" width="28" height="8" rx="3" fill="#64748B"/>
+  
+  <!-- Filament suggestion -->
+  <path d="M 47 35 Q 50 30 53 35 Q 50 40 47 35" fill="none" stroke="#D97706" stroke-width="2" opacity="0.6"/>
+</svg>

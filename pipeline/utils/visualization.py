@@ -456,13 +456,23 @@ def generate_segmentation_overlays(
                 seg_slice = seg_slice.T
                 seg_slice = np.flipud(seg_slice)
             elif orientation == 'axial':
-                # LIA axial needs transpose, others need flip
+                # Axial transforms depend on file orientation
                 if actual_orientation == ('L', 'I', 'A'):
+                    # LIA: transpose only (A axis already goes A→P correctly)
                     t1_slice = t1_slice.T
                     seg_slice = seg_slice.T
+                elif actual_orientation == ('R', 'A', 'S'):
+                    # RAS: transpose + fliplr to get (A-P, L-R) with anterior at top
+                    t1_slice = t1_slice.T
+                    t1_slice = np.fliplr(t1_slice)
+                    seg_slice = seg_slice.T
+                    seg_slice = np.fliplr(seg_slice)
                 else:
-                    t1_slice = np.flip(t1_slice, axis=(0, 1))
-                    seg_slice = np.flip(seg_slice, axis=(0, 1))
+                    # Unknown orientation: assume RAS-like
+                    t1_slice = t1_slice.T
+                    t1_slice = np.fliplr(t1_slice)
+                    seg_slice = seg_slice.T
+                    seg_slice = np.fliplr(seg_slice)
 
             # ====================================================================
             # STEP 1: Generate anatomical-only image (grayscale T1 brain)

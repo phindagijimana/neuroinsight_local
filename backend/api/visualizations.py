@@ -351,8 +351,16 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
         elif actual_orientation == ('R', 'A', 'S'):
             # Standard RAS+ orientation: Axis 0=R-L (X), Axis 1=A-P (Y), Axis 2=S-I (Z)
             if orientation == "axial":
-                # Axial: vary x,y, fix z
-                slice_data = data[:, :, optimal_slice_num] if layer == "anatomical" else data[:, :, optimal_slice_num]
+                # Axial: horizontal cuts, slice along S-I axis (axis 2)
+                slice_data = data[:, :, optimal_slice_num]  # Shape: (R-L, A-P)
+                # For display: rows = A-P (anterior/eyes at top), cols = L-R
+                # Transform: transpose to get (A-P, R-L), then fliplr to get (A-P, L-R)
+                if len(slice_data.shape) == 3:
+                    slice_data = np.transpose(slice_data, (1, 0, 2))  # (A-P, R-L, 4)
+                    slice_data = np.fliplr(slice_data)  # (A-P, L-R, 4) - eyes at top, left at left
+                else:
+                    slice_data = slice_data.T  # (A-P, R-L)
+                    slice_data = np.fliplr(slice_data)  # (A-P, L-R) - eyes at top, left at left
             elif orientation == "sagittal":
                 slice_data = data[optimal_slice_num, :, :] if layer == "anatomical" else data[optimal_slice_num, :, :]
             elif orientation == "coronal":
@@ -374,9 +382,16 @@ def _generate_overlay_image(job_id: str, slice_id: str, orientation: str, layer:
                          detected_orientation=actual_orientation,
                          requested_orientation=orientation,
                          using_standard_assumption=True)
-            # Assume standard orientation as fallback
+            # Assume standard RAS-like orientation as fallback
             if orientation == "axial":
-                slice_data = data[:, :, optimal_slice_num] if layer == "anatomical" else data[:, :, optimal_slice_num]
+                slice_data = data[:, :, optimal_slice_num]  # Assume (R-L, A-P) or similar
+                # Apply RAS-like transform: transpose + fliplr for proper display
+                if len(slice_data.shape) == 3:
+                    slice_data = np.transpose(slice_data, (1, 0, 2))
+                    slice_data = np.fliplr(slice_data)
+                else:
+                    slice_data = slice_data.T
+                    slice_data = np.fliplr(slice_data)
             elif orientation == "sagittal":
                 slice_data = data[optimal_slice_num, :, :] if layer == "anatomical" else data[optimal_slice_num, :, :]
             elif orientation == "coronal":

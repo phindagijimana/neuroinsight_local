@@ -1,5 +1,5 @@
 """
-Core configuration module for NeuroInsight web application.
+Core configuration module for NeuroInsight-AutoHS web application.
 
 This module handles all application settings using Pydantic Settings,
 enabling type-safe configuration from environment variables.
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
         self._ensure_storage_directories()
 
     # Application Metadata
-    app_name: str = "NeuroInsight"
+    app_name: str = "NeuroInsight-AutoHS"
     app_version: str = "1.0.0"
     environment: str = Field(default="production", env="ENVIRONMENT")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")

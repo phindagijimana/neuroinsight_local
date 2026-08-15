@@ -1,6 +1,8 @@
-# NeuroInsight User Guide
+# NeuroInsight-AutoHS User Guide
 
-Complete guide for deploying and using NeuroInsight for hippocampal MRI analysis.
+Complete guide for deploying and using **NeuroInsight-AutoHS** for hippocampal MRI analysis.
+
+NeuroInsight-AutoHS implements the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** — FreeSurfer segmentation followed by asymmetry indexing and HS classification. The canonical workflow definition lives in the [AutoHS GitHub repository](https://github.com/phindagijimana/AutoHS).
 
 ## Prerequisites
 

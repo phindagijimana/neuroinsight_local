@@ -1,6 +1,13 @@
-# NeuroInsight
+# NeuroInsight-AutoHS
 
-Automated hippocampal segmentation and analysis from T1-weighted MRI scans using FreeSurfer.
+**NeuroInsight-AutoHS** is the full web application for automated hippocampal segmentation and analysis from T1-weighted MRI scans using FreeSurfer — with dashboard, job queue, PDF reports, and deployment tooling.
+
+It implements the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** — a structured two-step workflow (FreeSurfer processing → AI-compute post-processing and reporting) defined in the [AutoHS repository](https://github.com/phindagijimana/AutoHS) on GitHub.
+
+| Component | Repository | Role |
+|-----------|------------|------|
+| **NeuroInsight-AutoHS** (this repo) | [neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local) | Web UI, API, Celery workers, deployment |
+| **AutoHS pipeline** | [AutoHS](https://github.com/phindagijimana/AutoHS) | Canonical workflow spec, CLI, BIDS App, Docker runner |
 
 ## Platform Support
 
@@ -17,17 +24,17 @@ Automated hippocampal segmentation and analysis from T1-weighted MRI scans using
 
 ## FreeSurfer Setup
 
-NeuroInsight requires a FreeSurfer license for MRI processing. FreeSurfer is free for research use.
+NeuroInsight-AutoHS requires a FreeSurfer license for MRI processing. FreeSurfer is free for research use.
 
 ### Get FreeSurfer License
 
 1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
 2. Complete the registration form
-3. Save the license file as `license.txt` in your NeuroInsight project directory
+3. Save the license file as `license.txt` in your project directory
 
 ### License File Location
 
-The license file must be named `license.txt` and placed in the root directory of the NeuroInsight project.
+The license file must be named `license.txt` and placed in the root directory of the project.
 
 Example structure:
 ```
@@ -56,7 +63,7 @@ cd neuroinsight_local
 # Setup FreeSurfer license
 ./neuroinsight license
 
-# Start NeuroInsight
+# Start NeuroInsight-AutoHS
 ./neuroinsight start
 
 # Access at http://localhost:8000
@@ -68,7 +75,7 @@ cd neuroinsight_local
 
 ## File Requirements
 
-NeuroInsight processes T1-weighted MRI scans only. Filenames must contain:
+NeuroInsight-AutoHS processes T1-weighted MRI scans only. Filenames must contain:
 `t1`, `t1w`, `t1-weighted`, `mprage`, `spgr`, `tfl`, `tfe`, `fspgr`
 
 Supported formats: NIfTI (`.nii`, `.nii.gz`) only.
@@ -105,11 +112,22 @@ cd neuroinsight_local
 
 - **Native Linux:** Uses systemd services, runs directly on Linux
 
+## Hippocampal asymmetry & HS classification
+
+NeuroInsight-AutoHS applies the same thresholds as the AutoHS pipeline:
+
+**Volume laterality** (±0.05): Left > Right if AI > 0.05; Right > Left if AI < −0.05; symmetric between.
+
+**HS classification:** Right HS suspected if AI > 0.046915816971433; Left HS suspected if AI < −0.070839747728063; otherwise Balanced (No HS).
+
+See the [AutoHS repository](https://github.com/phindagijimana/AutoHS) for the full pipeline specification and citation.
+
 ## Further Documentation
 
-- [User Guide](docs/USER_GUIDE.md) - Complete usage instructions
-- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues
-- [FreeSurfer License Setup](https://surfer.nmr.mgh.harvard.edu/registration.html) - Get your license
+- [User Guide](docs/USER_GUIDE.md) — complete usage instructions
+- [Troubleshooting](docs/TROUBLESHOOTING.md) — common issues
+- [AutoHS pipeline](https://github.com/phindagijimana/AutoHS) — workflow spec and CLI reference
+- [FreeSurfer License Setup](https://surfer.nmr.mgh.harvard.edu/registration.html) — get your license
 
 ## License
 

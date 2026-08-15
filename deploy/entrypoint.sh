@@ -9,15 +9,20 @@ echo "======================================"
 # Docker Socket Permission Fix (Universal)
 # ============================================
 # Automatically configure Docker access for FreeSurfer container spawning
-# Works on Linux, WSL2, and Docker Desktop by detecting socket GID at runtime
+# Works on Linux, WSL2, and Docker Desktop (macOS/Windows) by detecting socket GID at runtime
 
 if [ -S /var/run/docker.sock ]; then
     echo ""
     echo "Configuring Docker socket access..."
-    
+    # Do not abort startup if group membership tweaks fail on a specific platform
+    set +e
+
     # Get the actual GID of the Docker socket
-    DOCKER_SOCKET_GID=$(stat -c '%g' /var/run/docker.sock)
-    echo "  Docker socket GID: $DOCKER_SOCKET_GID"
+    DOCKER_SOCKET_GID=$(stat -c '%g' /var/run/docker.sock 2>/dev/null)
+    if [ -z "$DOCKER_SOCKET_GID" ]; then
+        DOCKER_SOCKET_GID=$(stat -f '%g' /var/run/docker.sock 2>/dev/null)
+    fi
+    echo "  Docker socket GID: ${DOCKER_SOCKET_GID:-unknown}"
     
     # Check if docker group exists and get its current GID
     if getent group docker > /dev/null 2>&1; then
@@ -27,16 +32,28 @@ if [ -S /var/run/docker.sock ]; then
         # If GIDs don't match, update the docker group
         if [ "$DOCKER_SOCKET_GID" != "$CURRENT_DOCKER_GID" ]; then
             echo "  Updating docker group GID to match socket..."
-            groupmod -g "$DOCKER_SOCKET_GID" docker
-            echo "  [OK] Docker group updated to GID $DOCKER_SOCKET_GID"
+            if [ "$DOCKER_SOCKET_GID" = "0" ]; then
+                # Docker Desktop (macOS/Windows): socket is root-owned; GID 0 is the root group
+                echo "  Docker socket owned by root (GID 0) — adding neuroinsight to root group"
+                usermod -aG root neuroinsight 2>/dev/null || true
+            elif groupmod -g "$DOCKER_SOCKET_GID" docker 2>/dev/null; then
+                echo "  [OK] Docker group updated to GID $DOCKER_SOCKET_GID"
+            else
+                echo "  [WARNING] Could not set docker group to GID $DOCKER_SOCKET_GID; continuing"
+            fi
         else
             echo "  [OK] Docker group GID already matches socket"
         fi
     else
-        # Docker group doesn't exist, create it with correct GID
-        echo "  Creating docker group with GID $DOCKER_SOCKET_GID..."
-        groupadd -g "$DOCKER_SOCKET_GID" docker
-        echo "  [OK] Docker group created"
+        # Docker group doesn't exist, create it with correct GID (skip GID 0 — root group exists)
+        if [ "$DOCKER_SOCKET_GID" = "0" ]; then
+            echo "  Docker socket GID 0 — using root group for Docker Desktop"
+            usermod -aG root neuroinsight 2>/dev/null || true
+        else
+            echo "  Creating docker group with GID $DOCKER_SOCKET_GID..."
+            groupadd -g "$DOCKER_SOCKET_GID" docker
+            echo "  [OK] Docker group created"
+        fi
     fi
     
     # Ensure neuroinsight user is in docker group
@@ -56,7 +73,8 @@ if [ -S /var/run/docker.sock ]; then
         echo "  FreeSurfer container spawning may not work"
         echo "  This is usually fine if Docker daemon is starting up"
     fi
-    
+
+    set -e
     echo "Docker configuration complete"
     echo ""
 else

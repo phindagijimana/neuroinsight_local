@@ -146,6 +146,24 @@ docker run -d \
 
 But this should never be necessary with the new image.
 
+## Docker Desktop on macOS / Windows (GID 0)
+
+On Docker Desktop, `/var/run/docker.sock` is often owned by **root** with **GID 0**.
+Older entrypoints ran `groupmod -g 0 docker`, which fails because GID 0 is already
+the `root` group, and `set -e` caused a crash loop.
+
+**Fix (in current `entrypoint.sh`):**
+
+- If socket GID is **0**, add the `neuroinsight` user to the **root** group instead of calling `groupmod`.
+- Treat `groupmod` failures on other GIDs as warnings, not fatal errors.
+
+After pulling an image that includes this fix, `./neuroinsight-docker install` works on
+macOS without mounting a custom entrypoint.
+
+**Apple Silicon note:** The published image may be `linux/amd64`. Docker Desktop runs it
+under emulation on arm64 Macs (slower but functional). Multi-arch builds (`amd64` + `arm64`)
+are optional for better performance.
+
 ## Testing
 
 Tested and verified on:

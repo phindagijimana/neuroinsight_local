@@ -1,4 +1,4 @@
-"""Core configuration and utilities for NeuroInsight application."""
+"""Core configuration and utilities for NeuroInsight-AutoHS application."""
 
 # Use web configuration
 from .config import Settings, get_settings

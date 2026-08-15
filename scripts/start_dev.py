@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NeuroInsight Dev Start Script (isolated from production).
+NeuroInsight-AutoHS Dev Start Script (isolated from production).
 Starts backend, Celery, and job monitor on port 8001 with dev-only resources.
 """
 

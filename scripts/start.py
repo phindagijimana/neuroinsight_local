@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NeuroInsight Start Script - Python-based for reliability
+NeuroInsight-AutoHS Start Script - Python-based for reliability
 Bypasses terminal corruption issues by using Python directly
 """
 
@@ -33,7 +33,7 @@ def log_error(msg):
     print(f"{RED}[ERROR]{NC} {msg}")
 
 def find_and_kill_processes():
-    """Aggressively find and kill all NeuroInsight processes"""
+    """Aggressively find and kill all NeuroInsight-AutoHS processes"""
     killed_count = 0
 
     # Kill by command patterns
@@ -102,7 +102,7 @@ def start_docker_services():
         log_info("Starting PostgreSQL...")
         postgres_cmd = [
             'docker', 'run', '-d',
-            '--name', 'neuroinsight-postgres',
+            '--name', 'neuroinsight-autohs-postgres',
             '-e', 'POSTGRES_DB=neuroinsight',
             '-e', 'POSTGRES_USER=neuroinsight',
             '-e', 'POSTGRES_PASSWORD=JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg',
@@ -123,7 +123,7 @@ def start_docker_services():
         log_info("Starting Redis...")
         redis_cmd = [
             'docker', 'run', '-d',
-            '--name', 'neuroinsight-redis',
+            '--name', 'neuroinsight-autohs-redis',
             '-p', '6379:6379',
             '--restart', 'unless-stopped',
             'redis:7-alpine',
@@ -142,8 +142,8 @@ def start_docker_services():
         log_info("Starting MinIO...")
         minio_cmd = [
             'docker', 'run', '-d',
-            '--name', 'neuroinsight-minio',
-            '-e', 'MINIO_ROOT_USER=neuroinsight_minio',
+            '--name', 'neuroinsight-autohs-minio',
+            '-e', 'MINIO_ROOT_USER=neuroinsight_autohs_minio',
             '-e', 'MINIO_ROOT_PASSWORD=minio_secure_password',
             '-p', '9000:9000',
             '-p', '9001:9001',
@@ -168,9 +168,9 @@ def start_docker_services():
         return False
 
 def start_backend(port):
-    """Start the NeuroInsight backend"""
+    """Start the NeuroInsight-AutoHS backend"""
     try:
-        log_info(f"Starting NeuroInsight backend on port {port}...")
+        log_info(f"Starting NeuroInsight-AutoHS backend on port {port}...")
 
         # Set environment
         env = os.environ.copy()
@@ -187,11 +187,11 @@ def start_backend(port):
         proc = subprocess.Popen([
             'sg', 'docker', '-c',
             f'{sys.executable} backend/main.py'
-        ], env=env, stdout=open('neuroinsight.log', 'w'),
+        ], env=env, stdout=open('neuroinsight-autohs.log', 'w'),
            stderr=subprocess.STDOUT)
 
         # Save PID
-        with open('neuroinsight.pid', 'w') as f:
+        with open('neuroinsight-autohs.pid', 'w') as f:
             f.write(str(proc.pid))
 
         log_success(f"Backend started (PID: {proc.pid})")
@@ -401,11 +401,11 @@ while True:
         return None
 
 def check_for_conflicts():
-    """Check for existing NeuroInsight instances and warn user"""
+    """Check for existing NeuroInsight-AutoHS instances and warn user"""
     conflicts_found = []
     
     # Check for PID files
-    pid_files = ['neuroinsight.pid', 'celery.pid', 'job_monitor.pid', 'job_queue_processor.pid']
+    pid_files = ['neuroinsight-autohs.pid', 'celery.pid', 'job_monitor.pid', 'job_queue_processor.pid']
     existing_pids = []
     for pid_file in pid_files:
         if os.path.exists(pid_file):
@@ -434,7 +434,7 @@ def check_for_conflicts():
     
     if running_procs:
         conflicts_found.append("running processes")
-        log_warning(f"Found {len(running_procs)} NeuroInsight process(es) already running")
+        log_warning(f"Found {len(running_procs)} NeuroInsight-AutoHS process(es) already running")
     
     # Check for port conflicts
     ports_in_use = []
@@ -454,24 +454,24 @@ def check_for_conflicts():
     if result.returncode == 0 and result.stdout.strip():
         container_count = len(result.stdout.strip().split('\n'))
         conflicts_found.append("Docker containers")
-        log_warning(f"Found {container_count} NeuroInsight Docker container(s) already running")
+        log_warning(f"Found {container_count} NeuroInsight-AutoHS Docker container(s) already running")
     
     # If conflicts found, show warning and prompt
     if conflicts_found:
         print()
-        log_error("CONFLICT DETECTED: NeuroInsight appears to be already running!")
+        log_error("CONFLICT DETECTED: NeuroInsight-AutoHS appears to be already running!")
         print()
         print(f"{RED}Conflicts found:{NC}")
         for conflict in set(conflicts_found):
             print(f"  • {conflict}")
         print()
         print(f"{YELLOW}This usually means:{NC}")
-        print("  1. NeuroInsight is already running (use './neuroinsight status' to check)")
+        print("  1. NeuroInsight-AutoHS is already running (use './neuroinsight-autohs status' to check)")
         print("  2. A previous shutdown didn't complete cleanly")
         print()
         print(f"{BLUE}What to do:{NC}")
-        print(f"  • Stop existing instance first: {GREEN}./neuroinsight stop{NC}")
-        print(f"  • Check status: {GREEN}./neuroinsight status{NC}")
+        print(f"  • Stop existing instance first: {GREEN}./neuroinsight-autohs stop{NC}")
+        print(f"  • Check status: {GREEN}./neuroinsight-autohs status{NC}")
         print(f"  • Or force cleanup and continue: Press {GREEN}Y{NC} to continue anyway")
         print()
         
@@ -480,7 +480,7 @@ def check_for_conflicts():
             response = input(f"{YELLOW}Force cleanup and continue? [y/N]:{NC} ").strip().lower()
             if response != 'y':
                 log_info("Startup cancelled by user")
-                log_info(f"Run '{GREEN}./neuroinsight stop{NC}' first, then try starting again")
+                log_info(f"Run '{GREEN}./neuroinsight-autohs stop{NC}' first, then try starting again")
                 sys.exit(1)
             else:
                 log_warning("User chose to force cleanup and continue")
@@ -494,7 +494,7 @@ def check_for_conflicts():
 
 def main():
     print("=" * 50)
-    print("   NeuroInsight Startup (Python-based)")
+    print("   NeuroInsight-AutoHS Startup (Python-based)")
     print("=" * 50)
     print()
 
@@ -507,7 +507,7 @@ def main():
 
     # Clean up existing processes if needed
     if force_cleanup:
-        log_info("Cleaning up existing NeuroInsight processes...")
+        log_info("Cleaning up existing NeuroInsight-AutoHS processes...")
         killed = find_and_kill_processes()
     else:
         log_info("No conflicts detected, proceeding with startup...")
@@ -559,15 +559,15 @@ def main():
 
     print()
     print("=" * 50)
-    log_success("NeuroInsight is running!")
+    log_success("NeuroInsight-AutoHS is running!")
     print(f"   Web Interface: http://localhost:{port}")
     print(f"   API Docs: http://localhost:{port}/docs")
     print(f"   Health Check: http://localhost:{port}/health")
     print()
     print("Management commands:")
-    print("  ./neuroinsight status    # Check system status")
-    print("  ./neuroinsight stop      # Stop all services")
-    print("  ./neuroinsight monitor   # Advanced monitoring")
+    print("  ./neuroinsight-autohs status    # Check system status")
+    print("  ./neuroinsight-autohs stop      # Stop all services")
+    print("  ./neuroinsight-autohs monitor   # Advanced monitoring")
     print("=" * 50)
 
 if __name__ == "__main__":

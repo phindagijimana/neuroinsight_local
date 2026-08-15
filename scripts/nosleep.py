@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NeuroInsight no-sleep helper using systemd-inhibit.
+NeuroInsight-AutoHS no-sleep helper using systemd-inhibit.
 Keeps the machine awake while jobs run.
 """
 
@@ -40,7 +40,7 @@ def start() -> None:
     cmd = [
         "systemd-inhibit",
         "--what=sleep",
-        "--why=NeuroInsight processing",
+        "--why=NeuroInsight-AutoHS processing",
         "--mode=block",
         "bash",
         "-c",

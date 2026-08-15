@@ -55,16 +55,16 @@ git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local
 
 # For WSL users: Check environment first (optional but recommended)
-./neuroinsight check-wsl
+./neuroinsight-autohs check-wsl
 
 # Install (one-time setup - auto-detects Linux/WSL)
-./neuroinsight install
+./neuroinsight-autohs install
 
 # Setup FreeSurfer license
-./neuroinsight license
+./neuroinsight-autohs license
 
 # Start NeuroInsight-AutoHS
-./neuroinsight start
+./neuroinsight-autohs start
 
 # Access at http://localhost:8000
 ```
@@ -85,9 +85,9 @@ cd neuroinsight_local/deploy
 #   ../license.txt
 # Or: ~/Documents/license.txt  or  ~/license.txt
 
-./neuroinsight-docker check     # verify license, Docker, ports (no install)
-./neuroinsight-docker setup     # install + start (non-interactive)
-./neuroinsight-docker status    # web URL and service health
+./neuroinsight-autohs-docker check     # verify license, Docker, ports (no install)
+./neuroinsight-autohs-docker setup     # install + start (non-interactive)
+./neuroinsight-autohs-docker status    # web URL and service health
 ```
 
 If anything is missing, `check` runs 9 step-by-step checks and prints all blockers at once (license path, Docker, ports, etc.).
@@ -102,7 +102,7 @@ If anything is missing, `check` runs 9 step-by-step checks and prints all blocke
 
 **Best for:** macOS, shared servers, or anyone who prefers a single container
 
-### Desktop app (Electron — Pattern A)
+### Desktop app — NeuroInsight-AutoHS (Electron)
 
 ```bash
 cd electron
@@ -126,7 +126,7 @@ Supported formats: NIfTI (`.nii`, `.nii.gz`) only.
 
 ## Commands Management (Native Linux)
 
-| Command | `./neuroinsight` |
+| Command | `./neuroinsight-autohs` |
 |---------|-------------------|
 | **Installation** | `install` |
 | **Start** | `start` |
@@ -144,12 +144,12 @@ Supported formats: NIfTI (`.nii`, `.nii.gz`) only.
 
 ```bash
 cd neuroinsight_local
-./neuroinsight install          # One-time setup
-./neuroinsight start            # Start services
-./neuroinsight status           # Check health
-./neuroinsight logs             # View logs
-./neuroinsight clean            # Clean old jobs
-./neuroinsight bring <job_id>   # Recover completed job
+./neuroinsight-autohs install          # One-time setup
+./neuroinsight-autohs start            # Start services
+./neuroinsight-autohs status           # Check health
+./neuroinsight-autohs logs             # View logs
+./neuroinsight-autohs clean            # Clean old jobs
+./neuroinsight-autohs bring <job_id>   # Recover completed job
 ```
 
 ### Command Notes

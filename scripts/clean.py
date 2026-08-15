@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NeuroInsight cleanup utility.
+NeuroInsight-AutoHS cleanup utility.
 Removes old completed/failed jobs and their files.
 Also cleans orphaned job directories (files without database records).
 """
@@ -112,7 +112,7 @@ def clean_orphaned_files(keep_ids: set[str], retention_days: int) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Clean old NeuroInsight jobs.",
+        description="Clean old NeuroInsight-AutoHS jobs.",
         epilog="Cleans both database records and orphaned files on disk."
     )
     retention_group = parser.add_mutually_exclusive_group()

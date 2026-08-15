@@ -1,10 +1,10 @@
-# Update NeuroInsight to latest version
+# Update NeuroInsight-AutoHS to latest version
 
 param(
     [switch]$Check
 )
 
-$ContainerName = "neuroinsight"
+$ContainerName = "neuroinsight-autohs"
 $ImageName = "phindagijimana321/neuroinsight:latest"
 
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }

@@ -1,6 +1,6 @@
 # Windows Installation Guide
 
-Complete installation guide for NeuroInsight Docker on Windows 10/11.
+Complete installation guide for NeuroInsight-AutoHS Docker on Windows 10/11.
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ Required for MRI processing (free for research use).
    - Place in `neuroinsight_windows` folder
    - Ensure filename is exactly `license.txt`
 
-### Step 3: Download NeuroInsight
+### Step 3: Download NeuroInsight-AutoHS
 
 **Option 1: Clone Repository (Recommended)**
 
@@ -69,23 +69,23 @@ cd neuroinsight_local\neuroinsight_windows
 
 1. Visit: https://github.com/phindagijimana/neuroinsight_local
 2. Click "Code" > "Download ZIP"
-3. Extract to desired location (e.g., `C:\NeuroInsight`)
+3. Extract to desired location (e.g., `C:\NeuroInsight-AutoHS`)
 4. Navigate to `neuroinsight_local\neuroinsight_windows` folder
 
-### Step 4: Install NeuroInsight
+### Step 4: Install NeuroInsight-AutoHS
 
 1. **Open PowerShell**
    - Right-click Start Menu
    - Select "Windows PowerShell"
 
-2. **Navigate to NeuroInsight Windows Folder**
+2. **Navigate to NeuroInsight-AutoHS Windows Folder**
    ```powershell
    cd C:\path\to\neuroinsight_local\neuroinsight_windows
    ```
 
 3. **Run Installation**
    ```powershell
-   .\neuroinsight-docker.ps1 install
+   .\neuroinsight-autohs-docker.ps1 install
    ```
 
 4. **Wait for Installation**
@@ -116,7 +116,7 @@ install.bat
 If port 8000 is in use:
 
 ```powershell
-.\neuroinsight-docker.ps1 install -Port 8001
+.\neuroinsight-autohs-docker.ps1 install -Port 8001
 ```
 
 ## Post-Installation
@@ -125,24 +125,24 @@ If port 8000 is in use:
 
 1. **Check Container Status**
    ```powershell
-   .\neuroinsight-docker.ps1 status
+   .\neuroinsight-autohs-docker.ps1 status
    ```
 
 2. **Check Services**
    ```powershell
-   .\neuroinsight-docker.ps1 health
+   .\neuroinsight-autohs-docker.ps1 health
    ```
 
 3. **View Logs**
    ```powershell
-   .\neuroinsight-docker.ps1 logs
+   .\neuroinsight-autohs-docker.ps1 logs
    ```
 
 ### Access Web Interface
 
 1. Open browser
 2. Go to http://localhost:8000
-3. You should see NeuroInsight interface
+3. You should see NeuroInsight-AutoHS interface
 
 ### First Job Setup
 
@@ -247,7 +247,7 @@ Then try installation again.
 
 3. **Install on different port**
    ```powershell
-   .\neuroinsight-docker.ps1 install -Port 8001
+   .\neuroinsight-autohs-docker.ps1 install -Port 8001
    ```
 
 ### License Not Found
@@ -263,12 +263,12 @@ Then try installation again.
 
 2. **Check license status**
    ```powershell
-   .\neuroinsight-docker.ps1 license
+   .\neuroinsight-autohs-docker.ps1 license
    ```
 
 3. **Restart container**
    ```powershell
-   .\neuroinsight-docker.ps1 restart
+   .\neuroinsight-autohs-docker.ps1 restart
    ```
 
 ### Container Won't Start
@@ -279,7 +279,7 @@ Then try installation again.
 
 1. **Check Docker logs**
    ```powershell
-   .\neuroinsight-docker.ps1 logs
+   .\neuroinsight-autohs-docker.ps1 logs
    ```
 
 2. **Check Docker Desktop logs**
@@ -287,13 +287,13 @@ Then try installation again.
 
 3. **Reinstall**
    ```powershell
-   .\neuroinsight-docker.ps1 remove
-   .\neuroinsight-docker.ps1 install
+   .\neuroinsight-autohs-docker.ps1 remove
+   .\neuroinsight-autohs-docker.ps1 install
    ```
 
 ### Slow Performance
 
-**Issue**: NeuroInsight runs slowly
+**Issue**: NeuroInsight-AutoHS runs slowly
 
 **Solutions**:
 
@@ -315,11 +315,11 @@ Then try installation again.
 Before first use, verify:
 
 - [ ] Docker Desktop running (green icon in system tray)
-- [ ] `docker ps` shows neuroinsight container
-- [ ] http://localhost:8000 loads NeuroInsight interface
+- [ ] `docker ps` shows neuroinsight-autohs container
+- [ ] http://localhost:8000 loads NeuroInsight-AutoHS interface
 - [ ] `license.txt` file present in folder
-- [ ] `.\neuroinsight-docker.ps1 status` shows "running"
-- [ ] `.\neuroinsight-docker.ps1 health` shows all services running
+- [ ] `.\neuroinsight-autohs-docker.ps1 status` shows "running"
+- [ ] `.\neuroinsight-autohs-docker.ps1 health` shows all services running
 
 ## Next Steps
 
@@ -332,11 +332,11 @@ After successful installation:
 
 ## Uninstallation
 
-To completely remove NeuroInsight:
+To completely remove NeuroInsight-AutoHS:
 
 1. **Stop and remove container**
    ```powershell
-   .\neuroinsight-docker.ps1 remove
+   .\neuroinsight-autohs-docker.ps1 remove
    ```
 
 2. **Remove Docker volumes** (deletes all data)

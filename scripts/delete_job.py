@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NeuroInsight job deletion utility.
+NeuroInsight-AutoHS job deletion utility.
 Delete a specific job by ID from command line.
 """
 
@@ -17,7 +17,7 @@ from backend.services.job_service import JobService
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Delete a specific NeuroInsight job by ID",
+        description="Delete a specific NeuroInsight-AutoHS job by ID",
         epilog="This permanently deletes the job record and all associated files."
     )
     parser.add_argument(
@@ -46,7 +46,7 @@ def main():
             print(f"Error: Job not found: {job_id}")
             print(f"")
             print(f"To list all jobs, run:")
-            print(f"  ./neuroinsight status")
+            print(f"  ./neuroinsight-autohs status")
             return 1
         
         # Show job info

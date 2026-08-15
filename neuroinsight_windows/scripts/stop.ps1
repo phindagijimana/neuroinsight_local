@@ -1,13 +1,13 @@
-# Stop NeuroInsight container
+# Stop NeuroInsight-AutoHS container
 
-$ContainerName = "neuroinsight"
+$ContainerName = "neuroinsight-autohs"
 
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }
 function Write-Success { param([string]$Message); Write-Host "[SUCCESS] $Message" -ForegroundColor Green }
 function Write-Warning { param([string]$Message); Write-Host "[WARNING] $Message" -ForegroundColor Yellow }
 function Write-Error { param([string]$Message); Write-Host "[ERROR] $Message" -ForegroundColor Red }
 
-Write-Info "Stopping NeuroInsight container..."
+Write-Info "Stopping NeuroInsight-AutoHS container..."
 
 # Check if container exists
 $containerExists = docker ps -a --filter "name=^${ContainerName}$" --format "{{.Names}}"

@@ -1,4 +1,4 @@
-# NeuroInsight Systemd Implementation Summary
+# NeuroInsight-AutoHS Systemd Implementation Summary
 
 **Date**: January 31, 2026  
 **Type**: User-level systemd services (no sudo required)  
@@ -12,26 +12,26 @@
 
 Four systemd service files in `systemd/` directory:
 
-#### **neuroinsight-backend.service**
+#### **neuroinsight-autohs-backend.service**
 - FastAPI backend server
 - Port 8000
 - Auto-restart on failure
-- Logs to `neuroinsight.log`
+- Logs to `neuroinsight-autohs.log`
 
-#### **neuroinsight-worker.service**
+#### **neuroinsight-autohs-worker.service**
 - Celery worker (processes MRI scans)
 - Concurrency: 1
 - **Auto-restart every 10 seconds on failure**
 - Logs to `celery_worker.log`
 - **This solves the worker hang issue!**
 
-#### **neuroinsight-beat.service**
+#### **neuroinsight-autohs-beat.service**
 - Celery Beat scheduler
 - Triggers periodic tasks (auto-start pending jobs)
 - Auto-restart on failure
 - Logs to `celery_beat.log`
 
-#### **neuroinsight-monitor.service**
+#### **neuroinsight-autohs-monitor.service**
 - Job monitoring service
 - Tracks FreeSurfer container status
 - Auto-restart on failure
@@ -55,19 +55,19 @@ Four systemd service files in `systemd/` directory:
 
 ### 3. Enhanced Main Script
 
-Updated `neuroinsight` with new commands:
+Updated `neuroinsight-autohs` with new commands:
 
 ```bash
 # Installation
-./neuroinsight install-systemd      # Install services
-./neuroinsight uninstall-systemd    # Remove services
+./neuroinsight-autohs install-systemd      # Install services
+./neuroinsight-autohs uninstall-systemd    # Remove services
 
 # Management
-./neuroinsight start-systemd        # Start all services
-./neuroinsight stop-systemd         # Stop all services
-./neuroinsight restart-systemd      # Restart all services
-./neuroinsight status-systemd       # Show detailed status
-./neuroinsight logs-systemd [service]  # Follow logs
+./neuroinsight-autohs start-systemd        # Start all services
+./neuroinsight-autohs stop-systemd         # Stop all services
+./neuroinsight-autohs restart-systemd      # Restart all services
+./neuroinsight-autohs status-systemd       # Show detailed status
+./neuroinsight-autohs logs-systemd [service]  # Follow logs
 ```
 
 ### 4. Documentation
@@ -138,9 +138,9 @@ Benefits:
 
 ```ini
 [Unit]
-Description=NeuroInsight Celery Worker
+Description=NeuroInsight-AutoHS Celery Worker
 After=network.target
-Requires=neuroinsight-backend.service
+Requires=neuroinsight-autohs-backend.service
 
 [Service]
 Type=simple
@@ -222,32 +222,32 @@ With systemd:
 
 ```bash
 # Use manual start for quick iterations
-./neuroinsight start
-./neuroinsight stop
+./neuroinsight-autohs start
+./neuroinsight-autohs stop
 ```
 
 ### Testing/Staging
 
 ```bash
 # Use systemd to test auto-restart
-./neuroinsight start-systemd
+./neuroinsight-autohs start-systemd
 # Simulate failure: kill -9 $(pgrep -f "celery.*worker")
 # Watch it auto-restart
-journalctl --user -u neuroinsight-worker -f
+journalctl --user -u neuroinsight-autohs-worker -f
 ```
 
 ### Production Deployment
 
 ```bash
 # One-time setup
-./neuroinsight install-systemd
+./neuroinsight-autohs install-systemd
 
 # Start services
-./neuroinsight start-systemd
+./neuroinsight-autohs start-systemd
 
 # Monitor
-./neuroinsight status-systemd
-./neuroinsight logs-systemd worker
+./neuroinsight-autohs status-systemd
+./neuroinsight-autohs logs-systemd worker
 ```
 
 ---
@@ -261,7 +261,7 @@ journalctl --user -u neuroinsight-worker -f
 systemctl --user list-unit-files | grep neuroinsight
 
 [YES] Services enabled
-systemctl --user is-enabled neuroinsight-backend
+systemctl --user is-enabled neuroinsight-autohs-backend
 
 [YES] User linger enabled
 loginctl show-user $USER | grep Linger=yes
@@ -277,7 +277,7 @@ systemctl --user status neuroinsight-*
 curl http://localhost:8000/health
 
 [YES] Worker connected
-journalctl --user -u neuroinsight-worker -n 20
+journalctl --user -u neuroinsight-autohs-worker -n 20
 ```
 
 ### Auto-Restart Test
@@ -290,7 +290,7 @@ ps aux | grep "celery.*worker"
 kill -9 <PID>
 
 # Verify restart (should happen in 10 seconds)
-journalctl --user -u neuroinsight-worker -f
+journalctl --user -u neuroinsight-autohs-worker -f
 ```
 
 ---
@@ -303,17 +303,17 @@ Include in installation script:
 
 ```bash
 #!/bin/bash
-# Install NeuroInsight
-./neuroinsight install
+# Install NeuroInsight-AutoHS
+./neuroinsight-autohs install
 
 # Offer systemd setup
 echo "Enable automatic restart with systemd? (recommended)"
 read -p "[y/N]: " response
 if [[ "$response" =~ ^[Yy]$ ]]; then
-    ./neuroinsight install-systemd
-    ./neuroinsight start-systemd
+    ./neuroinsight-autohs install-systemd
+    ./neuroinsight-autohs start-systemd
 else
-    ./neuroinsight start
+    ./neuroinsight-autohs start
 fi
 ```
 
@@ -365,10 +365,10 @@ Create `.deb` or `.rpm` with:
 
 ```
 systemd/
-├── neuroinsight-backend.service   (791 bytes)
-├── neuroinsight-worker.service    (829 bytes)
-├── neuroinsight-beat.service      (730 bytes)
-├── neuroinsight-monitor.service   (897 bytes)
+├── neuroinsight-autohs-backend.service   (791 bytes)
+├── neuroinsight-autohs-worker.service    (829 bytes)
+├── neuroinsight-autohs-beat.service      (730 bytes)
+├── neuroinsight-autohs-monitor.service   (897 bytes)
 ├── install_systemd.sh             (4,115 bytes, executable)
 ├── uninstall_systemd.sh           (1,946 bytes, executable)
 ├── README.md                      (6,867 bytes)
@@ -380,7 +380,7 @@ SYSTEMD_QUICKSTART.md               (7,203 bytes)
 ### Modified Files
 
 ```
-neuroinsight                        (added 100+ lines)
+neuroinsight-autohs                        (added 100+ lines)
   - install-systemd command
   - uninstall-systemd command
   - start-systemd command
@@ -422,9 +422,9 @@ neuroinsight                        (added 100+ lines)
 
 ### Commands [YES]
 ```bash
-[YES] ./neuroinsight install-systemd works
-[YES] ./neuroinsight status-systemd works
-[YES] ./neuroinsight help shows new commands
+[YES] ./neuroinsight-autohs install-systemd works
+[YES] ./neuroinsight-autohs status-systemd works
+[YES] ./neuroinsight-autohs help shows new commands
 [YES] All scripts executable
 ```
 
@@ -495,9 +495,9 @@ For users unfamiliar with systemd:
 ### Next Steps for User
 
 1. Read `SYSTEMD_QUICKSTART.md`
-2. Run `./neuroinsight install-systemd`
-3. Start services with `./neuroinsight start-systemd`
-4. Monitor with `./neuroinsight status-systemd`
+2. Run `./neuroinsight-autohs install-systemd`
+3. Start services with `./neuroinsight-autohs start-systemd`
+4. Monitor with `./neuroinsight-autohs status-systemd`
 5. Enjoy automatic restart and stability!
 
 ---

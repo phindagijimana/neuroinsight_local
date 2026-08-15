@@ -106,7 +106,7 @@ async def generate_pdf_report(
             spaceAfter=30,
             alignment=1,
         )
-        story.append(Paragraph("NeuroInsight Hippocampal Analysis Report", title_style))
+        story.append(Paragraph("NeuroInsight-AutoHS Hippocampal Analysis Report", title_style))
         story.append(Spacer(1, 12))
 
         report_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")

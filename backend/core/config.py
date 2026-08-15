@@ -30,10 +30,10 @@ def get_platform_defaults():
 
     if system == "Windows":
         # Windows: Use APPDATA for persistent storage
-        base_dir = Path(os.environ.get("APPDATA", tempfile.gettempdir())) / "NeuroInsight"
+        base_dir = Path(os.environ.get("APPDATA", tempfile.gettempdir())) / "NeuroInsight-AutoHS"
     else:
         # Linux: Use XDG Base Directory standard
-        base_dir = Path.home() / ".local" / "share" / "neuroinsight"
+        base_dir = Path.home() / ".local" / "share" / "neuroinsight-autohs"
 
     return {
         "upload_dir": str(base_dir / "uploads"),
@@ -171,8 +171,8 @@ class Settings(BaseSettings):
         # Production mode: Check if PostgreSQL containers are running
         try:
             import subprocess
-            # Check for both neuroinsight-db (docker-compose) and neuroinsight-postgres (direct)
-            result = subprocess.run(['docker', 'ps', '-q', '-f', 'name=neuroinsight-db', '-f', 'name=neuroinsight-postgres'],
+            # Check for both neuroinsight-autohs-db (docker-compose) and neuroinsight-autohs-postgres (direct)
+            result = subprocess.run(['docker', 'ps', '-q', '-f', 'name=neuroinsight-autohs-db', '-f', 'name=neuroinsight-autohs-postgres'],
                                   capture_output=True, text=True, timeout=2)
             if result.returncode == 0 and result.stdout.strip():
                 # PostgreSQL container is running, try to connect with credentials from env or settings
@@ -224,7 +224,7 @@ class Settings(BaseSettings):
                 pass
 
         # Fallback to SQLite for development/compatibility
-        return "sqlite:///./neuroinsight_web.db"
+        return "sqlite:///./neuroinsight-autohs_web.db"
 
     class Config:
         """Pydantic configuration."""

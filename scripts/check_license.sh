@@ -41,7 +41,7 @@ else
     echo "   1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
     echo "   2. Register (free for research/academic use)"
     echo "   3. Download the license.txt file you receive"
-    echo "   4. Save it as 'license.txt' in this directory (same folder as NeuroInsight)"
+    echo "   4. Save it as 'license.txt' in this directory (same folder as NeuroInsight-AutoHS)"
     echo "   5. Run this script again to verify"
     exit 1
 fi

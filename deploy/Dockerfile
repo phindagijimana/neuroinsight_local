@@ -1,5 +1,5 @@
-# NeuroInsight All-in-One Docker Container
-# This Dockerfile packages the entire NeuroInsight application into a single container
+# NeuroInsight-AutoHS All-in-One Docker Container
+# This Dockerfile packages the entire NeuroInsight-AutoHS application into a single container
 # including PostgreSQL, Redis, MinIO, Backend, Worker, and Frontend.
 # Frontend is built from source in the first stage so the image always matches the repo (e.g. GitHub).
 

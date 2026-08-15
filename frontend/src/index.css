@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom NeuroInsight Theme - #003d7a Blue Theme */
+/* Custom NeuroInsight-AutoHS Theme - #003d7a Blue Theme */
 /* Override Tailwind blue colors with custom #003d7a theme */
 .bg-blue-50 { background-color: #f8fafc !important; }
 .bg-blue-100 { background-color: #f1f5f9 !important; }

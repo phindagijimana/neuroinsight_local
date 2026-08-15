@@ -1,5 +1,5 @@
 #!/bin/bash
-# Quick start script for NeuroInsight all-in-one Docker container
+# Quick start script for NeuroInsight-AutoHS all-in-one Docker container
 
 set -e
 
@@ -27,7 +27,7 @@ log_error() {
 }
 
 echo "======================================"
-echo "NeuroInsight Quick Start"
+echo "NeuroInsight-AutoHS Quick Start"
 echo "======================================"
 echo ""
 
@@ -42,8 +42,8 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Check if container already exists
-if docker ps -a --format '{{.Names}}' | grep -q '^neuroinsight$'; then
-    log_warning "NeuroInsight container already exists."
+if docker ps -a --format '{{.Names}}' | grep -q '^neuroinsight-autohs$'; then
+    log_warning "NeuroInsight-AutoHS container already exists."
     echo ""
     echo "Would you like to:"
     echo "  1) Start existing container"
@@ -55,11 +55,11 @@ if docker ps -a --format '{{.Names}}' | grep -q '^neuroinsight$'; then
     case $choice in
         1)
             log_info "Starting existing container..."
-            docker start neuroinsight
+            docker start neuroinsight-autohs
             ;;
         2)
             log_info "Removing existing container..."
-            docker rm -f neuroinsight
+            docker rm -f neuroinsight-autohs
             ;;
         3)
             exit 0
@@ -130,26 +130,26 @@ else
 fi
 
 # Start the container
-log_info "Starting NeuroInsight container..."
+log_info "Starting NeuroInsight-AutoHS container..."
 echo ""
 
 if [ -n "$LICENSE_PATH" ]; then
     docker run -d \
-        --name neuroinsight \
+        --name neuroinsight-autohs \
         -p 8000:8000 \
         -p 9000:9000 \
         -p 9001:9001 \
-        -v neuroinsight-data:/data \
+        -v neuroinsight-autohs-data:/data \
         -v "$(pwd)/$LICENSE_PATH:/app/license.txt:ro" \
         --restart unless-stopped \
         neuroinsight/allinone:latest
 else
     docker run -d \
-        --name neuroinsight \
+        --name neuroinsight-autohs \
         -p 8000:8000 \
         -p 9000:9000 \
         -p 9001:9001 \
-        -v neuroinsight-data:/data \
+        -v neuroinsight-autohs-data:/data \
         --restart unless-stopped \
         neuroinsight/allinone:latest
 fi
@@ -160,7 +160,7 @@ echo ""
 # Wait for services to be ready
 log_info "Waiting for services to start (this may take 30-60 seconds)..."
 for i in {1..30}; do
-    if docker exec neuroinsight /app/healthcheck.sh > /dev/null 2>&1; then
+    if docker exec neuroinsight-autohs /app/healthcheck.sh > /dev/null 2>&1; then
         log_success "All services are ready!"
         break
     fi
@@ -171,10 +171,10 @@ echo ""
 
 # Display status
 log_info "Container status:"
-docker ps --filter name=neuroinsight --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+docker ps --filter name=neuroinsight-autohs --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 echo ""
 
-log_success "NeuroInsight is now running!"
+log_success "NeuroInsight-AutoHS is now running!"
 echo ""
 echo "======================================"
 echo "Access Information"
@@ -187,11 +187,11 @@ echo "======================================"
 echo "Management Commands"
 echo "======================================"
 echo ""
-echo "View logs:          docker logs -f neuroinsight"
-echo "Check health:       docker exec neuroinsight /app/healthcheck.sh"
-echo "Stop:               docker stop neuroinsight"
-echo "Start:              docker start neuroinsight"
-echo "Remove:             docker rm -f neuroinsight"
+echo "View logs:          docker logs -f neuroinsight-autohs"
+echo "Check health:       docker exec neuroinsight-autohs /app/healthcheck.sh"
+echo "Stop:               docker stop neuroinsight-autohs"
+echo "Start:              docker start neuroinsight-autohs-autohs"
+echo "Remove:             docker rm -f neuroinsight-autohs-autohs"
 echo ""
 echo "For more help, see: README.md"
 echo ""

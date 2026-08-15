@@ -1,11 +1,11 @@
-# Clean old NeuroInsight jobs
+# Clean old NeuroInsight-AutoHS jobs
 
 param(
     [int]$Days = 30,
     [switch]$DryRun
 )
 
-$ContainerName = "neuroinsight"
+$ContainerName = "neuroinsight-autohs"
 
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }
 function Write-Success { param([string]$Message); Write-Host "[SUCCESS] $Message" -ForegroundColor Green }
@@ -14,7 +14,7 @@ function Write-Error { param([string]$Message); Write-Host "[ERROR] $Message" -F
 
 Write-Host ""
 Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "  NeuroInsight Data Cleanup" -ForegroundColor Cyan
+Write-Host "  NeuroInsight-AutoHS Data Cleanup" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 

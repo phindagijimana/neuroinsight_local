@@ -2,7 +2,7 @@
 set -e
 
 echo "======================================"
-echo "NeuroInsight All-in-One Container"
+echo "NeuroInsight-AutoHS All-in-One Container"
 echo "======================================"
 
 # Function to wait for PostgreSQL to be ready
@@ -98,7 +98,7 @@ REDIS_URL=redis://:redis_secure_password@localhost:6379/0
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin_secure
 MINIO_ENDPOINT=localhost:9000
-MINIO_BUCKET_NAME=neuroinsight-data
+MINIO_BUCKET_NAME=neuroinsight-autohs-data
 MINIO_USE_SSL=false
 
 # API Configuration
@@ -131,7 +131,7 @@ fi
 
 echo ""
 echo "======================================"
-echo "Starting NeuroInsight Services"
+echo "Starting NeuroInsight-AutoHS Services"
 echo "======================================"
 echo ""
 

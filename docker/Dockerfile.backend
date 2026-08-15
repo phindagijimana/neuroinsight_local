@@ -1,4 +1,4 @@
-# NeuroInsight Backend Dockerfile
+# NeuroInsight-AutoHS Backend Dockerfile
 FROM python:3.9-slim
 
 # Set environment variables

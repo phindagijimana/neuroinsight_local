@@ -1,13 +1,13 @@
-# Start NeuroInsight container
+# Start NeuroInsight-AutoHS container
 
-$ContainerName = "neuroinsight"
+$ContainerName = "neuroinsight-autohs"
 
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }
 function Write-Success { param([string]$Message); Write-Host "[SUCCESS] $Message" -ForegroundColor Green }
 function Write-Warning { param([string]$Message); Write-Host "[WARNING] $Message" -ForegroundColor Yellow }
 function Write-Error { param([string]$Message); Write-Host "[ERROR] $Message" -ForegroundColor Red }
 
-Write-Info "Starting NeuroInsight container..."
+Write-Info "Starting NeuroInsight-AutoHS container..."
 
 # Check if container exists
 $containerExists = docker ps -a --filter "name=^${ContainerName}$" --format "{{.Names}}"
@@ -43,7 +43,7 @@ try {
     if ($portMapping) {
         $port = $portMapping -replace '.*:', ''
         Write-Host ""
-        Write-Success "NeuroInsight is ready!"
+        Write-Success "NeuroInsight-AutoHS is ready!"
         Write-Host "Web Interface: http://localhost:$port" -ForegroundColor Cyan
         Write-Host ""
     }

@@ -1,5 +1,5 @@
 #!/bin/bash
-# NeuroInsight Systemd Uninstallation Script
+# NeuroInsight-AutoHS Systemd Uninstallation Script
 # Removes user-level systemd services
 
 set -e
@@ -24,7 +24,7 @@ log_warning() {
 }
 
 echo "=========================================="
-echo "  NeuroInsight Systemd Uninstallation"
+echo "  NeuroInsight-AutoHS Systemd Uninstallation"
 echo "=========================================="
 echo ""
 
@@ -32,26 +32,26 @@ SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
 
 # Stop all services
 log_info "Stopping all services..."
-systemctl --user stop neuroinsight-backend.service 2>/dev/null || true
-systemctl --user stop neuroinsight-worker.service 2>/dev/null || true
-systemctl --user stop neuroinsight-beat.service 2>/dev/null || true
-systemctl --user stop neuroinsight-monitor.service 2>/dev/null || true
+systemctl --user stop neuroinsight-autohs-backend.service 2>/dev/null || true
+systemctl --user stop neuroinsight-autohs-worker.service 2>/dev/null || true
+systemctl --user stop neuroinsight-autohs-beat.service 2>/dev/null || true
+systemctl --user stop neuroinsight-autohs-monitor.service 2>/dev/null || true
 log_success "Services stopped"
 
 # Disable all services
 log_info "Disabling all services..."
-systemctl --user disable neuroinsight-backend.service 2>/dev/null || true
-systemctl --user disable neuroinsight-worker.service 2>/dev/null || true
-systemctl --user disable neuroinsight-beat.service 2>/dev/null || true
-systemctl --user disable neuroinsight-monitor.service 2>/dev/null || true
+systemctl --user disable neuroinsight-autohs-backend.service 2>/dev/null || true
+systemctl --user disable neuroinsight-autohs-worker.service 2>/dev/null || true
+systemctl --user disable neuroinsight-autohs-beat.service 2>/dev/null || true
+systemctl --user disable neuroinsight-autohs-monitor.service 2>/dev/null || true
 log_success "Services disabled"
 
 # Remove service files
 log_info "Removing service files..."
-rm -f "$SYSTEMD_USER_DIR/neuroinsight-backend.service"
-rm -f "$SYSTEMD_USER_DIR/neuroinsight-worker.service"
-rm -f "$SYSTEMD_USER_DIR/neuroinsight-beat.service"
-rm -f "$SYSTEMD_USER_DIR/neuroinsight-monitor.service"
+rm -f "$SYSTEMD_USER_DIR/neuroinsight-autohs-backend.service"
+rm -f "$SYSTEMD_USER_DIR/neuroinsight-autohs-worker.service"
+rm -f "$SYSTEMD_USER_DIR/neuroinsight-autohs-beat.service"
+rm -f "$SYSTEMD_USER_DIR/neuroinsight-autohs-monitor.service"
 log_success "Service files removed"
 
 # Reload systemd daemon
@@ -63,6 +63,6 @@ echo ""
 log_success "Uninstallation complete!"
 echo ""
 echo "You can still use manual start/stop scripts:"
-echo "  ./neuroinsight start"
-echo "  ./neuroinsight stop"
+echo "  ./neuroinsight-autohs start"
+echo "  ./neuroinsight-autohs stop"
 echo ""

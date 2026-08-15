@@ -1,7 +1,7 @@
 [Unit]
-Description=NeuroInsight Backend API Server
+Description=NeuroInsight-AutoHS Backend API Server
 After=network.target
-Wants=neuroinsight-worker.service neuroinsight-beat.service
+Wants=neuroinsight-autohs-worker.service neuroinsight-autohs-beat.service
 
 [Service]
 Type=simple
@@ -13,8 +13,8 @@ Environment="API_PORT=8000"
 Environment="PORT=8000"
 Environment="MAX_CONCURRENT_JOBS=1"
 ExecStart=%h/src/desktop_alone_web_1/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
-StandardOutput=append:%h/src/desktop_alone_web_1/neuroinsight.log
-StandardError=append:%h/src/desktop_alone_web_1/neuroinsight.log
+StandardOutput=append:%h/src/desktop_alone_web_1/neuroinsight-autohs.log
+StandardError=append:%h/src/desktop_alone_web_1/neuroinsight-autohs.log
 Restart=always
 RestartSec=10
 

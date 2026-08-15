@@ -55,7 +55,7 @@ class DockerNotAvailableError(Exception):
         messages = {
             "not_installed": {
                 "title": "Docker Desktop Not Installed",
-                "message": "NeuroInsight requires Docker Desktop to process MRI scans.",
+                "message": "NeuroInsight-AutoHS requires Docker Desktop to process MRI scans.",
                 "instructions": [
                     "1. Download Docker Desktop:",
                     "   • Windows/Mac: https://www.docker.com/get-started",
@@ -65,7 +65,7 @@ class DockerNotAvailableError(Exception):
                     "",
                     "3. Launch Docker Desktop and wait for the whale icon",
                     "",
-                    "4. Return to NeuroInsight and try processing again"
+                    "4. Return to NeuroInsight-AutoHS and try processing again"
                 ],
                 "why": "Docker is needed to run FreeSurfer, the brain segmentation tool."
             },
@@ -82,7 +82,7 @@ class DockerNotAvailableError(Exception):
                     "",
                     "3. The icon should be steady (not animating)",
                     "",
-                    "4. Return to NeuroInsight and try processing again"
+                    "4. Return to NeuroInsight-AutoHS and try processing again"
                 ],
                 "why": "Docker must be running to process MRI scans."
             },
@@ -96,7 +96,7 @@ class DockerNotAvailableError(Exception):
                     "",
                     "Please keep Docker Desktop running and wait..."
                 ],
-                "why": "NeuroInsight needs to download the brain segmentation AI model."
+                "why": "NeuroInsight-AutoHS needs to download the brain segmentation AI model."
             }
         }
         
@@ -477,7 +477,7 @@ class MRIProcessor:
             # Snapshot monitoring logs for postmortem analysis.
             try:
                 project_root = Path(__file__).resolve().parents[2]
-                for log_name in ["job_monitor.log", "dev_job_monitor.log", "neuroinsight.log", "celery_worker.log"]:
+                for log_name in ["job_monitor.log", "dev_job_monitor.log", "neuroinsight-autohs.log", "celery_worker.log"]:
                     log_path = project_root / log_name
                     if log_path.exists():
                         (artifacts_dir / f"{log_name}-{timestamp}").write_text(
@@ -996,7 +996,7 @@ class MRIProcessor:
                 logger.info(
                     "optimal_memory",
                     total_gb=total_gb,
-                    message="System has optimal RAM for NeuroInsight processing"
+                    message="System has optimal RAM for NeuroInsight-AutoHS processing"
                 )
 
             # Warn if memory is getting low
@@ -1893,8 +1893,8 @@ class MRIProcessor:
             base_dir / "freesurfer_license.txt",  # Legacy support
             base_dir / "resources" / "licenses" / "license.txt",
             base_dir / "resources" / "licenses" / "freesurfer_license.txt",
-            Path.home() / "neuroinsight" / "resources" / "licenses" / "license.txt",
-            Path.home() / "neuroinsight" / "license.txt",
+            Path.home() / "neuroinsight-autohs" / "resources" / "licenses" / "license.txt",
+            Path.home() / "neuroinsight-autohs" / "license.txt",
             Path("/usr/local/freesurfer/license.txt"),  # System FreeSurfer location
         ]
 
@@ -3340,7 +3340,7 @@ class MRIProcessor:
         # Check for FreeSurfer license first
         license_path = self._get_freesurfer_license_path()
         if not license_path:
-            error_msg = ("FreeSurfer license not found. Please place your FreeSurfer license.txt file in the same folder as the NeuroInsight application, or set the FREESURFER_LICENSE environment variable to point to your license file. "
+            error_msg = ("FreeSurfer license not found. Please place your FreeSurfer license.txt file in the same folder as the NeuroInsight-AutoHS application, or set the FREESURFER_LICENSE environment variable to point to your license file. "
                         "You can obtain a FreeSurfer license from: https://surfer.nmr.mgh.harvard.edu/registration.html")
             logger.error("freesurfer_license_not_found", error=error_msg)
             raise RuntimeError(f"FreeSurfer license required: {error_msg}")
@@ -3400,7 +3400,7 @@ class MRIProcessor:
         # No container runtimes available - fail with clear error and troubleshooting steps
         error_msg = (
             "FreeSurfer processing failed: No container runtimes available. "
-            "NeuroInsight requires Docker (recommended) or Apptainer/Singularity for FreeSurfer processing.\n\n"
+            "NeuroInsight-AutoHS requires Docker (recommended) or Apptainer/Singularity for FreeSurfer processing.\n\n"
             "Troubleshooting steps:\n"
             "1. Ensure Docker is installed and running: 'sudo systemctl status docker'\n"
             "2. If Docker is stopped, start it: 'sudo systemctl start docker'\n"

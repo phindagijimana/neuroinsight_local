@@ -1,7 +1,7 @@
 [Unit]
-Description=NeuroInsight Celery Beat Scheduler
+Description=NeuroInsight-AutoHS Celery Beat Scheduler
 After=network.target
-Requires=neuroinsight-backend.service neuroinsight-worker.service
+Requires=neuroinsight-autohs-backend.service neuroinsight-autohs-worker.service
 
 [Service]
 Type=simple

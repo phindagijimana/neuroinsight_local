@@ -1,5 +1,5 @@
 #!/bin/bash
-# NeuroInsight Docker Release Management Script
+# NeuroInsight-AutoHS Docker Release Management Script
 # Handles versioning, building, tagging, and publishing releases
 
 set -e
@@ -32,7 +32,7 @@ log_error() {
 # Show help
 show_help() {
     cat << 'EOF'
-NeuroInsight Docker Release Management
+NeuroInsight-AutoHS Docker Release Management
 
 Usage: ./release.sh <command> [version]
 
@@ -97,7 +97,7 @@ cmd_publish() {
     fi
     
     echo "======================================"
-    echo "Publishing NeuroInsight $version"
+    echo "Publishing NeuroInsight-AutoHS $version"
     echo "======================================"
     echo ""
     
@@ -143,7 +143,7 @@ cmd_publish() {
 # List all images
 cmd_list() {
     echo "======================================"
-    echo "NeuroInsight Docker Images"
+    echo "NeuroInsight-AutoHS Docker Images"
     echo "======================================"
     echo ""
     

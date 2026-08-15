@@ -1,4 +1,4 @@
-# NeuroInsight Docker Deployment
+# NeuroInsight-AutoHS Docker Deployment
 
 All-in-one Docker container for easy deployment and distribution.
 
@@ -33,7 +33,7 @@ cd /path/to/neuroinsight_local/deploy
 ### 2. Install and Run
 
 ```bash
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 ```
 
 That's it! The system will:
@@ -50,34 +50,34 @@ Open browser to the URL shown (e.g., http://localhost:8000)
 
 ```bash
 # Start/Stop
-./neuroinsight-docker start
-./neuroinsight-docker stop
-./neuroinsight-docker restart
+./neuroinsight-autohs-docker start
+./neuroinsight-autohs-docker stop
+./neuroinsight-autohs-docker restart
 
 # Status & Health
-./neuroinsight-docker status
-./neuroinsight-docker health
+./neuroinsight-autohs-docker status
+./neuroinsight-autohs-docker health
 
 # View Logs
-./neuroinsight-docker logs
-./neuroinsight-docker logs backend
-./neuroinsight-docker logs worker
+./neuroinsight-autohs-docker logs
+./neuroinsight-autohs-docker logs backend
+./neuroinsight-autohs-docker logs worker
 
 # Data Management
-./neuroinsight-docker clean              # Clean old jobs (30+ days)
-./neuroinsight-docker clean --days 7     # Clean jobs older than 7 days
-./neuroinsight-docker bring <job_id>     # Recover specific job
+./neuroinsight-autohs-docker clean              # Clean old jobs (30+ days)
+./neuroinsight-autohs-docker clean --days 7     # Clean jobs older than 7 days
+./neuroinsight-autohs-docker bring <job_id>     # Recover specific job
 
 # Backup & Restore
-./neuroinsight-docker backup
-./neuroinsight-docker restore /path/to/backup.tar.gz
+./neuroinsight-autohs-docker backup
+./neuroinsight-autohs-docker restore /path/to/backup.tar.gz
 
 # Updates
-./neuroinsight-docker update             # Update to latest version
+./neuroinsight-autohs-docker update             # Update to latest version
 
 # Advanced
-./neuroinsight-docker shell              # Access container shell
-./neuroinsight-docker remove             # Remove everything
+./neuroinsight-autohs-docker shell              # Access container shell
+./neuroinsight-autohs-docker remove             # Remove everything
 ```
 
 ## Requirements
@@ -110,7 +110,7 @@ Detects `license.txt` in:
 - Home directory
 
 ### Data Persistence
-All data stored in `neuroinsight-data` Docker volume:
+All data stored in `neuroinsight-autohs-data` Docker volume:
 - Uploaded MRI files
 - Processing results
 - Database
@@ -156,7 +156,7 @@ docker pull neuroinsight/allinone:latest
 docker pull neuroinsight/allinone:v1.0.0
 
 # Then install
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 ```
 
 ## Documentation
@@ -177,9 +177,9 @@ For detailed information:
 
 For issues:
 ```bash
-./neuroinsight-docker logs        # Check logs
-./neuroinsight-docker health      # Check service health
-./neuroinsight-docker status      # Check overall status
+./neuroinsight-autohs-docker logs        # Check logs
+./neuroinsight-autohs-docker health      # Check service health
+./neuroinsight-autohs-docker status      # Check overall status
 ```
 
 ---

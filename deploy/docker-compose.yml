@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  neuroinsight:
+  neuroinsight-autohs:
     image: phindagijimana321/neuroinsight:latest
-    container_name: neuroinsight
+    container_name: neuroinsight-autohs
     ports:
       - "8000:8000"    # Web interface
       - "9000:9000"    # MinIO API
@@ -12,7 +12,7 @@ services:
       # Docker socket for FreeSurfer container spawning
       - /var/run/docker.sock:/var/run/docker.sock
       # Persistent data storage
-      - neuroinsight-data:/data
+      - neuroinsight-autohs-data:/data
       # FreeSurfer license (auto-detected from parent directory)
       - ../license.txt:/app/license.txt:ro
     # Note: Docker group permissions are auto-configured by entrypoint.sh at runtime
@@ -32,9 +32,9 @@ services:
       start_period: 60s
 
 volumes:
-  neuroinsight-data:
+  neuroinsight-autohs-data:
     driver: local
 
 networks:
   default:
-    name: neuroinsight-network
+    name: neuroinsight-autohs-network

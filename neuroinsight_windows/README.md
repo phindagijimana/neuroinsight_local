@@ -1,6 +1,6 @@
-# NeuroInsight Docker for Windows
+# NeuroInsight-AutoHS Docker for Windows
 
-Docker deployment of NeuroInsight for Windows 10/11 systems.
+Docker deployment of NeuroInsight-AutoHS for Windows 10/11 systems.
 
 ## System Requirements
 
@@ -25,7 +25,7 @@ Required for MRI processing (free for research):
 2. Complete registration
 3. Save license as `license.txt` in this folder
 
-### 3. Download NeuroInsight
+### 3. Download NeuroInsight-AutoHS
 
 ```powershell
 # Clone repository
@@ -35,13 +35,13 @@ cd neuroinsight_local\neuroinsight_windows
 
 Or download ZIP from GitHub and extract to desired location.
 
-### 4. Install NeuroInsight
+### 4. Install NeuroInsight-AutoHS
 
 Open PowerShell or Command Prompt in the neuroinsight_windows folder:
 
 **PowerShell (recommended):**
 ```powershell
-.\neuroinsight-docker.ps1 install
+.\neuroinsight-autohs-docker.ps1 install
 ```
 
 **Command Prompt:**
@@ -49,7 +49,7 @@ Open PowerShell or Command Prompt in the neuroinsight_windows folder:
 install.bat
 ```
 
-### 5. Access NeuroInsight
+### 5. Access NeuroInsight-AutoHS
 
 Open browser to: http://localhost:8000
 
@@ -61,28 +61,28 @@ Open browser to: http://localhost:8000
 
 ```powershell
 # Core operations
-.\neuroinsight-docker.ps1 install       # Install and start
-.\neuroinsight-docker.ps1 start         # Start container
-.\neuroinsight-docker.ps1 stop          # Stop container
-.\neuroinsight-docker.ps1 restart       # Restart
-.\neuroinsight-docker.ps1 status        # Check status
-.\neuroinsight-docker.ps1 remove        # Uninstall
+.\neuroinsight-autohs-docker.ps1 install       # Install and start
+.\neuroinsight-autohs-docker.ps1 start         # Start container
+.\neuroinsight-autohs-docker.ps1 stop          # Stop container
+.\neuroinsight-autohs-docker.ps1 restart       # Restart
+.\neuroinsight-autohs-docker.ps1 status        # Check status
+.\neuroinsight-autohs-docker.ps1 remove        # Uninstall
 
 # Monitoring
-.\neuroinsight-docker.ps1 logs          # View all logs
-.\neuroinsight-docker.ps1 logs backend  # Backend logs
-.\neuroinsight-docker.ps1 logs worker   # Worker logs
-.\neuroinsight-docker.ps1 health        # Health check
+.\neuroinsight-autohs-docker.ps1 logs          # View all logs
+.\neuroinsight-autohs-docker.ps1 logs backend  # Backend logs
+.\neuroinsight-autohs-docker.ps1 logs worker   # Worker logs
+.\neuroinsight-autohs-docker.ps1 health        # Health check
 
 # Data management
-.\neuroinsight-docker.ps1 clean         # Clean old jobs (30+ days)
-.\neuroinsight-docker.ps1 clean 7       # Clean jobs older than 7 days
-.\neuroinsight-docker.ps1 backup        # Backup all data
-.\neuroinsight-docker.ps1 restore backup.tar.gz  # Restore
+.\neuroinsight-autohs-docker.ps1 clean         # Clean old jobs (30+ days)
+.\neuroinsight-autohs-docker.ps1 clean 7       # Clean jobs older than 7 days
+.\neuroinsight-autohs-docker.ps1 backup        # Backup all data
+.\neuroinsight-autohs-docker.ps1 restore backup.tar.gz  # Restore
 
 # Maintenance
-.\neuroinsight-docker.ps1 license       # Check FreeSurfer license
-.\neuroinsight-docker.ps1 update        # Update to latest
+.\neuroinsight-autohs-docker.ps1 license       # Check FreeSurfer license
+.\neuroinsight-autohs-docker.ps1 update        # Update to latest
 ```
 
 ### Command Prompt (Batch Scripts)
@@ -139,18 +139,18 @@ When processing your first MRI scan:
 netstat -ano | findstr :8000
 
 # Or install on different port
-.\neuroinsight-docker.ps1 install -Port 8001
+.\neuroinsight-autohs-docker.ps1 install -Port 8001
 ```
 
 ### License Not Found
 - Place `license.txt` in this folder
-- Verify with: `.\neuroinsight-docker.ps1 license`
-- Restart: `.\neuroinsight-docker.ps1 restart`
+- Verify with: `.\neuroinsight-autohs-docker.ps1 license`
+- Restart: `.\neuroinsight-autohs-docker.ps1 restart`
 
 ### Container Won't Start
 ```powershell
 # Check logs
-.\neuroinsight-docker.ps1 logs
+.\neuroinsight-autohs-docker.ps1 logs
 
 # Check Docker Desktop logs
 # Docker Desktop > Troubleshoot > Show logs
@@ -168,7 +168,7 @@ wsl --shutdown
 
 All data stored in Docker volumes persists across:
 - Container restarts
-- NeuroInsight updates
+- NeuroInsight-AutoHS updates
 - System reboots
 
 Includes:
@@ -182,8 +182,8 @@ Includes:
 ## Uninstallation
 
 ```powershell
-# Remove NeuroInsight
-.\neuroinsight-docker.ps1 remove
+# Remove NeuroInsight-AutoHS
+.\neuroinsight-autohs-docker.ps1 remove
 
 # Remove Docker volumes (deletes all data)
 docker volume rm neuroinsight_data

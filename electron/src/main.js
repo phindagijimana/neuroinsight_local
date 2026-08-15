@@ -25,7 +25,7 @@ function createWindow() {
     height: 860,
     minWidth: 960,
     minHeight: 640,
-    title: 'NeuroInsight',
+    title: 'NeuroInsight-AutoHS',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -71,7 +71,7 @@ function send(channel, payload) {
 function buildMenu() {
   const template = [
     {
-      label: 'NeuroInsight',
+      label: 'NeuroInsight-AutoHS',
       submenu: [
         {
           label: 'Run setup checks',
@@ -133,7 +133,7 @@ function registerIpc() {
   });
 
   ipcMain.handle('setup:install', async () => {
-    send('setup:log', 'Installing NeuroInsight container...');
+    send('setup:log', 'Installing NeuroInsight-AutoHS container...');
     const result = await orchestrator.installContainer({
       onProgress: (line) => send('setup:log', line),
     });
@@ -142,7 +142,7 @@ function registerIpc() {
   });
 
   ipcMain.handle('setup:start', async () => {
-    send('setup:log', 'Starting NeuroInsight...');
+    send('setup:log', 'Starting NeuroInsight-AutoHS...');
     const result = await orchestrator.ensureRunning({
       onProgress: (line) => send('setup:log', line),
     });
@@ -153,7 +153,7 @@ function registerIpc() {
   ipcMain.handle('setup:open-app', async () => {
     const status = runtime || (await orchestrator.getStatus());
     if (!status?.webUrl) {
-      throw new Error('NeuroInsight is not running');
+      throw new Error('NeuroInsight-AutoHS is not running');
     }
     await loadAppUi(status.webUrl, status.backendUrl);
     return status;

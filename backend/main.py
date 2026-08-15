@@ -1,5 +1,5 @@
 """
-Main FastAPI application for NeuroInsight.
+Main FastAPI application for NeuroInsight-AutoHS.
 
 This module initializes and configures the FastAPI application,
 including middleware, routes, and lifecycle events.

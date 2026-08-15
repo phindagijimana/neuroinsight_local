@@ -33,7 +33,7 @@ lsb_release -a
 
 ## WSL Setup (Windows Users)
 
-If you're using Windows, you can run NeuroInsight using Windows Subsystem for Linux (WSL). Here's how to set it up:
+If you're using Windows, you can run NeuroInsight-AutoHS using Windows Subsystem for Linux (WSL). Here's how to set it up:
 
 ### Enable WSL Feature
 
@@ -96,7 +96,7 @@ Once WSL is set up, continue with the Docker installation instructions below.
 
 ## Docker Installation
 
-Docker is required for NeuroInsight to run PostgreSQL, Redis, and MinIO services. Choose the appropriate installation method for your platform.
+Docker is required for NeuroInsight-AutoHS to run PostgreSQL, Redis, and MinIO services. Choose the appropriate installation method for your platform.
 
 ### For Linux (Native Ubuntu/Debian)
 
@@ -259,7 +259,7 @@ wsl --shutdown
 
 ### Verification Checklist
 
-Before installing NeuroInsight, verify:
+Before installing NeuroInsight-AutoHS, verify:
 
 **Linux:**
 - `docker --version` shows v20.10+ or v24.0+
@@ -277,7 +277,7 @@ Before installing NeuroInsight, verify:
 
 ## Deployment Options
 
-NeuroInsight offers four deployment methods:
+NeuroInsight-AutoHS offers four deployment methods:
 
 | Type | Best For | Requirements |
 |------|----------|--------------|
@@ -286,7 +286,7 @@ NeuroInsight offers four deployment methods:
 | **Linux Docker** | Isolated containerized environment | Docker + Docker Compose |
 | **Windows Docker** | Windows 10/11 systems | Docker Desktop + WSL2 |
 
-**New to NeuroInsight?** Start with the [Desktop App](https://github.com/phindagijimana/neuroinsight_desktop/releases) for the easiest installation.
+**New to NeuroInsight-AutoHS?** Start with the [Desktop App](https://github.com/phindagijimana/neuroinsight_desktop/releases) for the easiest installation.
 
 Choose Docker/Native deployment for servers, HPC clusters, or multi-user environments.
 
@@ -298,7 +298,7 @@ Choose Docker/Native deployment for servers, HPC clusters, or multi-user environ
 
 **Best for:** Researchers, clinicians, desktop users wanting the easiest setup
 
-**Download:** [NeuroInsight Desktop v1.0.0](https://github.com/phindagijimana/neuroinsight_desktop/releases/tag/v1.0.0)
+**Download:** [NeuroInsight-AutoHS Desktop v1.0.0](https://github.com/phindagijimana/neuroinsight_desktop/releases/tag/v1.0.0)
 
 **Platforms:**
 - Windows 10/11 (Setup.exe or Portable.exe)
@@ -317,21 +317,21 @@ Choose Docker/Native deployment for servers, HPC clusters, or multi-user environ
 
 **Linux (AppImage):**
 ```bash
-wget https://github.com/phindagijimana/neuroinsight_desktop/releases/download/v1.0.0/NeuroInsight-1.0.0.AppImage
-chmod +x NeuroInsight-1.0.0.AppImage
-./NeuroInsight-1.0.0.AppImage
+wget https://github.com/phindagijimana/neuroinsight_desktop/releases/download/v1.0.0/NeuroInsight-AutoHS-1.0.0.AppImage
+chmod +x NeuroInsight-AutoHS-1.0.0.AppImage
+./NeuroInsight-AutoHS-1.0.0.AppImage
 ```
 
 **Linux (DEB - Ubuntu/Debian):**
 ```bash
-wget https://github.com/phindagijimana/neuroinsight_desktop/releases/download/v1.0.0/NeuroInsight-1.0.0.deb
-sudo dpkg -i NeuroInsight-1.0.0.deb
+wget https://github.com/phindagijimana/neuroinsight_desktop/releases/download/v1.0.0/NeuroInsight-AutoHS-1.0.0.deb
+sudo dpkg -i NeuroInsight-AutoHS-1.0.0.deb
 neuroinsight
 ```
 
 **First Run:**
 1. Ensure Docker Desktop is running
-2. Launch NeuroInsight
+2. Launch NeuroInsight-AutoHS
 3. First run downloads FreeSurfer image (~7GB, one-time)
 4. Upload T1-weighted MRI files and start processing
 
@@ -443,7 +443,7 @@ For installation issues on WSL or native Linux, see the **Troubleshooting** sect
 
 **Common WSL issues:**
 
-- **Upload directory missing** - Run `./neuroinsight install` to create directories
+- **Upload directory missing** - Run `./neuroinsight-autohs install` to create directories
 - **Docker permission denied** - Log out and back in after adding to docker group
 - **Database schema errors** - Run `alembic upgrade head` in backend folder
 - **systemd services not starting** - Reinstall services with `./systemd/install_systemd.sh`
@@ -470,7 +470,7 @@ git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local/deploy
 
 # 2. Install and start
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 
 # Access at http://localhost:8000
 ```
@@ -487,20 +487,20 @@ The install command will:
 cd neuroinsight_local/deploy
 
 # Service management
-./neuroinsight-docker start            # Start services
-./neuroinsight-docker stop             # Stop services
-./neuroinsight-docker restart          # Restart services
-./neuroinsight-docker status           # Check status
+./neuroinsight-autohs-docker start            # Start services
+./neuroinsight-autohs-docker stop             # Stop services
+./neuroinsight-autohs-docker restart          # Restart services
+./neuroinsight-autohs-docker status           # Check status
 
 # Maintenance
-./neuroinsight-docker logs             # View logs
-./neuroinsight-docker backup           # Backup data
-./neuroinsight-docker restore backup.tar.gz  # Restore from backup
-./neuroinsight-docker update           # Update to latest version
+./neuroinsight-autohs-docker logs             # View logs
+./neuroinsight-autohs-docker backup           # Backup data
+./neuroinsight-autohs-docker restore backup.tar.gz  # Restore from backup
+./neuroinsight-autohs-docker update           # Update to latest version
 
 # Advanced
-./neuroinsight-docker shell            # Access container shell
-./neuroinsight-docker clean            # Remove container and data
+./neuroinsight-autohs-docker shell            # Access container shell
+./neuroinsight-autohs-docker clean            # Remove container and data
 ```
 
 #### What's Included
@@ -515,13 +515,13 @@ The Docker container includes all components:
 
 #### Data Persistence
 
-All data is stored in Docker volume `neuroinsight-data`:
+All data is stored in Docker volume `neuroinsight-autohs-data`:
 - MRI uploads
 - Processing results
 - Database
 - Logs
 
-Use `./neuroinsight-docker backup` for regular backups.
+Use `./neuroinsight-autohs-docker backup` for regular backups.
 
 ---
 
@@ -542,7 +542,7 @@ Use `./neuroinsight-docker backup` for regular backups.
 - Install and restart if prompted
 - Docker Desktop automatically configures WSL2
 
-**2. Install NeuroInsight**
+**2. Install NeuroInsight-AutoHS**
 
 ```powershell
 # Clone repository
@@ -550,7 +550,7 @@ git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local\neuroinsight_windows
 
 # Install and start
-.\neuroinsight-docker.ps1 install
+.\neuroinsight-autohs-docker.ps1 install
 
 # Access at http://localhost:8000
 ```
@@ -572,20 +572,20 @@ Open browser and navigate to: http://localhost:8000
 cd neuroinsight_windows
 
 # Service management
-.\neuroinsight-docker.ps1 start        # Start services
-.\neuroinsight-docker.ps1 stop         # Stop services  
-.\neuroinsight-docker.ps1 restart      # Restart services
-.\neuroinsight-docker.ps1 status       # Check status
+.\neuroinsight-autohs-docker.ps1 start        # Start services
+.\neuroinsight-autohs-docker.ps1 stop         # Stop services  
+.\neuroinsight-autohs-docker.ps1 restart      # Restart services
+.\neuroinsight-autohs-docker.ps1 status       # Check status
 
 # Maintenance
-.\neuroinsight-docker.ps1 logs         # View logs
-.\neuroinsight-docker.ps1 backup       # Backup data
-.\neuroinsight-docker.ps1 restore backup.tar.gz  # Restore
-.\neuroinsight-docker.ps1 update       # Update to latest
+.\neuroinsight-autohs-docker.ps1 logs         # View logs
+.\neuroinsight-autohs-docker.ps1 backup       # Backup data
+.\neuroinsight-autohs-docker.ps1 restore backup.tar.gz  # Restore
+.\neuroinsight-autohs-docker.ps1 update       # Update to latest
 
 # Advanced
-.\neuroinsight-docker.ps1 shell        # Access container
-.\neuroinsight-docker.ps1 clean        # Remove all data
+.\neuroinsight-autohs-docker.ps1 shell        # Access container
+.\neuroinsight-autohs-docker.ps1 clean        # Remove all data
 ```
 
 **Batch Scripts (Alternative):**
@@ -646,10 +646,10 @@ docker pull phindagijimana321/neuroinsight:latest
 
 # Run container
 docker run -d \
-  --name neuroinsight \
+  --name neuroinsight-autohs \
   -p 8000:8000 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v neuroinsight-data:/data \
+  -v neuroinsight-autohs-data:/data \
   -v $(pwd)/license.txt:/app/license.txt:ro \
   phindagijimana321/neuroinsight:latest
 
@@ -664,10 +664,10 @@ docker pull phindagijimana321/neuroinsight:latest
 
 # Run container
 docker run -d `
-  --name neuroinsight `
+  --name neuroinsight-autohs `
   -p 8000:8000 `
   -v /var/run/docker.sock:/var/run/docker.sock `
-  -v neuroinsight-data:/data `
+  -v neuroinsight-autohs-data:/data `
   -v ${PWD}/license.txt:/app/license.txt:ro `
   phindagijimana321/neuroinsight:latest
 
@@ -682,7 +682,7 @@ docker run -d `
 
 ### Environment Variables
 
-NeuroInsight can be configured using the `.env` file in the project root (Native Linux deployment) or through environment variables passed to Docker containers.
+NeuroInsight-AutoHS can be configured using the `.env` file in the project root (Native Linux deployment) or through environment variables passed to Docker containers.
 
 **Key Configuration Options:**
 
@@ -710,11 +710,11 @@ For detailed configuration, see your deployment's specific documentation:
 
 ---
 
-## Understanding NeuroInsight
+## Understanding NeuroInsight-AutoHS
 
 ### Concurrency Limits
 
-NeuroInsight processes one MRI scan at a time to ensure system stability and prevent resource exhaustion. This means:
+NeuroInsight-AutoHS processes one MRI scan at a time to ensure system stability and prevent resource exhaustion. This means:
 
 - **Sequential Processing**: Jobs are queued and processed one after another
 - **Queue Management**: New uploads are automatically added to the processing queue
@@ -736,7 +736,7 @@ NeuroInsight processes one MRI scan at a time to ensure system stability and pre
    - Confirm file sizes are under 500MB limit
 
 2. **Upload**:
-   - Access NeuroInsight at http://localhost:8000
+   - Access NeuroInsight-AutoHS at http://localhost:8000
    - Enter patient name in the upload form
    - Select and upload your T1 NIfTI file
    - Job automatically enters processing queue
@@ -762,7 +762,7 @@ NeuroInsight processes one MRI scan at a time to ensure system stability and pre
 ### File Requirements
 
 #### Supported File Formats
-NeuroInsight accepts NIfTI files for T1-weighted MRI scans:
+NeuroInsight-AutoHS accepts NIfTI files for T1-weighted MRI scans:
 
 1. **NIfTI Uncompressed** (`.nii`) - Direct processing
 2. **NIfTI Compressed** (`.nii.gz`) - Direct processing
@@ -823,7 +823,7 @@ Windows may filter out unrecognized file extensions by default. Switching to "Al
 ### Detailed File Format Guide
 
 #### NIfTI Files (.nii, .nii.gz)
-- **Recommended format** for NeuroInsight
+- **Recommended format** for NeuroInsight-AutoHS
 - Direct processing without conversion
 - Must contain T1-weighted MRI data
 - Filename must include T1 indicators
@@ -843,15 +843,15 @@ Windows may filter out unrecognized file extensions by default. Switching to "Al
 
 ### Start Services
 ```bash
-./neuroinsight start
+./neuroinsight-autohs start
 ```
-**What it does:** Launches all NeuroInsight services including the web interface, Celery workers, Redis cache, and database. The system will be accessible at http://localhost:8000 once fully started.
+**What it does:** Launches all NeuroInsight-AutoHS services including the web interface, Celery workers, Redis cache, and database. The system will be accessible at http://localhost:8000 once fully started.
 
 ### Stop Services
 ```bash
-./neuroinsight stop
+./neuroinsight-autohs stop
 ```
-**What it does:** Gracefully shuts down all NeuroInsight services and **disables no‑sleep mode** if it is active. This ensures proper cleanup of running processes and returns the system to normal sleep behavior. Wait for confirmation that all services have stopped.
+**What it does:** Gracefully shuts down all NeuroInsight-AutoHS services and **disables no‑sleep mode** if it is active. This ensures proper cleanup of running processes and returns the system to normal sleep behavior. Wait for confirmation that all services have stopped.
 
 **Container handling:** Stopping the app stops any running FreeSurfer containers, but does not immediately remove stopped containers. Maintenance cleans stopped FreeSurfer containers older than 5 days.
 
@@ -859,7 +859,7 @@ Windows may filter out unrecognized file extensions by default. Switching to "Al
 
 ### Check Status
 ```bash
-./neuroinsight status
+./neuroinsight-autohs status
 ```
 **What it does:** Displays the current state of all services including:
 - Web server (FastAPI) status
@@ -871,13 +871,13 @@ Windows may filter out unrecognized file extensions by default. Switching to "Al
 
 ### Verify License
 ```bash
-./neuroinsight license
+./neuroinsight-autohs license
 ```
 **What it does:** Validates your FreeSurfer license file. Checks that `license.txt` exists in the project directory and contains valid FreeSurfer credentials. Required before processing any MRI scans.
 
 ### Delete Specific Job
 ```bash
-./neuroinsight delete <job_id>
+./neuroinsight-autohs delete <job_id>
 ```
 **What it does:** Permanently deletes a specific job by ID, including:
 - Database record
@@ -888,30 +888,30 @@ Windows may filter out unrecognized file extensions by default. Switching to "Al
 **Examples:**
 ```bash
 # Interactive deletion (asks for confirmation)
-./neuroinsight delete d1a2c36e
+./neuroinsight-autohs delete d1a2c36e
 
 # Force deletion (no confirmation)
-./neuroinsight delete d1a2c36e --force
+./neuroinsight-autohs delete d1a2c36e --force
 ```
 
 **Finding Job IDs:**
 - View job IDs in web interface (in URL or job details)
-- Or list jobs: `./neuroinsight status` shows active jobs
+- Or list jobs: `./neuroinsight-autohs status` shows active jobs
 
 **Docker deployments:**
 ```bash
 # Linux/WSL Docker
-./neuroinsight-docker delete d1a2c36e
+./neuroinsight-autohs-docker delete d1a2c36e
 
 # Windows Docker
-.\neuroinsight-docker.ps1 delete d1a2c36e
+.\neuroinsight-autohs-docker.ps1 delete d1a2c36e
 ```
 
 **Note:** This only deletes COMPLETED or FAILED jobs. Running/pending jobs should be cancelled through the web interface first.
 
 ### Advanced Monitoring
 ```bash
-./neuroinsight monitor
+./neuroinsight-autohs monitor
 ```
 **What it does:** Provides detailed system monitoring including:
 - Real-time resource usage (CPU, memory, disk)
@@ -926,32 +926,32 @@ When a job fails:
 - The FreeSurfer container is **stopped** (not removed).
 - The queue immediately starts the next pending job if capacity allows.
 
-Stopped FreeSurfer containers are cleaned up automatically by maintenance after **5 days**. Job result cleanup is still controlled by the user via `./neuroinsight clean`.
+Stopped FreeSurfer containers are cleaned up automatically by maintenance after **5 days**. Job result cleanup is still controlled by the user via `./neuroinsight-autohs clean`.
 
 ### Prevent System Sleep
 ```bash
-./neuroinsight nosleep
+./neuroinsight-autohs nosleep
 ```
-**What it does:** Uses `systemd-inhibit` to prevent the machine from sleeping while jobs run. Run this after `./neuroinsight start`. It will be stopped automatically when you run `./neuroinsight stop`.
+**What it does:** Uses `systemd-inhibit` to prevent the machine from sleeping while jobs run. Run this after `./neuroinsight-autohs start`. It will be stopped automatically when you run `./neuroinsight-autohs stop`.
 
 ### Clean Old Jobs
 ```bash
-./neuroinsight clean
+./neuroinsight-autohs clean
 ```
 Use the default 90-day retention when you want routine cleanup without fine-tuning.
 
 ```bash
-./neuroinsight clean --days 30
+./neuroinsight-autohs clean --days 30
 ```
 Use a short retention window when storage is tight or you only need recent results.
 
 ```bash
-./neuroinsight clean --months 6
+./neuroinsight-autohs clean --months 6
 ```
 Use month-based retention for scheduled or quarterly cleanup policies.
 
 ```bash
-./neuroinsight clean --days 30 --keep d56a321c
+./neuroinsight-autohs clean --days 30 --keep d56a321c
 ```
 Use this when you want aggressive cleanup but must preserve a specific job.
 
@@ -961,25 +961,25 @@ Use this when you want aggressive cleanup but must preserve a specific job.
 
 ```bash
 # Keep specific jobs (comma-separated):
-./neuroinsight clean --days 30 --keep job1,job2,job3
+./neuroinsight-autohs clean --days 30 --keep job1,job2,job3
 
 # Or use multiple --keep flags:
-./neuroinsight clean --days 30 --keep job1 --keep job2 --keep job3
+./neuroinsight-autohs clean --days 30 --keep job1 --keep job2 --keep job3
 
 # Clean by months:
-./neuroinsight clean --months 3 --keep important_job
+./neuroinsight-autohs clean --months 3 --keep important_job
 
 # Default (90 days):
-./neuroinsight clean
+./neuroinsight-autohs clean
 
 # Clean both database AND orphaned files (default):
-./neuroinsight clean --days 30 --keep 912e32e7,e3463efb
+./neuroinsight-autohs clean --days 30 --keep 912e32e7,e3463efb
 
 # Clean ONLY orphaned files (skip database):
-./neuroinsight clean --days 30 --orphaned-only --keep 912e32e7,e3463efb
+./neuroinsight-autohs clean --days 30 --orphaned-only --keep 912e32e7,e3463efb
 
 # Clean ONLY database jobs (skip orphaned):
-./neuroinsight clean --days 30 --skip-orphaned --keep 912e32e7,e3463efb
+./neuroinsight-autohs clean --days 30 --skip-orphaned --keep 912e32e7,e3463efb
 ```
 
 **Options:**
@@ -991,19 +991,19 @@ Use this when you want aggressive cleanup but must preserve a specific job.
 
 ### Recover a Completed Job
 ```bash
-./neuroinsight bring <job_id>
+./neuroinsight-autohs bring <job_id>
 ```
 **What it does:** Reconstructs a completed job from on-disk output files. If no outputs exist for the ID, the script reports that it cannot recover the job.
 
 ### View System Logs
 ```bash
-./neuroinsight logs
+./neuroinsight-autohs logs
 ```
-**What it does:** Provides a unified interface to view logs from different NeuroInsight components. You can view logs interactively through a menu or directly specify which component logs to view.
+**What it does:** Provides a unified interface to view logs from different NeuroInsight-AutoHS components. You can view logs interactively through a menu or directly specify which component logs to view.
 
 **Interactive Menu (no arguments):**
 ```bash
-./neuroinsight logs
+./neuroinsight-autohs logs
 ```
 Displays an interactive menu where you can select:
 1. **backend** - Backend API server logs (FastAPI requests, responses, errors)
@@ -1018,19 +1018,19 @@ Displays an interactive menu where you can select:
 **Direct Log Access (specify component):**
 ```bash
 # View backend API logs
-./neuroinsight logs backend
+./neuroinsight-autohs logs backend
 
 # View Celery worker logs
-./neuroinsight logs celery
+./neuroinsight-autohs logs celery
 
 # View database logs
-./neuroinsight logs database
+./neuroinsight-autohs logs database
 
 # View Redis logs
-./neuroinsight logs redis
+./neuroinsight-autohs logs redis
 
 # View FreeSurfer logs for specific job (requires job ID)
-./neuroinsight logs freesurfer --job-id abc123
+./neuroinsight-autohs logs freesurfer --job-id abc123
 ```
 
 **Options:**
@@ -1038,40 +1038,40 @@ Displays an interactive menu where you can select:
 **Follow mode** (`-f` or `--follow`): Stream logs in real-time (like `tail -f`)
 ```bash
 # Follow backend logs in real-time
-./neuroinsight logs backend --follow
+./neuroinsight-autohs logs backend --follow
 
 # Follow Celery worker logs
-./neuroinsight logs celery -f
+./neuroinsight-autohs logs celery -f
 ```
 
 **Line limit** (`-n` or `--lines N`): Show last N lines (default: 100)
 ```bash
 # Show last 50 lines of backend logs
-./neuroinsight logs backend -n 50
+./neuroinsight-autohs logs backend -n 50
 
 # Show last 200 lines of Celery logs
-./neuroinsight logs celery --lines 200
+./neuroinsight-autohs logs celery --lines 200
 ```
 
 **Job-specific FreeSurfer logs** (`--job-id ID`): View FreeSurfer processing logs for a specific job
 ```bash
 # View FreeSurfer logs for job abc123
-./neuroinsight logs freesurfer --job-id abc123
+./neuroinsight-autohs logs freesurfer --job-id abc123
 
 # Follow FreeSurfer logs in real-time
-./neuroinsight logs freesurfer --job-id abc123 --follow
+./neuroinsight-autohs logs freesurfer --job-id abc123 --follow
 
 # Show last 500 lines of FreeSurfer logs
-./neuroinsight logs freesurfer --job-id abc123 -n 500
+./neuroinsight-autohs logs freesurfer --job-id abc123 -n 500
 ```
 
 **Combine options:**
 ```bash
 # Follow last 50 lines of backend logs
-./neuroinsight logs backend -f -n 50
+./neuroinsight-autohs logs backend -f -n 50
 
 # Show last 20 lines of Celery logs
-./neuroinsight logs celery --lines 20
+./neuroinsight-autohs logs celery --lines 20
 ```
 
 **Common Use Cases:**
@@ -1079,46 +1079,46 @@ Displays an interactive menu where you can select:
 1. **Troubleshooting failed jobs:**
    ```bash
    # Check Celery worker logs for errors
-   ./neuroinsight logs celery -n 100
+   ./neuroinsight-autohs logs celery -n 100
    
    # View FreeSurfer logs for failed job
-   ./neuroinsight logs freesurfer --job-id <failed_job_id>
+   ./neuroinsight-autohs logs freesurfer --job-id <failed_job_id>
    ```
 
 2. **Monitoring active processing:**
    ```bash
    # Follow backend logs in real-time
-   ./neuroinsight logs backend --follow
+   ./neuroinsight-autohs logs backend --follow
    
    # Follow FreeSurfer progress for running job
-   ./neuroinsight logs freesurfer --job-id <running_job_id> --follow
+   ./neuroinsight-autohs logs freesurfer --job-id <running_job_id> --follow
    ```
 
 3. **Checking system health:**
    ```bash
    # Check database logs
-   ./neuroinsight logs database -n 50
+   ./neuroinsight-autohs logs database -n 50
    
    # Check Redis broker logs
-   ./neuroinsight logs redis -n 50
+   ./neuroinsight-autohs logs redis -n 50
    ```
 
 4. **Debugging API issues:**
    ```bash
    # View recent backend API requests
-   ./neuroinsight logs backend -n 100
+   ./neuroinsight-autohs logs backend -n 100
    
    # Follow backend logs while testing
-   ./neuroinsight logs backend --follow
+   ./neuroinsight-autohs logs backend --follow
    ```
 
 **Help:**
 ```bash
-./neuroinsight logs --help
+./neuroinsight-autohs logs --help
 ```
 
 **Notes:**
-- Log files are stored in the NeuroInsight project directory
+- Log files are stored in the NeuroInsight-AutoHS project directory
 - Database and Redis logs are retrieved from Docker containers
 - FreeSurfer logs are job-specific and stored in each job's output directory
 - Press `Ctrl+C` to exit follow mode or interrupt log viewing
@@ -1128,21 +1128,21 @@ Displays an interactive menu where you can select:
 
 #### Reinstall (for troubleshooting)
 ```bash
-./neuroinsight reinstall
+./neuroinsight-autohs reinstall
 ```
-**Use when:** Persistent issues with services or corrupted installations. This command provides step-by-step guidance to completely remove and reinstall NeuroInsight, including backup of user data when possible.
+**Use when:** Persistent issues with services or corrupted installations. This command provides step-by-step guidance to completely remove and reinstall NeuroInsight-AutoHS, including backup of user data when possible.
 
-**Note:** All management commands should be run from the NeuroInsight project root directory where the `neuroinsight` script is located.
+**Note:** All management commands should be run from the NeuroInsight-AutoHS project root directory where the `neuroinsight-autohs` script is located.
 
 ## Troubleshooting
 
 ### Common Issues
 
 **Jobs stuck in pending:**
-- Check `./neuroinsight status` to verify all services are running (including Celery workers)
+- Check `./neuroinsight-autohs status` to verify all services are running (including Celery workers)
 - Ensure Redis is running: `redis-cli ping`
 - Check Celery worker logs: `ps aux | grep celery`
-- If workers not running, restart services: `./neuroinsight stop && ./neuroinsight start`
+- If workers not running, restart services: `./neuroinsight-autohs stop && ./neuroinsight-autohs start`
 - For detailed troubleshooting, see [TROUBLESHOUTING.md](TROUBLESHOUTING.md#jobs-stuck-in-pending-status)
 
 **Processing fails:**
@@ -1154,7 +1154,7 @@ Displays an interactive menu where you can select:
 - **Failed jobs display detailed error messages** explaining exactly what went wrong (FreeSurfer issues, validation failures, etc.)
 
 **Web interface won't load:**
-- Confirm services are running (`./neuroinsight status`)
+- Confirm services are running (`./neuroinsight-autohs status`)
 - Check port 8000 availability
 - Clear browser cache
 
@@ -1188,7 +1188,7 @@ sudo sysctl -w vm.overcommit_memory=1
 
 Persist across reboot:
 ```bash
-echo 'vm.overcommit_memory=1' | sudo tee /etc/sysctl.d/99-neuroinsight.conf
+echo 'vm.overcommit_memory=1' | sudo tee /etc/sysctl.d/99-neuroinsight-autohs.conf
 sudo sysctl --system
 ```
 
@@ -1199,7 +1199,7 @@ sudo sysctl -w vm.swappiness=10
 
 Persist across reboot:
 ```bash
-echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.d/99-neuroinsight.conf
+echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.d/99-neuroinsight-autohs.conf
 sudo sysctl --system
 ```
 
@@ -1234,7 +1234,7 @@ sudo systemctl enable --now disable-thp
 
 ## FAQ
 
-### What is NeuroInsight?
+### What is NeuroInsight-AutoHS?
 Automated platform for hippocampal segmentation and analysis from T1-weighted MRI scans using FreeSurfer.
 
 ### System requirements?

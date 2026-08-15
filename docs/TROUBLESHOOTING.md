@@ -4,8 +4,8 @@
 
 ```bash
 # Basic system check
-./neuroinsight status        # Check all services
-./neuroinsight health        # Quick health overview
+./neuroinsight-autohs status        # Check all services
+./neuroinsight-autohs health        # Quick health overview
 
 # Docker diagnostics
 ./fix_docker.sh             # Comprehensive Docker check
@@ -13,7 +13,7 @@
 
 # Detailed logs
 docker-compose logs          # View container logs
-tail -f neuroinsight.log     # Follow application logs
+tail -f neuroinsight-autohs.log     # Follow application logs
 ```
 
 ## Deployment-Specific Issues
@@ -52,11 +52,11 @@ sudo systemctl restart docker
 Linux AppImage:
 ```bash
 # Run from terminal to see errors
-./NeuroInsight-1.0.0.AppImage
+./NeuroInsight-AutoHS-1.0.0.AppImage
 ```
 
 Windows:
-- Check logs in: `%APPDATA%\NeuroInsight\logs\`
+- Check logs in: `%APPDATA%\NeuroInsight-AutoHS\logs\`
 
 **Reinstall:**
 - Delete app and download fresh installer from [releases](https://github.com/phindagijimana/neuroinsight_desktop/releases)
@@ -79,18 +79,18 @@ sudo netstat -tlnp | grep :800
 netstat -ano | findstr :800
 
 # Stop conflicting services
-docker stop neuroinsight  # If another instance running
+docker stop neuroinsight-autohs  # If another instance running
 ```
 
 #### Docker Image Download Fails
 
 **Symptoms:**
-- App stuck on "Pulling NeuroInsight image"
+- App stuck on "Pulling NeuroInsight-AutoHS image"
 - Download very slow or fails
 
 **Solutions:**
 - Check internet connection
-- Image is large (~2GB for NeuroInsight container)
+- Image is large (~2GB for NeuroInsight-AutoHS container)
 - First FreeSurfer image is ~7GB (one-time download)
 - Retry: Restart the app
 
@@ -105,7 +105,7 @@ docker stop neuroinsight  # If another instance running
 **Symptoms:**
 - `docker ps` shows no neuroinsight container
 - Installation completes but container exits
-- `neuroinsight-docker status` shows "not running"
+- `neuroinsight-autohs-docker status` shows "not running"
 
 **Diagnosis:**
 ```bash
@@ -129,12 +129,12 @@ sudo systemctl restart docker
 
 # Remove and recreate container
 cd neuroinsight_local/deploy
-./neuroinsight-docker stop
+./neuroinsight-autohs-docker stop
 docker rm -f neuroinsight
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 
 # Check logs for errors
-./neuroinsight-docker logs
+./neuroinsight-autohs-docker logs
 ```
 
 **For Windows Docker:**
@@ -144,9 +144,9 @@ docker rm -f neuroinsight
 
 # Remove and recreate
 cd neuroinsight_windows
-.\neuroinsight-docker.ps1 stop
+.\neuroinsight-autohs-docker.ps1 stop
 docker rm -f neuroinsight
-.\neuroinsight-docker.ps1 install
+.\neuroinsight-autohs-docker.ps1 install
 ```
 
 #### Port Already in Use
@@ -166,7 +166,7 @@ sudo netstat -tlnp | grep :8000
 sudo systemctl stop <service-name>
 
 # Or use different port
-./neuroinsight-docker install --port 8001
+./neuroinsight-autohs-docker install --port 8001
 ```
 
 **Windows Docker:**
@@ -178,7 +178,7 @@ netstat -ano | findstr :8000
 taskkill /PID <pid> /F
 
 # Or install on different port
-.\neuroinsight-docker.ps1 install -Port 8001
+.\neuroinsight-autohs-docker.ps1 install -Port 8001
 ```
 
 #### License Not Detected
@@ -198,22 +198,22 @@ ls -la ../license.txt
 # Not in deploy/ folder
 
 # Verify mount in logs
-./neuroinsight-docker logs | grep license
+./neuroinsight-autohs-docker logs | grep license
 
 # Restart after adding license
-./neuroinsight-docker restart
+./neuroinsight-autohs-docker restart
 ```
 
 **Windows Docker:**
 ```powershell
 # Place license.txt in neuroinsight_windows/ folder
-# Same location as neuroinsight-docker.ps1
+# Same location as neuroinsight-autohs-docker.ps1
 
 # Check detection
-.\neuroinsight-docker.ps1 license
+.\neuroinsight-autohs-docker.ps1 license
 
 # Restart container
-.\neuroinsight-docker.ps1 restart
+.\neuroinsight-autohs-docker.ps1 restart
 ```
 
 #### Docker Permissions (Linux)
@@ -293,18 +293,18 @@ docker volume ls | grep neuroinsight
 docker volume inspect neuroinsight_data
 
 # Recreate if corrupted
-./neuroinsight-docker stop
+./neuroinsight-autohs-docker stop
 docker volume rm neuroinsight_data
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 ```
 
 **Windows Docker:**
 ```powershell
 # Same commands work in PowerShell
 docker volume ls | Select-String neuroinsight
-.\neuroinsight-docker.ps1 stop
+.\neuroinsight-autohs-docker.ps1 stop
 docker volume rm neuroinsight_data
-.\neuroinsight-docker.ps1 install
+.\neuroinsight-autohs-docker.ps1 install
 ```
 
 #### FreeSurfer Container Spawn Failures
@@ -315,7 +315,7 @@ docker volume rm neuroinsight_data
 - Error: "FreeSurfer processing failed"
 - Works during install but fails when processing jobs
 
-**This is a Docker-in-Docker (DinD) permission issue** - the NeuroInsight container can't access Docker to spawn FreeSurfer containers.
+**This is a Docker-in-Docker (DinD) permission issue** - the NeuroInsight-AutoHS container can't access Docker to spawn FreeSurfer containers.
 
 **Quick Fix:**
 
@@ -342,7 +342,7 @@ ls -la /var/run/docker.sock
 getent group docker | cut -d: -f3
 
 # 3. Test if container can access Docker
-docker exec neuroinsight docker ps
+docker exec neuroinsight-autohs docker ps
 
 # If this fails → DinD is broken, follow fix below
 ```
@@ -353,18 +353,18 @@ docker exec neuroinsight docker ps
 cd neuroinsight_local/deploy
 
 # Stop and remove container
-./neuroinsight-docker stop
-./neuroinsight-docker remove
+./neuroinsight-autohs-docker stop
+./neuroinsight-autohs-docker remove
 
 # Get Docker group ID
 DOCKER_GID=$(getent group docker | cut -d: -f3)
 echo "Docker GID: $DOCKER_GID"
 
 # Reinstall (script now auto-adds docker group)
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 
 # Verify Docker access from inside container
-docker exec neuroinsight docker ps
+docker exec neuroinsight-autohs docker ps
 # Should show running containers if working
 ```
 
@@ -395,7 +395,7 @@ export DOCKER_GID=$(getent group docker | cut -d: -f3)
 docker-compose up -d
 
 # Verify
-docker exec neuroinsight docker ps
+docker exec neuroinsight-autohs docker ps
 ```
 
 **Verification:**
@@ -404,17 +404,17 @@ After applying the fix, test:
 
 ```bash
 # 1. Check container can access Docker
-docker exec neuroinsight docker ps
+docker exec neuroinsight-autohs docker ps
 
 # 2. Check container can pull images
-docker exec neuroinsight docker pull hello-world
+docker exec neuroinsight-autohs docker pull hello-world
 
 # 3. Submit a test job through the web interface
 ```
 
 **Why This Happens:**
 
-The NeuroInsight container needs to spawn FreeSurfer containers for processing. This requires:
+The NeuroInsight-AutoHS container needs to spawn FreeSurfer containers for processing. This requires:
 1. Docker socket mounted: `/var/run/docker.sock:/var/run/docker.sock` [OK]
 2. Container user has permission to access socket [X] (missing)
 
@@ -431,29 +431,29 @@ The fix adds the Docker group to the container, giving it permission to use Dock
 **Linux Docker:**
 ```bash
 # Backup first
-./neuroinsight-docker backup
+./neuroinsight-autohs-docker backup
 
 # Force pull new image
 docker pull phindagijimana321/neuroinsight:latest
 
 # Reinstall
-./neuroinsight-docker stop
+./neuroinsight-autohs-docker stop
 docker rm -f neuroinsight
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 ```
 
 **Windows Docker:**
 ```powershell
 # Backup first
-.\neuroinsight-docker.ps1 backup
+.\neuroinsight-autohs-docker.ps1 backup
 
 # Force pull
 docker pull phindagijimana321/neuroinsight:latest
 
 # Reinstall
-.\neuroinsight-docker.ps1 stop
+.\neuroinsight-autohs-docker.ps1 stop
 docker rm -f neuroinsight
-.\neuroinsight-docker.ps1 install
+.\neuroinsight-autohs-docker.ps1 install
 ```
 
 ---
@@ -506,7 +506,7 @@ docker rm -f neuroinsight
 **Solution 1: Start Celery Worker**
 If Celery worker is not running:
 ```bash
-# Navigate to NeuroInsight directory
+# Navigate to NeuroInsight-AutoHS directory
 cd neuroinsight_local
 
 # Activate virtual environment
@@ -515,8 +515,8 @@ source venv/bin/activate
 # Start Celery worker (run in background or separate terminal)
 celery -A workers.tasks.processing_web worker --loglevel=info --concurrency=1
 
-# Or use the NeuroInsight management script
-./neuroinsight start
+# Or use the NeuroInsight-AutoHS management script
+./neuroinsight-autohs start
 ```
 
 **Solution 2: Redis Connection Issues**
@@ -550,21 +550,21 @@ export REDIS_URL="redis://:redis_secure_password@localhost:6379/0"
 export REDIS_PASSWORD="redis_secure_password"
 
 # Restart services after changing environment
-./neuroinsight stop
-./neuroinsight start
+./neuroinsight-autohs stop
+./neuroinsight-autohs start
 ```
 
 **Solution 4: Restart All Services**
-If nothing else works, restart the entire NeuroInsight stack:
+If nothing else works, restart the entire NeuroInsight-AutoHS stack:
 ```bash
-./neuroinsight stop
+./neuroinsight-autohs stop
 sleep 5
-./neuroinsight start
+./neuroinsight-autohs start
 ```
 
 #### Prevention
-- Always check `./neuroinsight status` after installation
-- Ensure Redis is running before starting NeuroInsight
+- Always check `./neuroinsight-autohs status` after installation
+- Ensure Redis is running before starting NeuroInsight-AutoHS
 - Monitor Celery worker logs during initial testing
 - Keep Celery worker running continuously
 
@@ -572,12 +572,12 @@ sleep 5
 
 **"Insufficient disk space" during installation:**
 ```bash
-# Error: Insufficient disk space. NeuroInsight requires at least 45GB free.
+# Error: Insufficient disk space. NeuroInsight-AutoHS requires at least 45GB free.
 # Error: Detected: XXgB available
 ```
 
 **Impact:**
-- NeuroInsight requires 45GB+ free disk space
+- NeuroInsight-AutoHS requires 45GB+ free disk space
 - FreeSurfer processing needs substantial temporary storage
 - Docker images (FreeSurfer 7.4.1) require ~20GB
 - Job outputs can accumulate over time
@@ -599,13 +599,13 @@ docker system prune -af --volumes
 df -h /
 
 # 3. Retry installation
-./neuroinsight install
+./neuroinsight-autohs install
 ```
 
 **Additional Cleanup Options:**
 ```bash
 # Clean old job outputs (if previously installed)
-rm -rf ~/.local/share/neuroinsight/outputs/old-job-*
+rm -rf ~/.local/share/neuroinsight-autohs/outputs/old-job-*
 
 # Clean system caches
 sudo apt clean
@@ -667,7 +667,7 @@ git pull origin master
 ./quick_docker_fix.sh
 
 # Then retry installation
-./neuroinsight install
+./neuroinsight-autohs install
 ```
 
 **Option 2: Manual Fix**
@@ -686,14 +686,14 @@ newgrp docker
 docker run --rm hello-world
 
 # 5. Retry installation
-./neuroinsight install
+./neuroinsight-autohs install
 ```
 
 **Option 3: Temporary Bypass (if Docker works manually)**
 ```bash
 # If Docker works but install check fails
 sed -i '473,477s/^/# /' scripts/install.sh  # Comment out Docker test
-./neuroinsight install                       # Run installation
+./neuroinsight-autohs install                       # Run installation
 git checkout scripts/install.sh              # Restore original file
 ```
 
@@ -713,7 +713,7 @@ sudo systemctl status docker
 # - Docker Desktop shows WSL integration errors
 # - wsl.exe --unmount docker_data.vhdx: exit status 0xffffffff
 # - Docker becomes unresponsive during processing
-# - NeuroInsight jobs fail mid-processing
+# - NeuroInsight-AutoHS jobs fail mid-processing
 ```
 
 **Causes:**
@@ -735,8 +735,8 @@ git pull origin master
 # Then in WSL terminal:
 ./fix_docker_wsl.sh
 
-# Restart NeuroInsight
-./neuroinsight start
+# Restart NeuroInsight-AutoHS
+./neuroinsight-autohs start
 ```
 
 **Option 2: Windows PowerShell Reset**
@@ -782,8 +782,8 @@ docker run --rm hello-world
 # Check WSL integration
 wsl --list --verbose
 
-# Restart NeuroInsight
-./neuroinsight status
+# Restart NeuroInsight-AutoHS
+./neuroinsight-autohs status
 ```
 
 ### Memory Limitations
@@ -806,7 +806,7 @@ wsl --list --verbose
 ```bash
 # Continue with installation despite warnings
 # Web interface and basic features work
-./neuroinsight install  # Answer 'y' to continue
+./neuroinsight-autohs install  # Answer 'y' to continue
 ```
 
 **For Production MRI Processing (16GB+ RAM):**
@@ -824,7 +824,7 @@ free -h
 docker stats  # Container memory usage
 
 # Monitor during processing
-./neuroinsight monitor
+./neuroinsight-autohs monitor
 ```
 
 ### Application Won't Start
@@ -854,7 +854,7 @@ docker-compose up -d db
 **License not found:**
 - Verify `license.txt` exists in project root
 - Check file permissions: `ls -la license.txt`
-- Run: `./neuroinsight license`
+- Run: `./neuroinsight-autohs license`
 
 **Processing shows mock data:**
 - License file missing or invalid
@@ -865,15 +865,15 @@ docker-compose up -d db
 
 **Jobs stuck in pending:**
 - See "Jobs Stuck in 'Pending' Status" section above
-- Check worker status: `./neuroinsight status`
+- Check worker status: `./neuroinsight-autohs status`
 - Verify Redis running: `redis-cli ping`
-- Restart workers: `./neuroinsight stop && ./neuroinsight start`
+- Restart workers: `./neuroinsight-autohs stop && ./neuroinsight-autohs start`
 
 **Processing fails:**
 - Verify T1 indicators in filename (t1, mprage, etc.)
 - Check RAM (16GB+ required, 32GB+ recommended)
 - Ensure file format supported (.nii, .nii.gz only)
-- Check FreeSurfer license: `./neuroinsight license` (native) or `./neuroinsight-docker license` (Docker)
+- Check FreeSurfer license: `./neuroinsight-autohs license` (native) or `./neuroinsight-autohs-docker license` (Docker)
 - **Docker:** Ensure FreeSurfer container can spawn: `docker ps -a | grep freesurfer`
 
 **Out of memory errors:**
@@ -891,7 +891,7 @@ docker-compose up -d db
 
 **Interface won't load:**
 - Confirm port 8000 available: `netstat -tlnp | grep 8000`
-- Check backend running: `./neuroinsight status`
+- Check backend running: `./neuroinsight-autohs status`
 - Clear browser cache, try different browser
 
 **Upload fails:**
@@ -915,65 +915,65 @@ docker-compose up -d db
 
 ### Reset Database
 ```bash
-./neuroinsight stop
+./neuroinsight-autohs stop
 docker-compose down -v  # Removes all data
-./neuroinsight start  # Recreates fresh database
+./neuroinsight-autohs start  # Recreates fresh database
 ```
 
 ### Clear Job Queue
 ```bash
 # Stop workers first
-./neuroinsight stop
+./neuroinsight-autohs stop
 
 # Clear Redis queue
 docker-compose exec redis redis-cli FLUSHALL
 
 # Restart
-./neuroinsight start
+./neuroinsight-autohs start
 ```
 
 ### Full System Reset
 ```bash
-./neuroinsight stop
+./neuroinsight-autohs stop
 docker-compose down -v --remove-orphans
 docker system prune -a  # Careful: removes all unused containers
-./neuroinsight reinstall  # Get complete reinstallation guide
+./neuroinsight-autohs reinstall  # Get complete reinstallation guide
 ```
 
 ## Quick Diagnostic Commands
 
 ### Native Linux
 ```bash
-./neuroinsight status        # Overall status
-./neuroinsight logs          # View logs
-./neuroinsight license       # Check license
+./neuroinsight-autohs status        # Overall status
+./neuroinsight-autohs logs          # View logs
+./neuroinsight-autohs license       # Check license
 ps aux | grep celery         # Check workers
 docker ps                    # Check containers
 ```
 
 ### Linux Docker
 ```bash
-./neuroinsight-docker status      # Container status
-./neuroinsight-docker health      # Health check
-./neuroinsight-docker logs        # View logs
-./neuroinsight-docker logs worker # Worker logs
+./neuroinsight-autohs-docker status      # Container status
+./neuroinsight-autohs-docker health      # Health check
+./neuroinsight-autohs-docker logs        # View logs
+./neuroinsight-autohs-docker logs worker # Worker logs
 docker ps -a | grep neuroinsight  # Container list
 ```
 
 ### Windows Docker
 ```powershell
-.\neuroinsight-docker.ps1 status       # Container status
-.\neuroinsight-docker.ps1 health       # Health check
-.\neuroinsight-docker.ps1 logs         # View logs
+.\neuroinsight-autohs-docker.ps1 status       # Container status
+.\neuroinsight-autohs-docker.ps1 health       # Health check
+.\neuroinsight-autohs-docker.ps1 logs         # View logs
 docker ps -a | Select-String neuroinsight  # Container list
 ```
 
 ## Support
 
-- **Native Linux logs:** `tail -f neuroinsight.log` or `./neuroinsight logs`
-- **Docker logs:** `./neuroinsight-docker logs` or `.\neuroinsight-docker.ps1 logs`
+- **Native Linux logs:** `tail -f neuroinsight-autohs.log` or `./neuroinsight-autohs logs`
+- **Docker logs:** `./neuroinsight-autohs-docker logs` or `.\neuroinsight-autohs-docker.ps1 logs`
 - **Docker issues (Linux):** Run `./fix_docker.sh` or `./quick_docker_fix.sh`
-- **System diagnostics:** `./neuroinsight status` or `./neuroinsight-docker status`
+- **System diagnostics:** `./neuroinsight-autohs status` or `./neuroinsight-autohs-docker status`
 - **GitHub Issues:** Report bugs with diagnostic output
 - **FreeSurfer Support:** https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
 
@@ -999,15 +999,15 @@ Fixed in v1.0.28+ - Delete button now always visible regardless of error message
 **Workaround for older versions:**
 ```bash
 # Option 1: Use command line
-./neuroinsight delete <job_id>                    # Native
-./neuroinsight-docker delete <job_id>             # Docker
+./neuroinsight-autohs delete <job_id>                    # Native
+./neuroinsight-autohs-docker delete <job_id>             # Docker
 
 # Option 2: Use API directly
 curl -X DELETE http://localhost:8000/api/jobs/delete/<job_id>
 
 # Option 3: Clean all failed jobs
-./neuroinsight clean --days 0                     # Native
-./neuroinsight-docker clean --days 0              # Docker
+./neuroinsight-autohs clean --days 0                     # Native
+./neuroinsight-autohs-docker clean --days 0              # Docker
 ```
 
 **Verification:**
@@ -1022,15 +1022,15 @@ curl -X DELETE http://localhost:8000/api/jobs/delete/<job_id>
 #### Jobs Persist After Stop/Restart
 
 **Symptoms:**
-- Old jobs still visible after `./neuroinsight stop` and `./neuroinsight install`
+- Old jobs still visible after `./neuroinsight-autohs stop` and `./neuroinsight-autohs install`
 - Previous uploads appear after container recreate
 - Job count doesn't reset to zero
 
 **This is INTENTIONAL behavior** - Data persists between restarts!
 
 **Why:**
-- **Docker:** Uses persistent volumes (`neuroinsight-data`)
-- **Native:** Uses standard data directories (`~/.local/share/neuroinsight/`)
+- **Docker:** Uses persistent volumes (`neuroinsight-autohs-data`)
+- **Native:** Uses standard data directories (`~/.local/share/neuroinsight-autohs/`)
 - Prevents data loss during updates/restarts
 
 **What persists:**
@@ -1046,23 +1046,23 @@ curl -X DELETE http://localhost:8000/api/jobs/delete/<job_id>
 
 ```bash
 # Option 1: Clean specific jobs (recommended)
-./neuroinsight delete <job_id>
-./neuroinsight-docker delete <job_id>
+./neuroinsight-autohs delete <job_id>
+./neuroinsight-autohs-docker delete <job_id>
 
 # Option 2: Clean old completed/failed jobs
-./neuroinsight clean --days 30              # Remove jobs older than 30 days
-./neuroinsight-docker clean --days 0        # Remove all completed/failed jobs
+./neuroinsight-autohs clean --days 30              # Remove jobs older than 30 days
+./neuroinsight-autohs-docker clean --days 0        # Remove all completed/failed jobs
 
 # Option 3: Fresh start (removes ALL data)
 ## Docker:
-./neuroinsight-docker stop
-docker volume rm neuroinsight-data
-./neuroinsight-docker install
+./neuroinsight-autohs-docker stop
+docker volume rm neuroinsight-autohs-data
+./neuroinsight-autohs-docker install
 
 ## Native:
-./neuroinsight stop
-rm -rf ~/.local/share/neuroinsight/
-./neuroinsight install
+./neuroinsight-autohs stop
+rm -rf ~/.local/share/neuroinsight-autohs/
+./neuroinsight-autohs install
 ```
 
 [WARNING] **Warning:** Option 3 deletes ALL jobs, uploads, and settings!
@@ -1094,9 +1094,9 @@ Fixed in v1.0.26+ - Updated dependencies for Python 3.13 compatibility.
 git pull origin master
 
 # Reinstall
-./neuroinsight stop
+./neuroinsight-autohs stop
 rm -rf venv/
-./neuroinsight install
+./neuroinsight-autohs install
 ```
 
 **Supported Python versions:**
@@ -1117,7 +1117,7 @@ pip install --upgrade pandas==2.2.3 numpy==2.2.3 scipy==1.15.2
 **Symptoms:**
 ```bash
 FreeSurfer Docker failed (exit code: 125)
-docker: Error response from daemon: create $HOME/.local/share/neuroinsight/...
+docker: Error response from daemon: create $HOME/.local/share/neuroinsight-autohs/...
 # or
 docker: Error response from daemon: create $(pwd)/data/outputs/...
 ```
@@ -1133,8 +1133,8 @@ Fixed in v1.0.26+ with auto-detection and repair.
 git pull origin master
 
 # Reinstall (automatically fixes .env)
-./neuroinsight stop
-./neuroinsight install
+./neuroinsight-autohs stop
+./neuroinsight-autohs install
 
 # Or manually fix existing installation
 cd /path/to/neuroinsight_local
@@ -1147,7 +1147,7 @@ sed -i '/HOST_UPLOAD_DIR=/d' .env
 sed -i '/HOST_OUTPUT_DIR=/d' .env
 
 # Restart
-./neuroinsight restart
+./neuroinsight-autohs restart
 ```
 
 **Verification:**
@@ -1185,14 +1185,14 @@ git pull origin master
 
 # Docker deployment
 docker pull phindagijimana321/neuroinsight:latest
-./neuroinsight-docker stop
+./neuroinsight-autohs-docker stop
 docker rm neuroinsight
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 
 # Native deployment
-./neuroinsight stop
+./neuroinsight-autohs stop
 git pull origin master
-./neuroinsight start
+./neuroinsight-autohs start
 ```
 
 **What was fixed:**
@@ -1232,10 +1232,10 @@ git pull origin master
 
 # Docker
 docker pull phindagijimana321/neuroinsight:v1.0.28
-./neuroinsight-docker restart
+./neuroinsight-autohs-docker restart
 
 # Native
-./neuroinsight restart
+./neuroinsight-autohs restart
 ```
 
 **Color coding reference:**
@@ -1250,7 +1250,7 @@ docker pull phindagijimana321/neuroinsight:v1.0.28
 #### Verify Cleanup Removes Jobs from UI
 
 **Question:**
-"Does `./neuroinsight delete` or `clean` actually remove jobs from the UI?"
+"Does `./neuroinsight-autohs delete` or `clean` actually remove jobs from the UI?"
 
 **Answer:**
 [OK] YES - Verified and tested! Jobs are removed from:
@@ -1277,7 +1277,7 @@ UI auto-updates (job disappears)
 curl http://localhost:8000/api/jobs/ | grep "total"
 
 # 2. Delete a job
-./neuroinsight delete <job_id> --force
+./neuroinsight-autohs delete <job_id> --force
 
 # 3. Verify deletion (< 10 seconds)
 curl http://localhost:8000/api/jobs/ | grep "total"
@@ -1285,23 +1285,23 @@ curl http://localhost:8000/api/jobs/ | grep "total"
 ```
 
 **All deletion methods work:**
-- [OK] Command line: `./neuroinsight delete <id>`
+- [OK] Command line: `./neuroinsight-autohs delete <id>`
 - [OK] UI delete button (trash icon)
 - [OK] API call: `curl -X DELETE .../jobs/delete/<id>`
-- [OK] Clean command: `./neuroinsight clean --days 0`
+- [OK] Clean command: `./neuroinsight-autohs clean --days 0`
 
 **Cleanup commands:**
 ```bash
 # Delete specific job
-./neuroinsight delete <job_id>
+./neuroinsight-autohs delete <job_id>
 
 # Delete all old jobs
-./neuroinsight clean --days 0          # All completed/failed
-./neuroinsight clean --days 30         # Older than 30 days
+./neuroinsight-autohs clean --days 0          # All completed/failed
+./neuroinsight-autohs clean --days 30         # Older than 30 days
 
 # Fresh start (removes everything)
-docker volume rm neuroinsight-data     # Docker
-rm -rf ~/.local/share/neuroinsight/    # Native
+docker volume rm neuroinsight-autohs-data     # Docker
+rm -rf ~/.local/share/neuroinsight-autohs/    # Native
 ```
 
 **See also:**
@@ -1336,13 +1336,13 @@ git pull origin master
 
 # Docker: Rebuild and restart
 docker pull phindagijimana321/neuroinsight:latest
-./neuroinsight-docker stop
+./neuroinsight-autohs-docker stop
 docker rm neuroinsight
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 
 # Native: Just restart
-./neuroinsight stop
-./neuroinsight start
+./neuroinsight-autohs stop
+./neuroinsight-autohs start
 ```
 
 ---

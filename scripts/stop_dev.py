@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Stop dev-only NeuroInsight services (port 8001).
+Stop dev-only NeuroInsight-AutoHS services (port 8001).
 """
 
 import os

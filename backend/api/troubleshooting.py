@@ -1,5 +1,5 @@
 """
-Troubleshooting API Router for NeuroInsight.
+Troubleshooting API Router for NeuroInsight-AutoHS.
 
 Provides intelligent error detection and auto-fix capabilities.
 """
@@ -224,7 +224,7 @@ async def diagnose_error(error_message: str, error_context: Optional[Dict[str, A
                 },
                 {
                     "type": "restart_service",
-                    "description": "Restart the NeuroInsight service",
+                    "description": "Restart the NeuroInsight-AutoHS service",
                     "auto_fix": True
                 }
             ],
@@ -279,7 +279,7 @@ async def apply_auto_fix(error_type: str, fix_type: str):
 
         elif error_type == "permissions" and fix_type == "fix_permissions":
             # Fix common permission issues
-            install_dir = Path.home() / "neuroinsight"
+            install_dir = Path.home() / "neuroinsight-autohs"
 
             # Fix permissions on install directory
             if install_dir.exists():
@@ -294,7 +294,7 @@ async def apply_auto_fix(error_type: str, fix_type: str):
                     if license_file.exists():
                         os.chmod(str(license_file), 0o644)
 
-                    actions_taken.append("Fixed permissions on NeuroInsight directories and files")
+                    actions_taken.append("Fixed permissions on NeuroInsight-AutoHS directories and files")
                 except Exception as e:
                     raise HTTPException(status_code=500, detail=f"Failed to fix permissions: {str(e)}")
 
@@ -327,7 +327,7 @@ async def apply_auto_fix(error_type: str, fix_type: str):
         elif error_type == "unknown_error" and fix_type == "restart_service":
             # Generic restart suggestion
             actions_taken.append("Recommended service restart")
-            follow_up_steps.append("Restart NeuroInsight application")
+            follow_up_steps.append("Restart NeuroInsight-AutoHS application")
             requires_restart = True
 
         else:
@@ -450,9 +450,9 @@ async def check_system_health():
 
         # Generate general recommendations
         if overall_health == "healthy":
-            recommendations.append("System is healthy and ready for NeuroInsight processing")
+            recommendations.append("System is healthy and ready for NeuroInsight-AutoHS processing")
         else:
-            recommendations.append("Address the issues above for optimal NeuroInsight performance")
+            recommendations.append("Address the issues above for optimal NeuroInsight-AutoHS performance")
 
         import datetime
         return SystemHealthResponse(
@@ -477,9 +477,9 @@ async def get_recent_logs(lines: int = 50):
     try:
         # Try to find log files
         possible_log_paths = [
-            Path.cwd() / "logs" / "neuroinsight.log",
-            Path.home() / ".neuroinsight" / "logs" / "neuroinsight.log",
-            Path("/var/log/neuroinsight.log")
+            Path.cwd() / "logs" / "neuroinsight-autohs.log",
+            Path.home() / ".neuroinsight" / "logs" / "neuroinsight-autohs.log",
+            Path("/var/log/neuroinsight-autohs.log")
         ]
 
         for log_path in possible_log_paths:

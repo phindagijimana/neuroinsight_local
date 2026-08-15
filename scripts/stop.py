@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-NeuroInsight Stop Script - Python-based for reliability
-Aggressively stops all NeuroInsight processes and services
+NeuroInsight-AutoHS Stop Script - Python-based for reliability
+Aggressively stops all NeuroInsight-AutoHS processes and services
 """
 
 import os
@@ -96,7 +96,7 @@ def stop_docker_services():
     try:
         log_info("Stopping Docker containers...")
 
-        containers = ['neuroinsight-minio', 'neuroinsight-redis', 'neuroinsight-postgres']
+        containers = ['neuroinsight-autohs-minio', 'neuroinsight-autohs-redis', 'neuroinsight-autohs-postgres']
         stopped_containers = []
 
         for container in containers:
@@ -147,7 +147,7 @@ def stop_docker_services():
                 container_ids = result.stdout.strip().split('\n')
                 for container_id in container_ids:
                     subprocess.run(['docker', 'kill', container_id], capture_output=True)
-                log_success("Force-killed remaining NeuroInsight containers")
+                log_success("Force-killed remaining NeuroInsight-AutoHS containers")
         except Exception as e:
             log_warning(f"Error force-killing containers: {e}")
 
@@ -204,7 +204,7 @@ def clear_stuck_jobs():
 
 def main():
     print("=" * 50)
-    print("   NeuroInsight Stop (Python-based)")
+    print("   NeuroInsight-AutoHS Stop (Python-based)")
     print("=" * 50)
     print()
 
@@ -220,10 +220,10 @@ def main():
         clear_stuck_jobs()
 
     # Aggressive process cleanup
-    log_info("Aggressively stopping all NeuroInsight processes...")
+    log_info("Aggressively stopping all NeuroInsight-AutoHS processes...")
 
     # Kill by PID files first
-    kill_process_by_pid_file("neuroinsight.pid", "backend")
+    kill_process_by_pid_file("neuroinsight-autohs.pid", "backend")
     kill_process_by_pid_file("celery.pid", "Celery worker")
     kill_process_by_pid_file("job_monitor.pid", "job monitor")
     kill_process_by_pid_file("job_queue_processor.pid", "job queue processor")
@@ -240,19 +240,19 @@ def main():
     stop_docker_services()
 
     # Final cleanup
-    for pid_file in ["neuroinsight.pid", "celery.pid", "job_monitor.pid", "job_queue_processor.pid", "monitor.pid"]:
+    for pid_file in ["neuroinsight-autohs.pid", "celery.pid", "job_monitor.pid", "job_queue_processor.pid", "monitor.pid"]:
         if os.path.exists(pid_file):
             try:
                 os.remove(pid_file)
             except OSError:
                 pass
 
-    log_success("NeuroInsight services stopped completely")
+    log_success("NeuroInsight-AutoHS services stopped completely")
 
     print()
     print("=" * 50)
-    print("To restart: ./neuroinsight start")
-    print("To check status: ./neuroinsight status")
+    print("To restart: ./neuroinsight-autohs start")
+    print("To check status: ./neuroinsight-autohs status")
     print("=" * 50)
 
 if __name__ == "__main__":

@@ -1,3 +1,3 @@
 @echo off
-REM NeuroInsight Docker - Logs Command
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0neuroinsight-docker.ps1" logs %*
+REM NeuroInsight-AutoHS Docker - Logs Command
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0neuroinsight-autohs-docker.ps1" logs %*

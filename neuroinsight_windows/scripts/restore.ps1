@@ -1,12 +1,12 @@
-# Restore NeuroInsight data from backup
+# Restore NeuroInsight-AutoHS data from backup
 
 param(
     [Parameter(Mandatory=$true)]
     [string]$BackupFile
 )
 
-$ContainerName = "neuroinsight"
-$VolumeName = "neuroinsight-data"
+$ContainerName = "neuroinsight-autohs"
+$VolumeName = "neuroinsight-autohs-data"
 
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }
 function Write-Success { param([string]$Message); Write-Host "[SUCCESS] $Message" -ForegroundColor Green }
@@ -15,7 +15,7 @@ function Write-Error { param([string]$Message); Write-Host "[ERROR] $Message" -F
 
 Write-Host ""
 Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "  NeuroInsight Data Restore" -ForegroundColor Cyan
+Write-Host "  NeuroInsight-AutoHS Data Restore" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 

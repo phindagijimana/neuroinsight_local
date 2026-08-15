@@ -1,5 +1,5 @@
 #!/bin/bash
-# Fix Docker-in-Docker Access for NeuroInsight
+# Fix Docker-in-Docker Access for NeuroInsight-AutoHS
 # This script diagnoses and fixes Docker socket permission issues
 
 set -e
@@ -16,7 +16,7 @@ log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 echo "========================================"
-echo "NeuroInsight Docker-in-Docker Fix"
+echo "NeuroInsight-AutoHS Docker-in-Docker Fix"
 echo "========================================"
 echo ""
 
@@ -82,13 +82,13 @@ else
 fi
 
 # Step 4: Check if container exists
-log_info "Step 4: Checking NeuroInsight container..."
-CONTAINER_NAME="neuroinsight"
+log_info "Step 4: Checking NeuroInsight-AutoHS container..."
+CONTAINER_NAME="neuroinsight-autohs"
 
 if ! docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
-    log_warning "NeuroInsight container does not exist"
+    log_warning "NeuroInsight-AutoHS container does not exist"
     echo ""
-    echo "Run: ./neuroinsight-docker install"
+    echo "Run: ./neuroinsight-autohs-docker install"
     exit 0
 fi
 
@@ -101,8 +101,8 @@ if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
         log_success "Container CAN access Docker socket - DinD is working!"
         echo ""
         log_info "Your setup is correct. If jobs still fail, check:"
-        echo "  1. FreeSurfer license: ./neuroinsight-docker license"
-        echo "  2. Container logs: ./neuroinsight-docker logs worker"
+        echo "  1. FreeSurfer license: ./neuroinsight-autohs-docker license"
+        echo "  2. Container logs: ./neuroinsight-autohs-docker logs worker"
         exit 0
     else
         log_error "Container CANNOT access Docker socket - DinD is broken"
@@ -131,7 +131,7 @@ fi
 
 # Recreate using the script (which now includes --group-add)
 log_info "Reinstalling with Docker group access..."
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 
 echo ""
 echo "========================================"
@@ -141,8 +141,8 @@ echo ""
 log_success "Container recreated with Docker group access"
 echo ""
 echo "Next steps:"
-echo "  1. Check status: ./neuroinsight-docker status"
-echo "  2. Verify Docker access: docker exec neuroinsight docker ps"
+echo "  1. Check status: ./neuroinsight-autohs-docker status"
+echo "  2. Verify Docker access: docker exec neuroinsight-autohs docker ps"
 echo "  3. Test with a job upload"
 echo ""
 log_info "If issues persist, check TROUBLESHOOTING.md"

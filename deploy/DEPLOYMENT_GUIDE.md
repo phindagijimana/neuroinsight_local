@@ -1,10 +1,10 @@
-# NeuroInsight Docker Deployment Guide
+# NeuroInsight-AutoHS Docker Deployment Guide
 
-Complete guide for deploying NeuroInsight using the all-in-one Docker container.
+Complete guide for deploying NeuroInsight-AutoHS using the all-in-one Docker container.
 
 ## Overview
 
-The all-in-one Docker deployment packages the entire NeuroInsight application into a single container, including:
+The all-in-one Docker deployment packages the entire NeuroInsight-AutoHS application into a single container, including:
 - PostgreSQL 15 (Database)
 - Redis 7 (Message broker)
 - MinIO (Object storage)
@@ -34,7 +34,7 @@ cd /path/to/neuroinsight_local/deploy
 ### Step 2: Install and Run
 
 ```bash
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 ```
 
 This will:
@@ -54,71 +54,71 @@ Open your browser to the URL shown (e.g., http://localhost:8000)
 
 ```bash
 # Start the application
-./neuroinsight-docker start
+./neuroinsight-autohs-docker start
 
 # Stop the application
-./neuroinsight-docker stop
+./neuroinsight-autohs-docker stop
 
 # Restart services
-./neuroinsight-docker restart
+./neuroinsight-autohs-docker restart
 
 # Check status
-./neuroinsight-docker status
+./neuroinsight-autohs-docker status
 
 # View logs
-./neuroinsight-docker logs
-./neuroinsight-docker logs backend
-./neuroinsight-docker logs worker
+./neuroinsight-autohs-docker logs
+./neuroinsight-autohs-docker logs backend
+./neuroinsight-autohs-docker logs worker
 ```
 
 ### Health & Monitoring
 
 ```bash
 # Check all services health
-./neuroinsight-docker health
+./neuroinsight-autohs-docker health
 
 # Check FreeSurfer license
-./neuroinsight-docker license
+./neuroinsight-autohs-docker license
 ```
 
 ### Data Management
 
 ```bash
 # Clean old jobs (older than 30 days)
-./neuroinsight-docker clean
+./neuroinsight-autohs-docker clean
 
 # Clean jobs with custom days
-./neuroinsight-docker clean --days 7
+./neuroinsight-autohs-docker clean --days 7
 
 # Recover a specific job
-./neuroinsight-docker bring <job_id>
+./neuroinsight-autohs-docker bring <job_id>
 ```
 
 ### Backup & Restore
 
 ```bash
 # Backup all data
-./neuroinsight-docker backup
+./neuroinsight-autohs-docker backup
 
 # Restore from backup
-./neuroinsight-docker restore /path/to/backup.tar.gz
+./neuroinsight-autohs-docker restore /path/to/backup.tar.gz
 ```
 
 ### Updates
 
 ```bash
 # Update to latest version
-./neuroinsight-docker update
+./neuroinsight-autohs-docker update
 ```
 
 ### Advanced
 
 ```bash
 # Access container shell
-./neuroinsight-docker shell
+./neuroinsight-autohs-docker shell
 
 # Remove everything (including data)
-./neuroinsight-docker remove
+./neuroinsight-autohs-docker remove
 ```
 
 ## Features
@@ -153,7 +153,7 @@ The all-in-one container uses **Docker-in-Docker** for MRI processing:
 
 ### Data Persistence
 
-All data is stored in a Docker volume (`neuroinsight-data`):
+All data is stored in a Docker volume (`neuroinsight-autohs-data`):
 - Uploaded MRI files
 - Processing results
 - Database
@@ -198,10 +198,10 @@ This creates:
 docker ps
 
 # Check logs
-./neuroinsight-docker logs
+./neuroinsight-autohs-docker logs
 
 # Check health
-./neuroinsight-docker health
+./neuroinsight-autohs-docker health
 ```
 
 ### Port Already in Use
@@ -212,21 +212,21 @@ The system automatically finds an available port. If you get a port error:
 # Check what's using ports
 lsof -i :8000-8050
 
-# Or specify a different port range by editing neuroinsight-docker
+# Or specify a different port range by editing neuroinsight-autohs-docker
 ```
 
 ### License Not Detected
 
 ```bash
 # Check license status
-./neuroinsight-docker license
+./neuroinsight-autohs-docker license
 
 # Manually mount license
 docker stop neuroinsight
 docker rm neuroinsight
-docker run -d --name neuroinsight \
+docker run -d --name neuroinsight-autohs \
   -p 8000:8000 \
-  -v neuroinsight-data:/data \
+  -v neuroinsight-autohs-data:/data \
   -v /path/to/license.txt:/app/license.txt:ro \
   neuroinsight/allinone:latest
 ```
@@ -235,7 +235,7 @@ docker run -d --name neuroinsight \
 
 ```bash
 # Check individual service status
-./neuroinsight-docker shell
+./neuroinsight-autohs-docker shell
 supervisorctl status
 
 # Restart a specific service
@@ -250,7 +250,7 @@ supervisorctl restart worker
 docker system prune -a
 
 # Clean old jobs
-./neuroinsight-docker clean --days 7
+./neuroinsight-autohs-docker clean --days 7
 
 # Check volume size
 docker system df
@@ -267,7 +267,7 @@ deploy/
 ├── healthcheck.sh         # Health check script
 ├── build.sh               # Build images
 ├── release.sh             # Publish to Docker Hub
-├── neuroinsight-docker    # Management CLI
+├── neuroinsight-autohs-docker    # Management CLI
 ├── quick-start.sh         # Interactive setup
 ├── README_DOCKER.md       # This file
 └── DEPLOYMENT_GUIDE.md    # Complete guide
@@ -317,7 +317,7 @@ All internal services communicate via localhost.
 
 ### Custom Port
 
-Edit `neuroinsight-docker` script to change port range or force specific port.
+Edit `neuroinsight-autohs-docker` script to change port range or force specific port.
 
 ### Multiple Instances
 
@@ -326,12 +326,12 @@ Run multiple instances on different ports:
 ```bash
 docker run -d --name neuroinsight-8001 \
   -p 8001:8000 \
-  -v neuroinsight-data-1:/data \
+  -v neuroinsight-autohs-data-1:/data \
   neuroinsight/allinone:latest
 
 docker run -d --name neuroinsight-8002 \
   -p 8002:8000 \
-  -v neuroinsight-data-2:/data \
+  -v neuroinsight-autohs-data-2:/data \
   neuroinsight/allinone:latest
 ```
 
@@ -340,17 +340,17 @@ docker run -d --name neuroinsight-8002 \
 ```yaml
 version: '3.8'
 services:
-  neuroinsight:
+  neuroinsight-autohs:
     image: neuroinsight/allinone:latest
     ports:
       - "8000:8000"
     volumes:
-      - neuroinsight-data:/data
+      - neuroinsight-autohs-data:/data
       - ./license.txt:/app/license.txt:ro
     restart: unless-stopped
 
 volumes:
-  neuroinsight-data:
+  neuroinsight-autohs-data:
 ```
 
 ```bash
@@ -364,7 +364,7 @@ Mount source code for live development:
 ```bash
 docker run -d --name neuroinsight-dev \
   -p 8000:8000 \
-  -v neuroinsight-data:/data \
+  -v neuroinsight-autohs-data:/data \
   -v $(pwd)/../backend:/app/backend \
   -v $(pwd)/../frontend:/app/frontend \
   neuroinsight/allinone:latest
@@ -391,7 +391,7 @@ docker run -d --name neuroinsight-dev \
 Users on `latest` tag get automatic updates:
 
 ```bash
-./neuroinsight-docker update
+./neuroinsight-autohs-docker update
 ```
 
 Users on specific versions need to manually update:
@@ -421,8 +421,8 @@ docker pull neuroinsight/allinone:v1.1.0
 ## Support
 
 For issues:
-1. Check logs: `./neuroinsight-docker logs`
-2. Check health: `./neuroinsight-docker health`
+1. Check logs: `./neuroinsight-autohs-docker logs`
+2. Check health: `./neuroinsight-autohs-docker health`
 3. Review main repository README and troubleshooting guides
 
 ## License

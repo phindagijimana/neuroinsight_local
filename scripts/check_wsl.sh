@@ -1,6 +1,6 @@
 #!/bin/bash
 # WSL Environment Check Script
-# Validates WSL environment before NeuroInsight installation
+# Validates WSL environment before NeuroInsight-AutoHS installation
 
 # Colors
 RED='\033[0;31m'
@@ -10,7 +10,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo "=========================================="
-echo "  NeuroInsight WSL Environment Check"
+echo "  NeuroInsight-AutoHS WSL Environment Check"
 echo "=========================================="
 echo ""
 
@@ -57,7 +57,7 @@ if systemctl --version &> /dev/null; then
     fi
 else
     echo -e "${RED}[X]${NC} systemd is not available"
-    echo "  → NeuroInsight requires systemd for auto-restart functionality"
+    echo "  → NeuroInsight-AutoHS requires systemd for auto-restart functionality"
     echo "  → Enable systemd in /etc/wsl.conf:"
     echo "    [boot]"
     echo "    systemd=true"
@@ -153,7 +153,7 @@ if command -v python3 &> /dev/null; then
         echo -e "${GREEN}[OK]${NC} python3-venv is installed"
     else
         echo -e "${YELLOW}[WARNING]${NC} python3-venv is not installed"
-        echo "  → Will be auto-installed during NeuroInsight installation"
+        echo "  → Will be auto-installed during NeuroInsight-AutoHS installation"
         WARNINGS_FOUND=$((WARNINGS_FOUND + 1))
     fi
 else
@@ -202,12 +202,12 @@ echo ""
 if [ $ISSUES_FOUND -eq 0 ] && [ $WARNINGS_FOUND -eq 0 ]; then
     echo -e "${GREEN}[OK] All checks passed!${NC}"
     echo ""
-    echo "Your WSL environment is ready for NeuroInsight installation."
+    echo "Your WSL environment is ready for NeuroInsight-AutoHS installation."
     echo ""
     echo "Next steps:"
     echo "  1. Get FreeSurfer license: https://surfer.nmr.mgh.harvard.edu/registration.html"
     echo "  2. Save license as: license.txt"
-    echo "  3. Run: ./neuroinsight install"
+    echo "  3. Run: ./neuroinsight-autohs install"
     exit 0
 elif [ $ISSUES_FOUND -eq 0 ]; then
     echo -e "${YELLOW}[WARNING] $WARNINGS_FOUND warning(s) found${NC}"
@@ -223,7 +223,7 @@ else
         echo -e "${YELLOW}[WARNING] $WARNINGS_FOUND warning(s) found${NC}"
     fi
     echo ""
-    echo "Please fix the critical issues above before installing NeuroInsight."
+    echo "Please fix the critical issues above before installing NeuroInsight-AutoHS."
     echo ""
     echo "Common fixes:"
     echo "  1. Enable systemd in /etc/wsl.conf"

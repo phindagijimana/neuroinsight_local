@@ -2,7 +2,7 @@
 
 ## Problem
 
-NeuroInsight needs to spawn FreeSurfer containers for MRI processing. This requires:
+NeuroInsight-AutoHS needs to spawn FreeSurfer containers for MRI processing. This requires:
 1. Docker socket mounted: `/var/run/docker.sock:/var/run/docker.sock` [OK]
 2. Container user has permission to access the socket [X] (varies by system)
 
@@ -86,7 +86,7 @@ fi
 **Option 1: Pull new image and restart**
 ```bash
 docker pull phindagijimana321/neuroinsight:latest
-./neuroinsight-docker restart
+./neuroinsight-autohs-docker restart
 ```
 
 **Option 2: docker-compose**
@@ -101,7 +101,7 @@ docker-compose up -d
 
 Just install normally:
 ```bash
-./neuroinsight-docker install
+./neuroinsight-autohs-docker install
 ```
 
 Docker socket permissions are configured automatically on first startup.
@@ -112,7 +112,7 @@ Check that Docker access works:
 
 ```bash
 # Method 1: Check container logs during startup
-docker logs neuroinsight 2>&1 | grep -A 10 "Docker socket"
+docker logs neuroinsight-autohs 2>&1 | grep -A 10 "Docker socket"
 
 # Should show:
 # [OK] Docker access verified - FreeSurfer spawning enabled
@@ -137,7 +137,7 @@ DOCKER_GID=$(getent group docker | cut -d: -f3)
 
 # Run container with explicit group-add
 docker run -d \
-  --name neuroinsight \
+  --name neuroinsight-autohs \
   --group-add $DOCKER_GID \
   -v /var/run/docker.sock:/var/run/docker.sock \
   ... other flags ...
@@ -157,7 +157,7 @@ the `root` group, and `set -e` caused a crash loop.
 - If socket GID is **0**, add the `neuroinsight` user to the **root** group instead of calling `groupmod`.
 - Treat `groupmod` failures on other GIDs as warnings, not fatal errors.
 
-After pulling an image that includes this fix, `./neuroinsight-docker install` works on
+After pulling an image that includes this fix, `./neuroinsight-autohs-docker install` works on
 macOS without mounting a custom entrypoint.
 
 **Apple Silicon note:** The published image may be `linux/amd64`. Docker Desktop runs it

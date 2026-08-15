@@ -1,4 +1,4 @@
-"""Business logic services for NeuroInsight application."""
+"""Business logic services for NeuroInsight-AutoHS application."""
 
 from .cleanup_service import CleanupService
 from .job_service import JobService

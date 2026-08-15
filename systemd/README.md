@@ -1,6 +1,6 @@
-# NeuroInsight Systemd Services
+# NeuroInsight-AutoHS Systemd Services
 
-User-level systemd services for NeuroInsight. **No sudo required!**
+User-level systemd services for NeuroInsight-AutoHS. **No sudo required!**
 
 ## Features
 
@@ -42,47 +42,47 @@ This will:
 
 ### 2. Start Docker Infrastructure
 
-Before starting NeuroInsight services, ensure Docker containers are running:
+Before starting NeuroInsight-AutoHS services, ensure Docker containers are running:
 
 ```bash
 # Start PostgreSQL, Redis, MinIO
 cd ..
-./neuroinsight start-docker
+./neuroinsight-autohs start-docker
 ```
 
 Or manually:
 
 ```bash
-docker run -d --name neuroinsight-postgres \
+docker run -d --name neuroinsight-autohs-postgres \
   -e POSTGRES_DB=neuroinsight \
   -e POSTGRES_USER=neuroinsight \
   -e POSTGRES_PASSWORD=JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg \
   -p 5432:5432 --restart unless-stopped \
   postgres:15-alpine
 
-docker run -d --name neuroinsight-redis \
+docker run -d --name neuroinsight-autohs-redis \
   -p 6379:6379 --restart unless-stopped \
   redis:7-alpine redis-server --appendonly yes --requirepass redis_secure_password
 
-docker run -d --name neuroinsight-minio \
-  -e MINIO_ROOT_USER=neuroinsight_minio \
+docker run -d --name neuroinsight-autohs-minio \
+  -e MINIO_ROOT_USER=neuroinsight_autohs_minio \
   -e MINIO_ROOT_PASSWORD=minio_secure_password \
   -p 9000:9000 -p 9001:9001 --restart unless-stopped \
   minio/minio:latest server /data --console-address :9001
 ```
 
-### 3. Start NeuroInsight Services
+### 3. Start NeuroInsight-AutoHS Services
 
 ```bash
 # Start all services
-systemctl --user start neuroinsight-backend
-systemctl --user start neuroinsight-worker
-systemctl --user start neuroinsight-beat
-systemctl --user start neuroinsight-monitor
+systemctl --user start neuroinsight-autohs-backend
+systemctl --user start neuroinsight-autohs-worker
+systemctl --user start neuroinsight-autohs-beat
+systemctl --user start neuroinsight-autohs-monitor
 
 # Or use helper script
 cd ..
-./neuroinsight start-systemd
+./neuroinsight-autohs start-systemd
 ```
 
 ### 4. Check Status
@@ -92,10 +92,10 @@ cd ..
 systemctl --user status neuroinsight-*
 
 # Check individual service
-systemctl --user status neuroinsight-worker
+systemctl --user status neuroinsight-autohs-worker
 
 # Or use helper
-./neuroinsight status-systemd
+./neuroinsight-autohs status-systemd
 ```
 
 ## Service Management
@@ -103,10 +103,10 @@ systemctl --user status neuroinsight-worker
 ### Start Services
 
 ```bash
-systemctl --user start neuroinsight-backend   # Backend API
-systemctl --user start neuroinsight-worker    # Celery worker
-systemctl --user start neuroinsight-beat      # Periodic task scheduler
-systemctl --user start neuroinsight-monitor   # Job monitor
+systemctl --user start neuroinsight-autohs-backend   # Backend API
+systemctl --user start neuroinsight-autohs-worker    # Celery worker
+systemctl --user start neuroinsight-autohs-beat      # Periodic task scheduler
+systemctl --user start neuroinsight-autohs-monitor   # Job monitor
 
 # Start all at once
 systemctl --user start neuroinsight-*
@@ -115,10 +115,10 @@ systemctl --user start neuroinsight-*
 ### Stop Services
 
 ```bash
-systemctl --user stop neuroinsight-backend
-systemctl --user stop neuroinsight-worker
-systemctl --user stop neuroinsight-beat
-systemctl --user stop neuroinsight-monitor
+systemctl --user stop neuroinsight-autohs-backend
+systemctl --user stop neuroinsight-autohs-worker
+systemctl --user stop neuroinsight-autohs-beat
+systemctl --user stop neuroinsight-autohs-monitor
 
 # Stop all at once
 systemctl --user stop neuroinsight-*
@@ -128,7 +128,7 @@ systemctl --user stop neuroinsight-*
 
 ```bash
 # Restart individual service
-systemctl --user restart neuroinsight-worker
+systemctl --user restart neuroinsight-autohs-worker
 
 # Restart all
 systemctl --user restart neuroinsight-*
@@ -150,18 +150,18 @@ systemctl --user disable neuroinsight-*
 
 ```bash
 # Follow backend logs (live)
-journalctl --user -u neuroinsight-backend -f
+journalctl --user -u neuroinsight-autohs-backend -f
 
 # Follow worker logs (live)
-journalctl --user -u neuroinsight-worker -f
+journalctl --user -u neuroinsight-autohs-worker -f
 
 # View last 100 lines
-journalctl --user -u neuroinsight-worker -n 100
+journalctl --user -u neuroinsight-autohs-worker -n 100
 
 # View logs since specific time
-journalctl --user -u neuroinsight-worker --since "1 hour ago"
+journalctl --user -u neuroinsight-autohs-worker --since "1 hour ago"
 
-# View all NeuroInsight logs
+# View all NeuroInsight-AutoHS logs
 journalctl --user -u neuroinsight-* -f
 ```
 
@@ -172,7 +172,7 @@ Logs are also written to the project directory:
 ```bash
 tail -f ~/src/desktop_alone_web_1/celery_worker.log
 tail -f ~/src/desktop_alone_web_1/celery_beat.log
-tail -f ~/src/desktop_alone_web_1/neuroinsight.log
+tail -f ~/src/desktop_alone_web_1/neuroinsight-autohs.log
 tail -f ~/src/desktop_alone_web_1/job_monitor.log
 ```
 
@@ -182,10 +182,10 @@ tail -f ~/src/desktop_alone_web_1/job_monitor.log
 
 ```bash
 # Check status
-systemctl --user status neuroinsight-worker
+systemctl --user status neuroinsight-autohs-worker
 
 # View detailed logs
-journalctl --user -u neuroinsight-worker -n 50
+journalctl --user -u neuroinsight-autohs-worker -n 50
 
 # Check if Docker containers are running
 docker ps | grep neuroinsight
@@ -195,7 +195,7 @@ docker ps | grep neuroinsight
 
 ```bash
 # Check worker logs
-journalctl --user -u neuroinsight-worker -f
+journalctl --user -u neuroinsight-autohs-worker -f
 
 # Common issues:
 # 1. Redis not running → Start Redis container
@@ -240,16 +240,16 @@ Without linger, services stop when you log out (like closing SSH session).
 
 Services start in this order:
 
-1. **neuroinsight-backend** - Backend API (first)
-2. **neuroinsight-worker** - Celery worker (requires backend)
-3. **neuroinsight-beat** - Beat scheduler (requires worker)
-4. **neuroinsight-monitor** - Job monitor (optional)
+1. **neuroinsight-autohs-backend** - Backend API (first)
+2. **neuroinsight-autohs-worker** - Celery worker (requires backend)
+3. **neuroinsight-autohs-beat** - Beat scheduler (requires worker)
+4. **neuroinsight-autohs-monitor** - Job monitor (optional)
 
 Systemd automatically manages these dependencies.
 
 ## Comparison: Systemd vs Manual Start
 
-| Feature | Systemd | Manual (`./neuroinsight start`) |
+| Feature | Systemd | Manual (`./neuroinsight-autohs start`) |
 |---------|---------|---------------------|
 | Auto-restart on crash | [YES] Yes | [NO] No |
 | Start on boot | [YES] Yes | [NO] No |
@@ -260,7 +260,7 @@ Systemd automatically manages these dependencies.
 
 ## Best Practices
 
-1. **Development**: Use `./neuroinsight start` for quick iterations
+1. **Development**: Use `./neuroinsight-autohs start` for quick iterations
 2. **Production**: Use systemd services for robust deployment
 3. **Testing**: Use systemd to ensure services recover from failures
 4. **Distribution**: Include systemd installer in your app package
@@ -269,7 +269,7 @@ Systemd automatically manages these dependencies.
 
 ### Custom environment variables
 
-Edit `~/.config/systemd/user/neuroinsight-worker.service`:
+Edit `~/.config/systemd/user/neuroinsight-autohs-worker.service`:
 
 ```ini
 [Service]
@@ -281,7 +281,7 @@ Then reload:
 
 ```bash
 systemctl --user daemon-reload
-systemctl --user restart neuroinsight-worker
+systemctl --user restart neuroinsight-autohs-worker
 ```
 
 ### Resource limits
@@ -314,6 +314,6 @@ This stops all services, disables them, and removes service files.
 ## Support
 
 For issues:
-1. Check logs: `journalctl --user -u neuroinsight-worker`
+1. Check logs: `journalctl --user -u neuroinsight-autohs-worker`
 2. Verify Docker: `docker ps`
 3. Check status: `systemctl --user status neuroinsight-*`

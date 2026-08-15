@@ -1,4 +1,4 @@
-# NeuroInsight Worker Dockerfile
+# NeuroInsight-AutoHS Worker Dockerfile
 FROM python:3.9-slim
 
 # Set environment variables

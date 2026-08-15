@@ -1,5 +1,5 @@
 #!/bin/bash
-# NeuroInsight Health Check Script
+# NeuroInsight-AutoHS Health Check Script
 # Run this periodically via cron to monitor system health
 
 set -e
@@ -37,7 +37,7 @@ alert() {
 
     # Send email alert if configured
     if [ -n "$ALERT_EMAIL" ]; then
-        echo "NeuroInsight Alert: $message" | mail -s "NeuroInsight Health Alert" "$ALERT_EMAIL"
+        echo "NeuroInsight-AutoHS Alert: $message" | mail -s "NeuroInsight-AutoHS Health Alert" "$ALERT_EMAIL"
     fi
 }
 
@@ -84,7 +84,7 @@ check_celery_workers() {
             log "${YELLOW}Cleaning up duplicate workers...${NC}"
             pkill -9 -f "celery.*worker.*processing_web"
             sleep 2
-            cd "$SCRIPT_DIR" && ./neuroinsight start celery
+            cd "$SCRIPT_DIR" && ./neuroinsight-autohs start celery
         fi
         return 1
     else
@@ -103,7 +103,7 @@ check_containers() {
     fi
 
     # Check required containers
-    local containers=("neuroinsight-postgres" "neuroinsight-redis" "neuroinsight-minio")
+    local containers=("neuroinsight-autohs-postgres" "neuroinsight-autohs-redis" "neuroinsight-autohs-minio")
     local all_healthy=true
 
     for container in "${containers[@]}"; do
@@ -138,7 +138,7 @@ check_containers() {
         fi
         
         log "${YELLOW}Attempting to restart services...${NC}"
-        cd "$SCRIPT_DIR" && ./neuroinsight start
+        cd "$SCRIPT_DIR" && ./neuroinsight-autohs start
     fi
 }
 
@@ -146,7 +146,7 @@ check_containers() {
 check_processes() {
     log "Checking for orphaned processes..."
 
-    # Check for orphaned NeuroInsight processes
+    # Check for orphaned NeuroInsight-AutoHS processes
     local orphaned=$(ps aux | grep -E "(python.*neuroinsight|celery.*neuroinsight)" | grep -v grep | wc -l)
 
     if [ "$orphaned" -gt 0 ]; then
@@ -157,13 +157,13 @@ check_processes() {
             return 0
         fi
         # Run the monitor script to clean up
-        cd "$SCRIPT_DIR" && ./neuroinsight monitor cleanup 2>/dev/null || true
+        cd "$SCRIPT_DIR" && ./neuroinsight-autohs monitor cleanup 2>/dev/null || true
     fi
 }
 
 # Main health check
 main() {
-    log "=== NeuroInsight Health Check Started ==="
+    log "=== NeuroInsight-AutoHS Health Check Started ==="
 
     check_resources
     check_celery_workers
@@ -171,7 +171,7 @@ main() {
     check_processes
 
     log "${GREEN}Health check completed${NC}"
-    log "=== NeuroInsight Health Check Finished ==="
+    log "=== NeuroInsight-AutoHS Health Check Finished ==="
     echo "" >> "$LOG_FILE"
 }
 

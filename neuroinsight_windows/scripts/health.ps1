@@ -1,6 +1,6 @@
-# Check NeuroInsight health
+# Check NeuroInsight-AutoHS health
 
-$ContainerName = "neuroinsight"
+$ContainerName = "neuroinsight-autohs"
 
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }
 function Write-Success { param([string]$Message); Write-Host "[SUCCESS] $Message" -ForegroundColor Green }
@@ -9,7 +9,7 @@ function Write-Error { param([string]$Message); Write-Host "[ERROR] $Message" -F
 
 Write-Host ""
 Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "  NeuroInsight System Health Check" -ForegroundColor Cyan
+Write-Host "  NeuroInsight-AutoHS System Health Check" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 

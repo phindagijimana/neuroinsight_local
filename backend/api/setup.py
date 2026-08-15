@@ -1,5 +1,5 @@
 """
-Setup API Router for NeuroInsight.
+Setup API Router for NeuroInsight-AutoHS.
 
 Provides endpoints for the web-based first-time setup wizard.
 """
@@ -105,7 +105,7 @@ async def check_system_compatibility():
     """
     Perform comprehensive system compatibility checks.
 
-    Returns detailed information about system compatibility for NeuroInsight.
+    Returns detailed information about system compatibility for NeuroInsight-AutoHS.
     """
     try:
         # RAM check
@@ -245,7 +245,7 @@ async def validate_existing_license():
             Path("./freesurfer_license.txt"),  # Legacy support
             Path("./resources/licenses/license.txt"),
             Path("./resources/licenses/freesurfer_license.txt"),
-            Path.home() / "neuroinsight" / "license.txt",
+            Path.home() / "neuroinsight-autohs" / "license.txt",
             Path("/usr/local/freesurfer/license.txt"),
         ]
 
@@ -313,7 +313,7 @@ async def complete_setup():
 
         return {
             "status": "success",
-            "message": "Setup completed successfully! NeuroInsight is now ready to use.",
+            "message": "Setup completed successfully! NeuroInsight-AutoHS is now ready to use.",
             "next_steps": [
                 "Open http://localhost:8001 to access the application",
                 "Upload MRI scans for processing",

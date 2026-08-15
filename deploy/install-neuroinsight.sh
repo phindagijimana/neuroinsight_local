@@ -1,5 +1,5 @@
 #!/bin/bash
-# NeuroInsight One-Click Installer
+# NeuroInsight-AutoHS One-Click Installer
 # Distributed via landing page
 
 set -e
@@ -82,7 +82,7 @@ fi
 echo ""
 
 # Pull image
-log_info "Downloading NeuroInsight ${VERSION}..."
+log_info "Downloading NeuroInsight-AutoHS ${VERSION}..."
 log_info "This may take a few minutes (image size: ~1.5GB)..."
 echo ""
 
@@ -126,11 +126,11 @@ fi
 echo ""
 
 # Create and start container
-log_info "Starting NeuroInsight..."
+log_info "Starting NeuroInsight-AutoHS..."
 docker run -d \
-    --name neuroinsight \
+    --name neuroinsight-autohs \
     -p ${port}:8000 \
-    -v neuroinsight-data:/data \
+    -v neuroinsight-autohs-data:/data \
     ${license_mount} \
     --restart unless-stopped \
     ${IMAGE}:${VERSION}
@@ -144,7 +144,7 @@ max_attempts=12
 attempt=0
 while [ $attempt -lt $max_attempts ]; do
     if curl -s http://localhost:${port}/health > /dev/null 2>&1; then
-        log_success "NeuroInsight is ready!"
+        log_success "NeuroInsight-AutoHS is ready!"
         break
     fi
     sleep 5
@@ -157,18 +157,18 @@ cat << EOF
 ║                    INSTALLATION COMPLETE!                     ║
 ╚═══════════════════════════════════════════════════════════════╝
 
-Access NeuroInsight at: http://localhost:${port}
+Access NeuroInsight-AutoHS at: http://localhost:${port}
 
 Management Commands:
-  docker stop neuroinsight      Stop the application
-  docker start neuroinsight     Start the application
-  docker restart neuroinsight   Restart the application
-  docker logs neuroinsight      View logs
+  docker stop neuroinsight-autohs      Stop the application
+  docker start neuroinsight-autohs     Start the application
+  docker restart neuroinsight-autohs   Restart the application
+  docker logs neuroinsight-autohs      View logs
 
 Need Help?
   Documentation: https://neuroinsight.example.com/docs
   Support: support@neuroinsight.example.com
 
-Thank you for using NeuroInsight!
+Thank you for using NeuroInsight-AutoHS!
 
 EOF

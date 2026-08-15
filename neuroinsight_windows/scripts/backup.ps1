@@ -1,11 +1,11 @@
-# Backup NeuroInsight data
+# Backup NeuroInsight-AutoHS data
 
 param(
     [string]$OutputPath = "neuroinsight-backup-$(Get-Date -Format 'yyyyMMdd-HHmmss').tar.gz"
 )
 
-$ContainerName = "neuroinsight"
-$VolumeName = "neuroinsight-data"
+$ContainerName = "neuroinsight-autohs"
+$VolumeName = "neuroinsight-autohs-data"
 
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }
 function Write-Success { param([string]$Message); Write-Host "[SUCCESS] $Message" -ForegroundColor Green }
@@ -14,7 +14,7 @@ function Write-Error { param([string]$Message); Write-Host "[ERROR] $Message" -F
 
 Write-Host ""
 Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "  NeuroInsight Data Backup" -ForegroundColor Cyan
+Write-Host "  NeuroInsight-AutoHS Data Backup" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 Write-Host ""
 

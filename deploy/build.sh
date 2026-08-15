@@ -1,10 +1,10 @@
 #!/bin/bash
-# Build script for NeuroInsight all-in-one Docker image
+# Build script for NeuroInsight-AutoHS all-in-one Docker image
 
 set -e
 
 echo "======================================"
-echo "NeuroInsight All-in-One Docker Build"
+echo "NeuroInsight-AutoHS All-in-One Docker Build"
 echo "======================================"
 echo ""
 
@@ -83,7 +83,7 @@ docker images "$IMAGE_NAME" --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}
 echo ""
 
 log_info "To run the container:"
-echo "  docker run -d --name neuroinsight -p 8000:8000 -v neuroinsight-data:/data $IMAGE_NAME:$VERSION"
+echo "  docker run -d --name neuroinsight-autohs -p 8000:8000 -v neuroinsight-autohs-data:/data $IMAGE_NAME:$VERSION"
 echo ""
 
 log_info "Or using docker-compose:"

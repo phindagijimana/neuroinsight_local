@@ -1,6 +1,6 @@
 #!/bin/bash
-# NeuroInsight Process Monitor
-# Monitors and manages NeuroInsight processes with automatic cleanup
+# NeuroInsight-AutoHS Process Monitor
+# Monitors and manages NeuroInsight-AutoHS processes with automatic cleanup
 
 set -e
 
@@ -167,12 +167,12 @@ print(json.dumps(state, indent=2))
 
 # Function to clean up orphaned processes with grace period
 cleanup_processes() {
-    log_info "Checking for orphaned NeuroInsight processes..."
+    log_info "Checking for orphaned NeuroInsight-AutoHS processes..."
 
     local cleaned=0
     local tracked=0
 
-    # Find all Python processes related to NeuroInsight
+    # Find all Python processes related to NeuroInsight-AutoHS
     local pids=$(pgrep -f "python3.*neuroinsight\|python3.*backend\|python3.*celery.*processing_web" 2>/dev/null || true)
 
     for pid in $pids; do
@@ -251,7 +251,7 @@ check_resources() {
         log_success "Disk usage: ${disk_percent}%"
     fi
 
-    # Check for NeuroInsight-specific resource issues
+    # Check for NeuroInsight-AutoHS-specific resource issues
     if [ -d "data/outputs" ]; then
         local output_size=$(du -sm data/outputs 2>/dev/null | cut -f1 || echo "0")
         if [ "$output_size" -gt 1000 ]; then  # More than 1GB
@@ -391,7 +391,7 @@ except Exception as e:
         fi
 
     else
-        log_error "Cannot connect to NeuroInsight API - jobs cannot be monitored"
+        log_error "Cannot connect to NeuroInsight-AutoHS API - jobs cannot be monitored"
     fi
 }
 
@@ -444,7 +444,7 @@ print(f'{ready_cleanup},{waiting}')
 # Main monitoring logic
 main() {
     echo "========================================"
-    echo "   NeuroInsight Auto-Cleanup Monitor"
+    echo "   NeuroInsight-AutoHS Auto-Cleanup Monitor"
     echo "   Grace Period: ${CLEANUP_GRACE_PERIOD_MINUTES} minutes (3 hours)"
     echo "========================================"
     echo

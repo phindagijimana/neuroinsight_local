@@ -1,7 +1,7 @@
 [Unit]
-Description=NeuroInsight Job Monitor
+Description=NeuroInsight-AutoHS Job Monitor
 After=network.target
-Requires=neuroinsight-backend.service
+Requires=neuroinsight-autohs-backend.service
 
 [Service]
 Type=simple

@@ -2,7 +2,7 @@ services:
   # Initialize directories
   init:
     image: busybox
-    container_name: neuroinsight-init
+    container_name: neuroinsight-autohs-init
     command: sh -c "mkdir -p /data/uploads /data/outputs /data/logs && chmod -R 777 /data"
     volumes:
       - ./data:/data
@@ -11,7 +11,7 @@ services:
   # PostgreSQL Database
   db:
     image: postgres:15-alpine
-    container_name: neuroinsight-db
+    container_name: neuroinsight-autohs-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-neuroinsight}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
@@ -27,12 +27,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - neuroinsight-network
+      - neuroinsight-autohs-network
 
   # Redis (Message Broker)
   redis:
     image: redis:7-alpine
-    container_name: neuroinsight-redis
+    container_name: neuroinsight-autohs-redis
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_secure_password}
     volumes:
       - redis_data:/data
@@ -45,12 +45,12 @@ services:
       timeout: 3s
       retries: 5
     networks:
-      - neuroinsight-network
+      - neuroinsight-autohs-network
 
   # MinIO (S3-compatible storage)
   minio:
     image: minio/minio:latest
-    container_name: neuroinsight-minio
+    container_name: neuroinsight-autohs-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
@@ -67,14 +67,14 @@ services:
       timeout: 20s
       retries: 3
     networks:
-      - neuroinsight-network
+      - neuroinsight-autohs-network
 
   # Backend API
   backend:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
-    container_name: neuroinsight-backend
+    container_name: neuroinsight-autohs-backend
     env_file:
       - .env
     environment:
@@ -99,7 +99,7 @@ services:
       minio:
         condition: service_healthy
     networks:
-      - neuroinsight-network
+      - neuroinsight-autohs-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -113,7 +113,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.worker
-    container_name: neuroinsight-worker
+    container_name: neuroinsight-autohs-worker
     env_file:
       - .env
     environment:
@@ -141,7 +141,7 @@ services:
       backend:
         condition: service_started
     networks:
-      - neuroinsight-network
+      - neuroinsight-autohs-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "celery", "-A", "workers.tasks.processing_web", "inspect", "ping"]
@@ -163,7 +163,7 @@ services:
     depends_on:
       - backend
     networks:
-      - neuroinsight-network
+      - neuroinsight-autohs-network
     restart: unless-stopped
 
 volumes:
@@ -175,6 +175,6 @@ volumes:
     driver: local
 
 networks:
-  neuroinsight-network:
+  neuroinsight-autohs-network:
     driver: bridge
 

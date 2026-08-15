@@ -1,15 +1,15 @@
 #!/bin/bash
-# NeuroInsight Docker Management CLI
-# Equivalent to ./neuroinsight but for Docker deployment
+# NeuroInsight-AutoHS Docker Management CLI
+# Equivalent to ./neuroinsight-autohs but for Docker deployment
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CONTAINER_NAME="neuroinsight"
+CONTAINER_NAME="neuroinsight-autohs"
 IMAGE_NAME="phindagijimana321/neuroinsight:latest"
 FREESURFER_IMAGE="${FREESURFER_IMAGE:-freesurfer/freesurfer:7.4.1}"
-VOLUME_NAME="neuroinsight-data"
+VOLUME_NAME="neuroinsight-autohs-data"
 MIN_DISK_GB="${NEUROINSIGHT_MIN_DISK_GB:-50}"
 MIN_RAM_GB="${NEUROINSIGHT_MIN_RAM_GB:-16}"
 
@@ -128,7 +128,7 @@ print_license_help() {
     echo "  https://surfer.nmr.mgh.harvard.edu/registration.html"
     echo ""
     echo "After adding the license, run:"
-    echo "  ./neuroinsight-docker setup"
+    echo "  ./neuroinsight-autohs-docker setup"
 }
 
 # Check license status; prints help and returns 1 if not usable
@@ -149,7 +149,7 @@ check_license_ready() {
 }
 
 # Verify all install prerequisites; report every missing item before exiting
-# Pass --verbose to print each check step (used by ./neuroinsight-docker check)
+# Pass --verbose to print each check step (used by ./neuroinsight-autohs-docker check)
 preflight_install() {
     local show_steps=false
     if [ "${1:-}" = "--verbose" ] || [ "${1:-}" = "-v" ]; then
@@ -198,7 +198,7 @@ preflight_install() {
     if ! command -v docker &>/dev/null; then
         preflight_step_fail "Docker CLI not found"
         blockers+=("Docker is not installed")
-        fixes+=("Install Docker, then re-run ./neuroinsight-docker setup
+        fixes+=("Install Docker, then re-run ./neuroinsight-autohs-docker setup
   Linux:   https://docs.docker.com/engine/install/
   macOS:   https://www.docker.com/products/docker-desktop/
   Windows: https://www.docker.com/products/docker-desktop/")
@@ -214,7 +214,7 @@ preflight_install() {
         blockers+=("Docker is installed but the daemon is not running")
         fixes+=("Start Docker Desktop (macOS/Windows) or run:
   sudo systemctl start docker
-Then re-run: ./neuroinsight-docker setup")
+Then re-run: ./neuroinsight-autohs-docker setup")
     else
         preflight_step_fail "Skipped (Docker not installed)"
     fi
@@ -255,7 +255,7 @@ Get a free research license:
         preflight_step_fail "No free port in range 8000-8050"
         blockers+=("No free port for web UI (range 8000-8050)")
         fixes+=("Stop other services using ports 8000-8050, then re-run:
-  ./neuroinsight-docker setup")
+  ./neuroinsight-autohs-docker setup")
     else
         preflight_step_ok "Port ${web_port} available for web UI"
     fi
@@ -271,7 +271,7 @@ Get a free research license:
         preflight_step_fail "Need two free ports in range 9000-9050"
         blockers+=("No free ports for MinIO (range 9000-9050)")
         fixes+=("Stop other services using ports 9000-9050, then re-run:
-  ./neuroinsight-docker setup")
+  ./neuroinsight-autohs-docker setup")
     else
         preflight_step_ok "Ports ${minio_api_port} (API) and ${minio_console_port} (console) available"
     fi
@@ -357,10 +357,10 @@ Get a free research license:
     echo ""
     echo "Fix the items below, then re-run:"
     if [ "$show_steps" = true ]; then
-        echo "  ./neuroinsight-docker check"
-        echo "  ./neuroinsight-docker setup"
+        echo "  ./neuroinsight-autohs-docker check"
+        echo "  ./neuroinsight-autohs-docker setup"
     else
-        echo "  ./neuroinsight-docker setup"
+        echo "  ./neuroinsight-autohs-docker setup"
     fi
     echo ""
 
@@ -400,20 +400,20 @@ wait_for_web_ready() {
     local port="$1"
     local attempts="${2:-60}"
     local i=1
-    log_info "Waiting for NeuroInsight web UI on port ${port}..."
+    log_info "Waiting for NeuroInsight-AutoHS web UI on port ${port}..."
     while [ "$i" -le "$attempts" ]; do
         if curl -sf "http://localhost:${port}/" >/dev/null 2>&1; then
             log_success "Web UI is ready (http://localhost:${port})"
             return 0
         fi
         if ! container_running; then
-            log_error "Container stopped while starting — check: ./neuroinsight-docker logs container"
+            log_error "Container stopped while starting — check: ./neuroinsight-autohs-docker logs container"
             return 1
         fi
         sleep 5
         i=$((i + 1))
     done
-    log_warning "Web UI did not respond in time — check: ./neuroinsight-docker status"
+    log_warning "Web UI did not respond in time — check: ./neuroinsight-autohs-docker status"
     return 1
 }
 
@@ -540,7 +540,7 @@ cmd_start() {
     check_docker
     
     if container_running; then
-        log_warning "NeuroInsight container is already running"
+        log_warning "NeuroInsight-AutoHS container is already running"
         local port=$(get_container_port)
         local minio_api=$(get_container_minio_api_port)
         local minio_console=$(get_container_minio_console_port)
@@ -574,7 +574,7 @@ cmd_start() {
         minio_console=$(get_container_minio_console_port)
         
         echo ""
-        log_success "NeuroInsight is ready!"
+        log_success "NeuroInsight-AutoHS is ready!"
         if [ -n "$port" ]; then
             echo "Web Interface: http://localhost:${port}"
         fi
@@ -591,7 +591,7 @@ cmd_start() {
             :
         else
             echo "License is ready. Run:"
-            echo "  ./neuroinsight-docker setup"
+            echo "  ./neuroinsight-autohs-docker setup"
         fi
         exit 1
     fi
@@ -609,7 +609,7 @@ cmd_stop() {
         return 0
     fi
     
-    log_info "Stopping NeuroInsight container..."
+    log_info "Stopping NeuroInsight-AutoHS container..."
     docker stop ${CONTAINER_NAME}
     log_success "Container stopped"
 }
@@ -626,13 +626,13 @@ cmd_status() {
     check_docker
     
     echo "======================================"
-    echo "NeuroInsight Docker Status"
+    echo "NeuroInsight-AutoHS Docker Status"
     echo "======================================"
     echo ""
     
     if ! container_exists; then
         log_error "Container does not exist"
-        echo "Run: ./neuroinsight-docker install"
+        echo "Run: ./neuroinsight-autohs-docker install"
         return 1
     fi
     
@@ -666,7 +666,7 @@ cmd_status() {
         
     else
         log_warning "Container exists but is not running"
-        echo "Run: ./neuroinsight-docker start"
+        echo "Run: ./neuroinsight-autohs-docker start"
     fi
 }
 
@@ -727,14 +727,14 @@ cmd_install() {
             log_warning "Container already exists"
             read -p "Remove and recreate? (y/n): " confirm
             if [ "$confirm" != "y" ]; then
-                log_info "Keeping existing container — run: ./neuroinsight-docker start"
+                log_info "Keeping existing container — run: ./neuroinsight-autohs-docker start"
                 exit 0
             fi
             cmd_remove
         fi
     fi
 
-    log_info "Installing NeuroInsight (Docker all-in-one)..."
+    log_info "Installing NeuroInsight-AutoHS (Docker all-in-one)..."
     pull_required_images
 
     # Find available port for web interface
@@ -808,7 +808,7 @@ cmd_install() {
 
     cmd_status
     echo ""
-    log_success "NeuroInsight is ready!"
+    log_success "NeuroInsight-AutoHS is ready!"
     echo ""
     echo "Web Interface: http://localhost:${port}"
     echo "MinIO API: http://localhost:${minio_api_port}"
@@ -825,11 +825,11 @@ cmd_setup() {
 # Check prerequisites without installing
 cmd_check() {
     echo "======================================"
-    echo "NeuroInsight setup check"
+    echo "NeuroInsight-AutoHS setup check"
     echo "======================================"
     preflight_install --verbose
     echo ""
-    log_success "All requirements met — run: ./neuroinsight-docker setup"
+    log_success "All requirements met — run: ./neuroinsight-autohs-docker setup"
 }
 
 # Remove container
@@ -896,10 +896,10 @@ cmd_delete() {
     
     if [ -z "$job_id" ]; then
         log_error "Please specify job ID"
-        echo "Usage: ./neuroinsight-docker delete <job_id> [--force]"
+        echo "Usage: ./neuroinsight-autohs-docker delete <job_id> [--force]"
         echo ""
-        echo "Example: ./neuroinsight-docker delete d1a2c36e"
-        echo "         ./neuroinsight-docker delete d1a2c36e --force"
+        echo "Example: ./neuroinsight-autohs-docker delete d1a2c36e"
+        echo "         ./neuroinsight-autohs-docker delete d1a2c36e --force"
         exit 1
     fi
     
@@ -927,9 +927,9 @@ cmd_bring() {
     
     if [ -z "$job_id" ]; then
         log_error "Please specify job ID"
-        echo "Usage: ./neuroinsight-docker bring <job_id>"
+        echo "Usage: ./neuroinsight-autohs-docker bring <job_id>"
         echo ""
-        echo "Example: ./neuroinsight-docker bring abc12345"
+        echo "Example: ./neuroinsight-autohs-docker bring abc12345"
         exit 1
     fi
     
@@ -991,7 +991,7 @@ cmd_restore() {
     
     if [ -z "$backup_file" ]; then
         log_error "Please specify backup file"
-        echo "Usage: ./neuroinsight-docker restore <backup-file>"
+        echo "Usage: ./neuroinsight-autohs-docker restore <backup-file>"
         exit 1
     fi
     
@@ -1013,7 +1013,7 @@ cmd_restore() {
         alpine sh -c "rm -rf /data/* && tar xzf /backup/${backup_file}"
     
     log_success "Restore completed"
-    log_info "Restart container: ./neuroinsight-docker restart"
+    log_info "Restart container: ./neuroinsight-autohs-docker restart"
 }
 
 # Check license status
@@ -1038,7 +1038,7 @@ cmd_license() {
                 echo "  1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
                 echo "  2. Register (free for research)"
                 echo "  3. Save license as license.txt in this directory"
-                echo "  4. Restart: ./neuroinsight-docker restart"
+                echo "  4. Restart: ./neuroinsight-autohs-docker restart"
             else
                 # Show first line (email)
                 local first_line=$(docker exec ${CONTAINER_NAME} head -n1 /app/license.txt)
@@ -1055,7 +1055,7 @@ cmd_license() {
             echo "To enable full FreeSurfer processing:"
             echo "  1. Get license: https://surfer.nmr.mgh.harvard.edu/registration.html"
             echo "  2. Save as license.txt in this directory"
-            echo "  3. Restart: ./neuroinsight-docker restart"
+            echo "  3. Restart: ./neuroinsight-autohs-docker restart"
         fi
     else
         # Check on host system
@@ -1072,7 +1072,7 @@ cmd_license() {
                 log_success "Valid license file on host (mounted on install)"
                 echo ""
                 echo "Run setup if the container is not installed yet:"
-                echo "  ./neuroinsight-docker setup"
+                echo "  ./neuroinsight-autohs-docker setup"
             fi
         else
             log_warning "No license file found"
@@ -1085,9 +1085,9 @@ cmd_license() {
 # Show help
 cmd_help() {
     cat << 'EOF'
-NeuroInsight Docker Management CLI
+NeuroInsight-AutoHS Docker Management CLI
 
-Usage: ./neuroinsight-docker <command> [options]
+Usage: ./neuroinsight-autohs-docker <command> [options]
 
 Container Management:
   setup             - First-time install (non-interactive; license.txt required)
@@ -1114,21 +1114,21 @@ Maintenance:
   restore <file>    - Restore from backup file
 
 Examples:
-  ./neuroinsight-docker install          # Install and start (auto-detects license)
-  ./neuroinsight-docker status           # Check status and port
-  ./neuroinsight-docker license          # Check FreeSurfer license
-  ./neuroinsight-docker logs backend     # View backend logs
-  ./neuroinsight-docker clean --days 90  # Clean jobs older than 90 days
-  ./neuroinsight-docker delete d1a2c36e  # Delete specific job
-  ./neuroinsight-docker bring abc12345   # Recover job by ID
-  ./neuroinsight-docker shell            # Access shell
-  ./neuroinsight-docker backup           # Create backup
-  ./neuroinsight-docker update           # Update to latest
+  ./neuroinsight-autohs-docker install          # Install and start (auto-detects license)
+  ./neuroinsight-autohs-docker status           # Check status and port
+  ./neuroinsight-autohs-docker license          # Check FreeSurfer license
+  ./neuroinsight-autohs-docker logs backend     # View backend logs
+  ./neuroinsight-autohs-docker clean --days 90  # Clean jobs older than 90 days
+  ./neuroinsight-autohs-docker delete d1a2c36e  # Delete specific job
+  ./neuroinsight-autohs-docker bring abc12345   # Recover job by ID
+  ./neuroinsight-autohs-docker shell            # Access shell
+  ./neuroinsight-autohs-docker backup           # Create backup
+  ./neuroinsight-autohs-docker update           # Update to latest
 
 Quick Start (Linux & macOS):
   1. Install Docker (Docker Desktop on macOS)
   2. Place license.txt in neuroinsight_local/ or ~/Documents/
-  3. ./neuroinsight-docker setup
+  3. ./neuroinsight-autohs-docker setup
   4. Open the Web Interface URL printed by status
 
 Automated on install/setup:
@@ -1145,7 +1145,7 @@ License (only manual step):
   - neuroinsight_local/license.txt  (recommended)
   - ~/Documents/license.txt
   - ~/license.txt
-  - Check: ./neuroinsight-docker license
+  - Check: ./neuroinsight-autohs-docker license
 
 Container: ${CONTAINER_NAME}
 Image: ${IMAGE_NAME}

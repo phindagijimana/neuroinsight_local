@@ -1,5 +1,5 @@
 """
-Job Monitor for NeuroInsight
+Job Monitor for NeuroInsight-AutoHS
 
 Monitors running jobs and marks orphaned ones as failed.
 Should be run periodically (e.g., every 5 minutes) via cron.

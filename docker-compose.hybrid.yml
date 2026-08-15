@@ -4,7 +4,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: neuroinsight-postgres
+    container_name: neuroinsight-autohs-postgres
     environment:
       POSTGRES_DB: neuroinsight
       POSTGRES_USER: neuroinsight
@@ -23,7 +23,7 @@ services:
   # Redis Cache & Message Broker
   redis:
     image: redis:7-alpine
-    container_name: neuroinsight-redis
+    container_name: neuroinsight-autohs-redis
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_secure_password}
     volumes:
       - redis_data:/data
@@ -39,9 +39,9 @@ services:
   # MinIO Object Storage
   minio:
     image: minio/minio:latest
-    container_name: neuroinsight-minio
+    container_name: neuroinsight-autohs-minio
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-neuroinsight_minio}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-neuroinsight_autohs_minio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio_secure_password}
     volumes:
       - minio_data:/data
@@ -56,12 +56,12 @@ services:
       timeout: 20s
       retries: 3
 
-  # NeuroInsight API (Web Application)
-  neuroinsight-api:
+  # NeuroInsight-AutoHS API (Web Application)
+  neuroinsight-autohs-api:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
-    container_name: neuroinsight-api
+    container_name: neuroinsight-autohs-api
     environment:
       - DATABASE_URL=postgresql://neuroinsight:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/neuroinsight
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secure_password}@redis:6379/0
@@ -91,12 +91,12 @@ services:
       timeout: 10s
       retries: 3
 
-  # NeuroInsight Worker (Background Processing)
-  neuroinsight-worker:
+  # NeuroInsight-AutoHS Worker (Background Processing)
+  neuroinsight-autohs-worker:
     build:
       context: .
       dockerfile: docker/Dockerfile.worker
-    container_name: neuroinsight-worker
+    container_name: neuroinsight-autohs-worker
     environment:
       - DATABASE_URL=postgresql://neuroinsight:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/neuroinsight
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secure_password}@redis:6379/0
@@ -126,7 +126,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.api-bridge
-    container_name: neuroinsight-api-bridge
+    container_name: neuroinsight-autohs-api-bridge
     environment:
       - FREESURFER_IMAGE=freesurfer/freesurfer:7.4.1
       - FREESURFER_MEMORY=8g
@@ -149,7 +149,7 @@ services:
   # FreeSurfer MRI Processing Service (Base Image)
   freesurfer:
     image: freesurfer/freesurfer:7.4.1
-    container_name: neuroinsight-freesurfer
+    container_name: neuroinsight-autohs-freesurfer
     environment:
       - FREESURFER_HOME=/usr/local/freesurfer
       - SUBJECTS_DIR=/data/freesurfer/subjects
@@ -177,4 +177,4 @@ volumes:
 
 networks:
   default:
-    name: neuroinsight-network
+    name: neuroinsight-autohs-network

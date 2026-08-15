@@ -1,9 +1,9 @@
 'use strict';
 
-const CONTAINER_NAME = 'neuroinsight';
+const CONTAINER_NAME = 'neuroinsight-autohs';
 const IMAGE_NAME = 'phindagijimana321/neuroinsight:latest';
 const FREESURFER_IMAGE = process.env.FREESURFER_IMAGE || 'freesurfer/freesurfer:7.4.1';
-const VOLUME_NAME = 'neuroinsight-data';
+const VOLUME_NAME = 'neuroinsight-autohs-data';
 const MIN_DISK_GB = Number(process.env.NEUROINSIGHT_MIN_DISK_GB || 50);
 const MIN_RAM_GB = Number(process.env.NEUROINSIGHT_MIN_RAM_GB || 16);
 const WEB_PORT_MIN = 8000;

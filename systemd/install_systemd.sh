@@ -1,5 +1,5 @@
 #!/bin/bash
-# NeuroInsight Systemd Installation Script
+# NeuroInsight-AutoHS Systemd Installation Script
 # Installs user-level systemd services (no sudo required)
 
 set -e
@@ -28,7 +28,7 @@ log_error() {
 }
 
 echo "=========================================="
-echo "  NeuroInsight Systemd Installation"
+echo "  NeuroInsight-AutoHS Systemd Installation"
 echo "=========================================="
 echo ""
 
@@ -87,7 +87,7 @@ fi
 # Update service files with correct paths
 log_info "Installing service files..."
 
-for service_file in neuroinsight-backend.service neuroinsight-worker.service neuroinsight-beat.service neuroinsight-monitor.service; do
+for service_file in neuroinsight-autohs-backend.service neuroinsight-autohs-worker.service neuroinsight-autohs-beat.service neuroinsight-autohs-monitor.service; do
     if [ -f "$SCRIPT_DIR/$service_file" ]; then
         # Replace hardcoded path with actual project directory
         # First replace the hardcoded src/desktop_alone_web_1 with actual relative path
@@ -106,10 +106,10 @@ log_success "Systemd daemon reloaded"
 
 # Enable services (they will start on login)
 log_info "Enabling services..."
-systemctl --user enable neuroinsight-backend.service
-systemctl --user enable neuroinsight-worker.service
-systemctl --user enable neuroinsight-beat.service
-systemctl --user enable neuroinsight-monitor.service
+systemctl --user enable neuroinsight-autohs-backend.service
+systemctl --user enable neuroinsight-autohs-worker.service
+systemctl --user enable neuroinsight-autohs-beat.service
+systemctl --user enable neuroinsight-autohs-monitor.service
 log_success "Services enabled"
 
 # Enable linger (allows services to run even when user is logged out)
@@ -128,25 +128,25 @@ log_success "Installation complete!"
 echo "=========================================="
 echo ""
 echo "Service Management Commands:"
-echo "  ${GREEN}systemctl --user start neuroinsight-backend${NC}   # Start backend"
-echo "  ${GREEN}systemctl --user start neuroinsight-worker${NC}    # Start worker"
-echo "  ${GREEN}systemctl --user start neuroinsight-beat${NC}      # Start beat"
-echo "  ${GREEN}systemctl --user start neuroinsight-monitor${NC}   # Start monitor"
+echo "  ${GREEN}systemctl --user start neuroinsight-autohs-backend${NC}   # Start backend"
+echo "  ${GREEN}systemctl --user start neuroinsight-autohs-worker${NC}    # Start worker"
+echo "  ${GREEN}systemctl --user start neuroinsight-autohs-beat${NC}      # Start beat"
+echo "  ${GREEN}systemctl --user start neuroinsight-autohs-monitor${NC}   # Start monitor"
 echo ""
 echo "Or start all services at once:"
-echo "  ${GREEN}$PROJECT_DIR/neuroinsight start-systemd${NC}"
+echo "  ${GREEN}$PROJECT_DIR/neuroinsight-autohs start-systemd${NC}"
 echo ""
 echo "Check status:"
 echo "  ${GREEN}systemctl --user status neuroinsight-*${NC}"
-echo "  ${GREEN}$PROJECT_DIR/neuroinsight status-systemd${NC}"
+echo "  ${GREEN}$PROJECT_DIR/neuroinsight-autohs status-systemd${NC}"
 echo ""
 echo "View logs:"
-echo "  ${GREEN}journalctl --user -u neuroinsight-backend -f${NC}"
-echo "  ${GREEN}journalctl --user -u neuroinsight-worker -f${NC}"
+echo "  ${GREEN}journalctl --user -u neuroinsight-autohs-backend -f${NC}"
+echo "  ${GREEN}journalctl --user -u neuroinsight-autohs-worker -f${NC}"
 echo ""
 echo "Stop services:"
 echo "  ${GREEN}systemctl --user stop neuroinsight-*${NC}"
-echo "  ${GREEN}$PROJECT_DIR/neuroinsight stop-systemd${NC}"
+echo "  ${GREEN}$PROJECT_DIR/neuroinsight-autohs stop-systemd${NC}"
 echo ""
 echo "Disable services (prevent auto-start):"
 echo "  ${GREEN}systemctl --user disable neuroinsight-*${NC}"

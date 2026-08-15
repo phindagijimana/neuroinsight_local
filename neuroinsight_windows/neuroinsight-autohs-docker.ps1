@@ -1,5 +1,5 @@
-# NeuroInsight Docker Management CLI for Windows
-# PowerShell equivalent of Linux neuroinsight-docker script
+# NeuroInsight-AutoHS Docker Management CLI for Windows
+# PowerShell equivalent of Linux neuroinsight-autohs-docker script
 
 param(
     [Parameter(Position=0)]
@@ -9,10 +9,10 @@ param(
     [string[]]$Arguments
 )
 
-$ContainerName = "neuroinsight"
+$ContainerName = "neuroinsight-autohs"
 $ImageName = "phindagijimana321/neuroinsight:latest"
 $FreeSurferImage = if ($env:FREESURFER_IMAGE) { $env:FREESURFER_IMAGE } else { "freesurfer/freesurfer:7.4.1" }
-$VolumeName = "neuroinsight-data"
+$VolumeName = "neuroinsight-autohs-data"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $DeployDir = Join-Path (Split-Path -Parent $ScriptDir) "deploy"
 $ProjectRoot = Split-Path -Parent $DeployDir
@@ -102,7 +102,7 @@ function Write-LicenseHelp {
     Write-Host "  https://surfer.nmr.mgh.harvard.edu/registration.html"
     Write-Host ""
     Write-Host "After adding the license, run:"
-    Write-Host "  .\neuroinsight-docker.ps1 setup"
+    Write-Host "  .\neuroinsight-autohs-docker.ps1 setup"
 }
 
 function Test-PortFree {
@@ -165,7 +165,7 @@ function Invoke-PreflightInstall {
         $blockers += "Docker is not installed"
         $fixes += @(
             "Install Docker Desktop, then re-run:",
-            "  .\neuroinsight-docker.ps1 setup",
+            "  .\neuroinsight-autohs-docker.ps1 setup",
             "  https://www.docker.com/products/docker-desktop/"
         ) -join "`n"
     } else {
@@ -180,7 +180,7 @@ function Invoke-PreflightInstall {
         $blockers += "Docker is installed but the daemon is not running"
         $fixes += @(
             "Start Docker Desktop, then re-run:",
-            "  .\neuroinsight-docker.ps1 setup"
+            "  .\neuroinsight-autohs-docker.ps1 setup"
         ) -join "`n"
     } else {
         Write-PreflightStepFail "Skipped (Docker not installed)"
@@ -307,10 +307,10 @@ function Invoke-PreflightInstall {
     Write-Host ""
     Write-Host "Fix the items below, then re-run:"
     if ($ShowSteps) {
-        Write-Host "  .\neuroinsight-docker.ps1 check"
-        Write-Host "  .\neuroinsight-docker.ps1 setup"
+        Write-Host "  .\neuroinsight-autohs-docker.ps1 check"
+        Write-Host "  .\neuroinsight-autohs-docker.ps1 setup"
     } else {
-        Write-Host "  .\neuroinsight-docker.ps1 setup"
+        Write-Host "  .\neuroinsight-autohs-docker.ps1 setup"
     }
     Write-Host ""
 
@@ -344,7 +344,7 @@ function Invoke-PullRequiredImages {
 
 function Wait-WebReady {
     param([int]$Port, [int]$Attempts = 60)
-    Write-Info "Waiting for NeuroInsight web UI on port $Port..."
+    Write-Info "Waiting for NeuroInsight-AutoHS web UI on port $Port..."
     for ($i = 1; $i -le $Attempts; $i++) {
         try {
             $response = Invoke-WebRequest -Uri "http://localhost:$Port/" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
@@ -372,7 +372,7 @@ function Invoke-Install {
     
     Write-Host ""
     Write-Host "======================================" -ForegroundColor Cyan
-    Write-Host "  NeuroInsight Docker Installation" -ForegroundColor Cyan
+    Write-Host "  NeuroInsight-AutoHS Docker Installation" -ForegroundColor Cyan
     Write-Host "======================================" -ForegroundColor Cyan
     Write-Host ""
     
@@ -381,10 +381,10 @@ function Invoke-Install {
         if ($AssumeYes) {
             Invoke-Remove
         } else {
-            Write-Warning "NeuroInsight container already exists"
+            Write-Warning "NeuroInsight-AutoHS container already exists"
             $response = Read-Host "Remove and reinstall? (y/N)"
             if ($response -ne "y" -and $response -ne "Y") {
-                Write-Info "Keeping existing container — run: .\neuroinsight-docker.ps1 start"
+                Write-Info "Keeping existing container — run: .\neuroinsight-autohs-docker.ps1 start"
                 exit 0
             }
             Invoke-Remove
@@ -492,7 +492,7 @@ function Invoke-Install {
     Invoke-Status
     
     Write-Host ""
-    Write-Success "NeuroInsight is ready!"
+    Write-Success "NeuroInsight-AutoHS is ready!"
     Write-Host "Web Interface: http://localhost:${selectedPort}" -ForegroundColor Cyan
     Write-Host ""
 }
@@ -503,11 +503,11 @@ function Invoke-Setup {
 
 function Invoke-Check {
     Write-Host "======================================" -ForegroundColor Cyan
-    Write-Host "NeuroInsight setup check" -ForegroundColor Cyan
+    Write-Host "NeuroInsight-AutoHS setup check" -ForegroundColor Cyan
     Write-Host "======================================" -ForegroundColor Cyan
     if (Invoke-PreflightInstall -ShowSteps) {
         Write-Host ""
-        Write-Success "All requirements met — run: .\neuroinsight-docker.ps1 setup"
+        Write-Success "All requirements met — run: .\neuroinsight-autohs-docker.ps1 setup"
     } else {
         exit 1
     }
@@ -522,7 +522,7 @@ function Invoke-Start {
         Write-Host ""
         if (Find-LicensePath) {
             Write-Host "License is ready. Run:"
-            Write-Host "  .\neuroinsight-docker.ps1 setup"
+            Write-Host "  .\neuroinsight-autohs-docker.ps1 setup"
         } else {
             Write-LicenseHelp
         }
@@ -538,7 +538,7 @@ function Invoke-Start {
         exit 0
     }
     
-    Write-Info "Starting NeuroInsight..."
+    Write-Info "Starting NeuroInsight-AutoHS..."
     docker start $ContainerName | Out-Null
     Start-Sleep -Seconds 3
     
@@ -559,7 +559,7 @@ function Invoke-Stop {
         exit 0
     }
     
-    Write-Info "Stopping NeuroInsight..."
+    Write-Info "Stopping NeuroInsight-AutoHS..."
     docker stop $ContainerName | Out-Null
     Write-Success "Container stopped"
 }
@@ -577,13 +577,13 @@ function Invoke-Status {
     
     Write-Host ""
     Write-Host "======================================" -ForegroundColor Cyan
-    Write-Host "  NeuroInsight Docker Status" -ForegroundColor Cyan
+    Write-Host "  NeuroInsight-AutoHS Docker Status" -ForegroundColor Cyan
     Write-Host "======================================" -ForegroundColor Cyan
     Write-Host ""
     
     if (-not (Test-ContainerExists)) {
         Write-Error "Container does not exist"
-        Write-Host "Run: .\neuroinsight-docker.ps1 install"
+        Write-Host "Run: .\neuroinsight-autohs-docker.ps1 install"
         exit 1
     }
     
@@ -610,7 +610,7 @@ function Invoke-Status {
         }
     } else {
         Write-Warning "Container exists but is not running"
-        Write-Host "Run: .\neuroinsight-docker.ps1 start"
+        Write-Host "Run: .\neuroinsight-autohs-docker.ps1 start"
     }
     
     Write-Host ""
@@ -694,7 +694,7 @@ function Invoke-Restore {
     
     if (-not $BackupFile) {
         Write-Error "Please specify backup file"
-        Write-Host "Usage: .\neuroinsight-docker.ps1 restore <backup-file>"
+        Write-Host "Usage: .\neuroinsight-autohs-docker.ps1 restore <backup-file>"
         exit 1
     }
     
@@ -731,7 +731,7 @@ function Invoke-Restore {
 function Invoke-Remove {
     if (-not (Test-Docker)) { exit 1 }
     
-    Write-Warning "This will remove the NeuroInsight container"
+    Write-Warning "This will remove the NeuroInsight-AutoHS container"
     Write-Info "Data volume will be preserved (use 'clean --all' to remove data)"
     
     if (Test-ContainerRunning) {
@@ -752,13 +752,13 @@ function Invoke-Remove {
 function Invoke-Update {
     if (-not (Test-Docker)) { exit 1 }
     
-    Write-Info "Updating NeuroInsight to latest version..."
+    Write-Info "Updating NeuroInsight-AutoHS to latest version..."
     Write-Host ""
     
     Invoke-PullRequiredImages
     
     if (-not (Test-ContainerExists)) {
-        Write-Info "No container to update. Run: .\neuroinsight-docker.ps1 setup"
+        Write-Info "No container to update. Run: .\neuroinsight-autohs-docker.ps1 setup"
         exit 0
     }
     
@@ -792,7 +792,7 @@ function Invoke-License {
         Write-Host "To add license:" -ForegroundColor Yellow
         Write-Host "  1. Get license: https://surfer.nmr.mgh.harvard.edu/registration.html"
         Write-Host "  2. Save as 'license.txt' in this folder"
-        Write-Host "  3. Run: .\neuroinsight-docker.ps1 restart"
+        Write-Host "  3. Run: .\neuroinsight-autohs-docker.ps1 restart"
         Write-Host ""
     }
 }
@@ -801,15 +801,15 @@ function Invoke-License {
 function Show-Help {
     Write-Host @"
 
-NeuroInsight Docker Management CLI for Windows
+NeuroInsight-AutoHS Docker Management CLI for Windows
 
 USAGE:
-    .\neuroinsight-docker.ps1 <command> [options]
+    .\neuroinsight-autohs-docker.ps1 <command> [options]
 
 COMMANDS:
     setup           First-time install (non-interactive; license.txt required)
     check           Run step-by-step prerequisite checks (license, Docker, ports)
-    install [-y]    Install and start NeuroInsight
+    install [-y]    Install and start NeuroInsight-AutoHS
     start           Start the container
     stop            Stop the container
     restart         Restart the container
@@ -826,14 +826,14 @@ COMMANDS:
     help            Show this help
 
 EXAMPLES:
-    .\neuroinsight-docker.ps1 setup
-    .\neuroinsight-docker.ps1 install
-    .\neuroinsight-docker.ps1 start
-    .\neuroinsight-docker.ps1 status
-    .\neuroinsight-docker.ps1 logs worker
-    .\neuroinsight-docker.ps1 clean -Days 7
-    .\neuroinsight-docker.ps1 backup
-    .\neuroinsight-docker.ps1 restore backup.tar.gz
+    .\neuroinsight-autohs-docker.ps1 setup
+    .\neuroinsight-autohs-docker.ps1 install
+    .\neuroinsight-autohs-docker.ps1 start
+    .\neuroinsight-autohs-docker.ps1 status
+    .\neuroinsight-autohs-docker.ps1 logs worker
+    .\neuroinsight-autohs-docker.ps1 clean -Days 7
+    .\neuroinsight-autohs-docker.ps1 backup
+    .\neuroinsight-autohs-docker.ps1 restore backup.tar.gz
 
 QUICK SHORTCUTS (Batch files):
     install.bat     Install

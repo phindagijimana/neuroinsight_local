@@ -122,7 +122,7 @@ async function installContainer({ licensePath, onProgress }) {
     IMAGE_NAME,
   ];
 
-  if (onProgress) onProgress('Creating NeuroInsight container...');
+  if (onProgress) onProgress('Creating NeuroInsight-AutoHS container...');
   const result = await runDocker(args);
   if (!result.ok) {
     throw new Error(result.stderr || 'Failed to create container');

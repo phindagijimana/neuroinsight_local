@@ -11,7 +11,7 @@ function Navigation({ activePage, setActivePage }) {
             </div>
             <div className="flex items-center gap-3">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">NeuroInsight</h1>
+                <h1 className="text-2xl font-bold text-gray-900">NeuroInsight-AutoHS</h1>
                 <p className="text-xs text-gray-500">Hippocampal Analysis Platform</p>
               </div>
             </div>

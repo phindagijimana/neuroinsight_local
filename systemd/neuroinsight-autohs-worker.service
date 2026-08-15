@@ -1,7 +1,7 @@
 [Unit]
-Description=NeuroInsight Celery Worker
+Description=NeuroInsight-AutoHS Celery Worker
 After=network.target
-Requires=neuroinsight-backend.service
+Requires=neuroinsight-autohs-backend.service
 
 [Service]
 Type=simple

@@ -1,9 +1,9 @@
 {
-  "name": "neuroinsight-desktop",
+  "name": "neuroinsight-autohs-desktop",
   "version": "1.1.0",
-  "description": "NeuroInsight desktop app (Pattern A — Docker all-in-one)",
+  "description": "NeuroInsight-AutoHS desktop app (Docker all-in-one)",
   "main": "src/main.js",
-  "author": "NeuroInsight",
+  "author": "NeuroInsight-AutoHS",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -18,9 +18,9 @@
     "electron-builder": "^25.1.8"
   },
   "build": {
-    "appId": "com.neuroinsight.desktop",
-    "productName": "NeuroInsight",
-    "copyright": "Copyright © 2026 NeuroInsight",
+    "appId": "com.neuroinsight.autohs.desktop",
+    "productName": "NeuroInsight-AutoHS",
+    "copyright": "Copyright © 2026 NeuroInsight-AutoHS",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -51,7 +51,7 @@
         "deb"
       ],
       "category": "Science",
-      "maintainer": "NeuroInsight <support@neuroinsight.local>"
+      "maintainer": "NeuroInsight-AutoHS <support@neuroinsight.local>"
     },
     "win": {
       "target": [
@@ -68,10 +68,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "NeuroInsight"
+      "shortcutName": "NeuroInsight-AutoHS"
     },
     "dmg": {
-      "title": "NeuroInsight ${version}"
+      "title": "NeuroInsight-AutoHS ${version}"
     }
   }
 }

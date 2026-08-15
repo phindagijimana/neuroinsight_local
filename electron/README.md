@@ -1,10 +1,10 @@
-# NeuroInsight Desktop (Electron — Pattern A)
+# NeuroInsight-AutoHS Desktop (Electron)
 
-Desktop shell for the **Pattern A** Docker all-in-one deployment. The app:
+Desktop app for the Docker all-in-one deployment. The app:
 
 1. Runs setup checks (Docker, license, ports)
 2. Pulls `phindagijimana321/neuroinsight:latest` + FreeSurfer image
-3. Creates/starts the `neuroinsight` container
+3. Creates/starts the `neuroinsight-autohs` container
 4. Opens the web UI served from the container
 
 **Prerequisite:** Docker Desktop must be installed and running.
@@ -70,13 +70,13 @@ electron/
   src/
     main.js              # Window + IPC
     preload.js           # electronAPI bridge
-    orchestrator/        # Docker lifecycle (mirrors neuroinsight-docker)
+    orchestrator/        # Docker lifecycle (mirrors neuroinsight-autohs-docker)
   renderer/
     setup.html           # First-run / checks UI
   dist/                  # Built installers (gitignored)
 ```
 
-The container serves the NeuroInsight frontend. The app injects `window.BACKEND_URL` for API calls.
+The container serves the NeuroInsight-AutoHS frontend. The app injects `window.BACKEND_URL` for API calls.
 
 ## Troubleshooting
 
@@ -87,5 +87,5 @@ The container serves the NeuroInsight frontend. The app injects `window.BACKEND_
 
 ## Related
 
-- CLI equivalent: `../deploy/neuroinsight-docker`
+- CLI equivalent: `../deploy/neuroinsight-autohs-docker`
 - Hub image: `phindagijimana321/neuroinsight:latest`

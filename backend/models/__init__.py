@@ -1,4 +1,4 @@
-"""Database models for NeuroInsight application."""
+"""Database models for NeuroInsight-AutoHS application."""
 
 from .job import Job
 from .metric import Metric

@@ -1,5 +1,5 @@
 #!/bin/bash
-# NeuroInsight Dev Status Script
+# NeuroInsight-AutoHS Dev Status Script
 # Check the status of dev backend services
 
 set -e
@@ -27,7 +27,7 @@ log_error() {
 }
 
 echo "========================================"
-echo "  NeuroInsight Dev System Status Check"
+echo "  NeuroInsight-AutoHS Dev System Status Check"
 echo "========================================"
 echo
 

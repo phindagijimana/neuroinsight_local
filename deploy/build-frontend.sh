@@ -55,7 +55,7 @@ case $choice in
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NeuroInsight - Backend Only</title>
+    <title>NeuroInsight-AutoHS - Backend Only</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -93,7 +93,7 @@ case $choice in
 </head>
 <body>
     <div class="container">
-        <h1>NeuroInsight API Server</h1>
+        <h1>NeuroInsight-AutoHS API Server</h1>
         <p>This container is running in <strong>backend-only mode</strong>.</p>
         <p>The web UI frontend was not built during image creation.</p>
         

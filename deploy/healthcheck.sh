@@ -1,5 +1,5 @@
 #!/bin/bash
-# Health check script for NeuroInsight all-in-one container
+# Health check script for NeuroInsight-AutoHS all-in-one container
 # Checks that all critical services are running
 
 set -e

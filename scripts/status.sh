@@ -1,6 +1,6 @@
 #!/bin/bash
-# NeuroInsight Status Script
-# Check the status of all NeuroInsight services
+# NeuroInsight-AutoHS Status Script
+# Check the status of all NeuroInsight-AutoHS services
 
 set -e
 
@@ -28,7 +28,7 @@ log_error() {
 }
 
 echo "========================================"
-echo "    NeuroInsight System Status Check"
+echo "    NeuroInsight-AutoHS System Status Check"
 echo "========================================"
 echo
 
@@ -64,7 +64,7 @@ if [ $DOCKER_COUNT -gt 0 ]; then
     echo "   Containers:"
     docker ps --filter name=neuroinsight --format "table {{.Names}}\t{{.Status}}"
 else
-    log_info "No NeuroInsight Docker containers running"
+    log_info "No NeuroInsight-AutoHS Docker containers running"
 fi
 
 echo
@@ -129,11 +129,11 @@ fi
 echo
 echo "========================================"
 echo "For detailed logs:"
-echo "  Backend: tail -f neuroinsight.log"
+echo "  Backend: tail -f neuroinsight-autohs.log"
 echo "  Celery:  tail -f celery_worker.log"
 echo ""
 echo "To restart services:"
-echo "  ./neuroinsight stop && ./neuroinsight start"
+echo "  ./neuroinsight-autohs stop && ./neuroinsight-autohs start"
 echo ""
 echo "To check job details:"
 echo "  curl http://localhost:8000/api/jobs/{job_id}"

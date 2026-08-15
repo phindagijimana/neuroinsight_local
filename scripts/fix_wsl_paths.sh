@@ -1,6 +1,6 @@
 #!/bin/bash
 # Quick fix script for WSL systemd path issues
-# Run this if you installed NeuroInsight in a non-default directory
+# Run this if you installed NeuroInsight-AutoHS in a non-default directory
 
 set -e
 
@@ -11,7 +11,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo "=========================================="
-echo "  NeuroInsight WSL Path Fix"
+echo "  NeuroInsight-AutoHS WSL Path Fix"
 echo "=========================================="
 echo ""
 
@@ -25,14 +25,14 @@ if [ -f "$CURRENT_DIR/.env" ]; then
 else
     echo -e "${RED}[X]${NC} .env file not found!"
     echo "  → Expected: $CURRENT_DIR/.env"
-    echo "  → Run './neuroinsight install' first"
+    echo "  → Run './neuroinsight-autohs install' first"
     exit 1
 fi
 
 # Check if systemd directory exists
 if [ ! -d "$CURRENT_DIR/systemd" ]; then
     echo -e "${RED}[X]${NC} systemd directory not found!"
-    echo "  → Are you in the NeuroInsight project directory?"
+    echo "  → Are you in the NeuroInsight-AutoHS project directory?"
     exit 1
 fi
 
@@ -56,7 +56,7 @@ echo -e "${GREEN}[OK]${NC} Systemd daemon reloaded"
 # Verify the fix
 echo ""
 echo -e "${YELLOW}[VERIFY]${NC} Verifying systemd service configuration..."
-BACKEND_SERVICE="$HOME/.config/systemd/user/neuroinsight-backend.service"
+BACKEND_SERVICE="$HOME/.config/systemd/user/neuroinsight-autohs-backend.service"
 
 if [ -f "$BACKEND_SERVICE" ]; then
     ENV_PATH=$(grep "EnvironmentFile=" "$BACKEND_SERVICE" | cut -d'=' -f2)
@@ -84,10 +84,10 @@ echo "  Fix Complete!"
 echo "=========================================="
 echo ""
 echo "Next steps:"
-echo "  1. Start NeuroInsight: ./neuroinsight start"
-echo "  2. Check status: ./neuroinsight status"
-echo "  3. View logs: journalctl --user -u neuroinsight-backend -f"
+echo "  1. Start NeuroInsight-AutoHS: ./neuroinsight-autohs start"
+echo "  2. Check status: ./neuroinsight-autohs status"
+echo "  3. View logs: journalctl --user -u neuroinsight-autohs-backend -f"
 echo ""
 echo "If you still have issues:"
-echo "  - Run: ./neuroinsight check-wsl"
-echo "  - Check logs: journalctl --user -u neuroinsight-backend -n 50"
+echo "  - Run: ./neuroinsight-autohs check-wsl"
+echo "  - Check logs: journalctl --user -u neuroinsight-autohs-backend -n 50"

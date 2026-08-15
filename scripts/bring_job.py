@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NeuroInsight job recovery utility.
+NeuroInsight-AutoHS job recovery utility.
 Recreates a completed job from existing output files.
 """
 

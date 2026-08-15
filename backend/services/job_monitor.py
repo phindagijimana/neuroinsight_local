@@ -1,5 +1,5 @@
 """
-Background job monitoring service for NeuroInsight.
+Background job monitoring service for NeuroInsight-AutoHS.
 
 This service runs in the background to detect and handle interrupted jobs,
 providing resilience against system sleep/shutdown events.
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     # Allow running as standalone service
     import argparse
 
-    parser = argparse.ArgumentParser(description="NeuroInsight Job Monitor")
+    parser = argparse.ArgumentParser(description="NeuroInsight-AutoHS Job Monitor")
     parser.add_argument("--interval", type=int, default=60,
                        help="Check interval in seconds (default: 60)")
     parser.add_argument("--daemon", action="store_true",

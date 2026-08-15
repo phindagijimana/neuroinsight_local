@@ -22,7 +22,7 @@ CLEANUP=false
 [ "$1" = "--cleanup" ] && CLEANUP=true
 
 echo "=============================================="
-echo "NeuroInsight isolated test (WSL/Linux user)"
+echo "NeuroInsight-AutoHS isolated test (WSL/Linux user)"
 echo "=============================================="
 echo "Image:    $IMAGE"
 echo "Port:     $HOST_PORT"

@@ -1,7 +1,7 @@
-# Uninstall NeuroInsight
+# Uninstall NeuroInsight-AutoHS
 
-$ContainerName = "neuroinsight"
-$VolumeName = "neuroinsight-data"
+$ContainerName = "neuroinsight-autohs"
+$VolumeName = "neuroinsight-autohs-data"
 
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }
 function Write-Success { param([string]$Message); Write-Host "[SUCCESS] $Message" -ForegroundColor Green }
@@ -9,7 +9,7 @@ function Write-Warning { param([string]$Message); Write-Host "[WARNING] $Message
 function Write-Error { param([string]$Message); Write-Host "[ERROR] $Message" -ForegroundColor Red }
 
 Write-Host ""
-Write-Warning "This will remove NeuroInsight and ALL DATA"
+Write-Warning "This will remove NeuroInsight-AutoHS and ALL DATA"
 Write-Host ""
 $response = Read-Host "Are you sure? Type 'yes' to confirm"
 
@@ -38,12 +38,12 @@ if ($response -eq "y" -or $response -eq "Y") {
     Write-Success "FreeSurfer image removed"
 }
 
-# Remove NeuroInsight image (optional)
-$response = Read-Host "Remove NeuroInsight image? (y/N)"
+# Remove NeuroInsight-AutoHS image (optional)
+$response = Read-Host "Remove NeuroInsight-AutoHS image? (y/N)"
 if ($response -eq "y" -or $response -eq "Y") {
-    Write-Info "Removing NeuroInsight image..."
+    Write-Info "Removing NeuroInsight-AutoHS image..."
     docker rmi phindagijimana321/neuroinsight:latest 2>$null | Out-Null
-    Write-Success "NeuroInsight image removed"
+    Write-Success "NeuroInsight-AutoHS image removed"
 }
 
 Write-Host ""

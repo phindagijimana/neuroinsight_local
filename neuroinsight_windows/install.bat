@@ -1,3 +1,3 @@
 @echo off
-REM NeuroInsight Docker - Install Command
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0neuroinsight-docker.ps1" install %*
+REM NeuroInsight-AutoHS Docker - Install Command
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0neuroinsight-autohs-docker.ps1" install %*

@@ -1,4 +1,4 @@
-name: NeuroInsight CI/CD Pipeline
+name: NeuroInsight-AutoHS CI/CD Pipeline
 
 on:
   push:
@@ -197,7 +197,7 @@ jobs:
           context: .
           file: ./docker/Dockerfile.backend
           push: false
-          tags: neuroinsight-backend:test
+          tags: neuroinsight-autohs-backend:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -207,7 +207,7 @@ jobs:
           context: .
           file: ./docker/Dockerfile.worker
           push: false
-          tags: neuroinsight-worker:test
+          tags: neuroinsight-autohs-worker:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -989,7 +989,7 @@ EOF
 
       - name: Generate deployment report
         run: |
-          echo "## ROCKET: NeuroInsight CI/CD Status Report" >> $GITHUB_STEP_SUMMARY
+          echo "## ROCKET: NeuroInsight-AutoHS CI/CD Status Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Component | Status | Duration |" >> $GITHUB_STEP_SUMMARY
           echo "|-----------|--------|----------|" >> $GITHUB_STEP_SUMMARY

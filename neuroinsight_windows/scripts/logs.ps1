@@ -1,11 +1,11 @@
-# View NeuroInsight logs
+# View NeuroInsight-AutoHS logs
 
 param(
     [string]$Service = "all",
     [switch]$Follow
 )
 
-$ContainerName = "neuroinsight"
+$ContainerName = "neuroinsight-autohs"
 
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }
 function Write-Error { param([string]$Message); Write-Host "[ERROR] $Message" -ForegroundColor Red }

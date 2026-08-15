@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-NeuroInsight Log Viewer
+NeuroInsight-AutoHS Log Viewer
 View logs from different components of the system.
 """
 
@@ -12,7 +12,7 @@ from pathlib import Path
 # Available log sources
 LOG_SOURCES = {
     'backend': {
-        'file': 'neuroinsight.log',
+        'file': 'neuroinsight-autohs.log',
         'description': 'Backend API server logs',
         'tail_lines': 100
     },
@@ -37,17 +37,17 @@ LOG_SOURCES = {
     },
     'database': {
         'description': 'PostgreSQL database logs',
-        'command': 'docker logs neuroinsight-postgres'
+        'command': 'docker logs neuroinsight-autohs-postgres'
     },
     'redis': {
         'description': 'Redis message broker logs',
-        'command': 'docker logs neuroinsight-redis'
+        'command': 'docker logs neuroinsight-autohs-redis'
     }
 }
 
 
 def show_usage():
-    print("Usage: neuroinsight logs [SOURCE] [OPTIONS]")
+    print("Usage: neuroinsight-autohs logs [SOURCE] [OPTIONS]")
     print()
     print("Available log sources:")
     for source, info in LOG_SOURCES.items():
@@ -59,11 +59,11 @@ def show_usage():
     print("  --job-id ID      Job ID (for freesurfer logs)")
     print()
     print("Examples:")
-    print("  neuroinsight logs backend")
-    print("  neuroinsight logs backend --follow")
-    print("  neuroinsight logs celery -n 50")
-    print("  neuroinsight logs freesurfer --job-id abc123")
-    print("  neuroinsight logs                    # Interactive menu")
+    print("  neuroinsight-autohs logs backend")
+    print("  neuroinsight-autohs logs backend --follow")
+    print("  neuroinsight-autohs logs celery -n 50")
+    print("  neuroinsight-autohs logs freesurfer --job-id abc123")
+    print("  neuroinsight-autohs logs                    # Interactive menu")
 
 
 def show_log_file(filepath, lines=100, follow=False):
@@ -150,7 +150,7 @@ def show_freesurfer_logs(job_id, lines=100, follow=False):
 def interactive_menu():
     """Show interactive menu for log selection."""
     print("\n" + "="*70)
-    print("NeuroInsight Log Viewer")
+    print("NeuroInsight-AutoHS Log Viewer")
     print("="*70)
     print("\nSelect log source:")
     print()
@@ -208,7 +208,7 @@ def show_logs(source, lines=100, follow=False):
     
     if info.get('requires_job_id'):
         print(f"ERROR: {source} logs require a job ID")
-        print(f"       Use: neuroinsight logs {source} --job-id <ID>")
+        print(f"       Use: neuroinsight-autohs logs {source} --job-id <ID>")
         return False
     
     if 'command' in info:
@@ -274,7 +274,7 @@ def main():
     if source == 'freesurfer':
         if not job_id:
             print("ERROR: FreeSurfer logs require a job ID")
-            print("       Use: neuroinsight logs freesurfer --job-id <ID>")
+            print("       Use: neuroinsight-autohs logs freesurfer --job-id <ID>")
             sys.exit(1)
         show_freesurfer_logs(job_id, lines, follow)
     else:

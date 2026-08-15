@@ -1,4 +1,4 @@
-"""API routes for NeuroInsight application."""
+"""API routes for NeuroInsight-AutoHS application."""
 
 from .cleanup import router as cleanup_router
 from .jobs import router as jobs_router

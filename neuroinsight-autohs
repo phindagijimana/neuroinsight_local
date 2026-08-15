@@ -1,5 +1,5 @@
 #!/bin/bash
-# NeuroInsight Launcher - Terminal-agnostic wrapper
+# NeuroInsight-AutoHS Launcher - Terminal-agnostic wrapper
 # Avoids terminal corruption issues in IDE environments
 
 # Detect if we're in a problematic terminal environment
@@ -8,7 +8,7 @@ if [[ "$TERM_PROGRAM" == "vscode" ]] || [[ "$TERM_PROGRAM" == "vscode-insiders" 
     if [[ "$1" == "install" ]]; then
         echo "Installation requires a regular terminal (not VS Code terminal)"
         echo "Please run this command in a regular terminal:"
-        echo "  ./neuroinsight install"
+        echo "  ./neuroinsight-autohs install"
         exit 1
     fi
 
@@ -36,7 +36,7 @@ check_systemd_available() {
 
 check_systemd_installed() {
     # Check if our systemd services are installed
-    systemctl --user list-unit-files 2>/dev/null | grep -q "neuroinsight-backend.service"
+    systemctl --user list-unit-files 2>/dev/null | grep -q "neuroinsight-autohs-backend.service"
 }
 
 auto_install_systemd() {
@@ -99,7 +99,7 @@ start_docker_containers() {
                 # Wait for PostgreSQL to be ready
                 echo "  Waiting for PostgreSQL to be ready..."
                 for i in {1..15}; do
-                    if docker exec neuroinsight-db pg_isready -U neuroinsight > /dev/null 2>&1; then
+                    if docker exec neuroinsight-autohs-db pg_isready -U neuroinsight > /dev/null 2>&1; then
                         echo "  PostgreSQL is ready"
                         break
                     fi
@@ -113,7 +113,7 @@ start_docker_containers() {
                 echo "  Docker containers already running ($running_count containers)"
                 
                 # Verify PostgreSQL is responsive
-                if docker exec neuroinsight-db pg_isready -U neuroinsight > /dev/null 2>&1; then
+                if docker exec neuroinsight-autohs-db pg_isready -U neuroinsight > /dev/null 2>&1; then
                     echo "  PostgreSQL is responsive"
                 else
                     echo "  Warning: PostgreSQL may not be ready"
@@ -121,15 +121,15 @@ start_docker_containers() {
             fi
             
             # Ensure data directories exist
-            mkdir -p "$HOME/.local/share/neuroinsight/uploads" 2>/dev/null || true
-            mkdir -p "$HOME/.local/share/neuroinsight/results" 2>/dev/null || true
-            mkdir -p "$HOME/.local/share/neuroinsight/outputs" 2>/dev/null || true
+            mkdir -p "$HOME/.local/share/neuroinsight-autohs/uploads" 2>/dev/null || true
+            mkdir -p "$HOME/.local/share/neuroinsight-autohs/results" 2>/dev/null || true
+            mkdir -p "$HOME/.local/share/neuroinsight-autohs/outputs" 2>/dev/null || true
             
             # Check if database schema is initialized
             if [ -f "backend/alembic.ini" ]; then
                 # Quick check: try to query the database
                 local schema_ok=false
-                if docker exec neuroinsight-db psql -U neuroinsight -d neuroinsight -c "SELECT 1 FROM jobs LIMIT 1" > /dev/null 2>&1; then
+                if docker exec neuroinsight-autohs-db psql -U neuroinsight -d neuroinsight -c "SELECT 1 FROM jobs LIMIT 1" > /dev/null 2>&1; then
                     schema_ok=true
                 fi
                 
@@ -166,14 +166,14 @@ use_systemd_start() {
             fi
         else
             echo "[INFO] Systemd services not installed"
-            echo "[INFO] Run './neuroinsight install-systemd' to enable automatic restart"
+            echo "[INFO] Run './neuroinsight-autohs install-systemd' to enable automatic restart"
             return 1
         fi
     fi
     
     # Services are installed, use them
     echo "=========================================="
-    echo "Starting NeuroInsight (systemd)"
+    echo "Starting NeuroInsight-AutoHS (systemd)"
     echo "=========================================="
     echo ""
     
@@ -185,33 +185,33 @@ use_systemd_start() {
     
     # Start services in order
     echo "[2/5] Starting backend..."
-    systemctl --user start neuroinsight-backend
+    systemctl --user start neuroinsight-autohs-backend
     sleep 2
     
     echo "[3/5] Starting worker..."
-    systemctl --user start neuroinsight-worker
+    systemctl --user start neuroinsight-autohs-worker
     sleep 1
     
     echo "[4/5] Starting beat scheduler..."
-    systemctl --user start neuroinsight-beat
+    systemctl --user start neuroinsight-autohs-beat
     sleep 1
     
     echo "[5/5] Starting job monitor..."
-    systemctl --user start neuroinsight-monitor
+    systemctl --user start neuroinsight-autohs-monitor
     
     echo ""
     echo "=========================================="
-    echo "NeuroInsight started with systemd!"
+    echo "NeuroInsight-AutoHS started with systemd!"
     echo "=========================================="
     echo ""
     echo "Services will auto-restart on failure"
     echo "Web Interface: http://localhost:8000"
     echo ""
     echo "Management commands:"
-    echo "  ./neuroinsight status     # Check status"
-    echo "  ./neuroinsight stop       # Stop services"
-    echo "  ./neuroinsight restart    # Restart services"
-    echo "  ./neuroinsight logs       # View logs"
+    echo "  ./neuroinsight-autohs status     # Check status"
+    echo "  ./neuroinsight-autohs stop       # Stop services"
+    echo "  ./neuroinsight-autohs restart    # Restart services"
+    echo "  ./neuroinsight-autohs logs       # View logs"
     echo ""
     
     return 0
@@ -227,7 +227,7 @@ stop_docker_containers() {
     local stopped_count=0
     local cleaned_count=0
     
-    # 1. Stop running NeuroInsight infrastructure containers (but don't remove them)
+    # 1. Stop running NeuroInsight-AutoHS infrastructure containers (but don't remove them)
     # Check if infrastructure containers are running
     local infra_running=$(docker ps --format "{{.Names}}" | grep -E "^neuroinsight-(postgres|redis|minio)$" | tr '\n' ' ')
     
@@ -256,15 +256,15 @@ stop_docker_containers() {
     fi
     
     # 4. Stop Docker event monitoring service (if running)
-    if systemctl is-active --quiet neuroinsight-docker-events.service 2>/dev/null; then
+    if systemctl is-active --quiet neuroinsight-autohs-docker-events.service 2>/dev/null; then
         echo "  Stopping Docker event monitor service..."
         # This is a system service, requires sudo
         if command -v sudo &> /dev/null; then
-            sudo systemctl stop neuroinsight-docker-events.service 2>/dev/null || true
+            sudo systemctl stop neuroinsight-autohs-docker-events.service 2>/dev/null || true
         fi
-    elif systemctl --user is-active --quiet neuroinsight-docker-events.service 2>/dev/null; then
+    elif systemctl --user is-active --quiet neuroinsight-autohs-docker-events.service 2>/dev/null; then
         echo "  Stopping Docker event monitor service..."
-        systemctl --user stop neuroinsight-docker-events.service 2>/dev/null || true
+        systemctl --user stop neuroinsight-autohs-docker-events.service 2>/dev/null || true
     fi
     
     # Summary
@@ -277,13 +277,13 @@ stop_docker_containers() {
 
 use_systemd_stop() {
     if check_systemd_available && check_systemd_installed; then
-        echo "Stopping NeuroInsight services..."
+        echo "Stopping NeuroInsight-AutoHS services..."
         echo ""
         echo "[1/3] Stopping systemd services..."
-        systemctl --user stop neuroinsight-monitor 2>/dev/null || true
-        systemctl --user stop neuroinsight-beat 2>/dev/null || true
-        systemctl --user stop neuroinsight-worker 2>/dev/null || true
-        systemctl --user stop neuroinsight-backend 2>/dev/null || true
+        systemctl --user stop neuroinsight-autohs-monitor 2>/dev/null || true
+        systemctl --user stop neuroinsight-autohs-beat 2>/dev/null || true
+        systemctl --user stop neuroinsight-autohs-worker 2>/dev/null || true
+        systemctl --user stop neuroinsight-autohs-backend 2>/dev/null || true
         echo "  Systemd services stopped"
         echo ""
         echo "[2/3] Cleaning up orphaned Python processes..."
@@ -300,7 +300,7 @@ use_systemd_stop() {
         echo "[3/3] Stopping Docker containers..."
         stop_docker_containers
         echo ""
-        echo "All NeuroInsight services stopped!"
+        echo "All NeuroInsight-AutoHS services stopped!"
         return 0
     fi
     return 1
@@ -308,11 +308,11 @@ use_systemd_stop() {
 
 use_systemd_restart() {
     if check_systemd_available && check_systemd_installed; then
-        echo "Restarting NeuroInsight services (systemd)..."
-        systemctl --user restart neuroinsight-backend
-        systemctl --user restart neuroinsight-worker
-        systemctl --user restart neuroinsight-beat
-        systemctl --user restart neuroinsight-monitor
+        echo "Restarting NeuroInsight-AutoHS services (systemd)..."
+        systemctl --user restart neuroinsight-autohs-backend
+        systemctl --user restart neuroinsight-autohs-worker
+        systemctl --user restart neuroinsight-autohs-beat
+        systemctl --user restart neuroinsight-autohs-monitor
         echo "Services restarted!"
         return 0
     fi
@@ -321,24 +321,24 @@ use_systemd_restart() {
 
 use_systemd_status() {
     if check_systemd_available && check_systemd_installed; then
-        echo "NeuroInsight Systemd Services Status"
+        echo "NeuroInsight-AutoHS Systemd Services Status"
         echo "===================================="
         echo ""
         
         echo "Backend:"
-        systemctl --user status neuroinsight-backend --no-pager -l | head -10
+        systemctl --user status neuroinsight-autohs-backend --no-pager -l | head -10
         echo ""
         
         echo "Worker:"
-        systemctl --user status neuroinsight-worker --no-pager -l | head -10
+        systemctl --user status neuroinsight-autohs-worker --no-pager -l | head -10
         echo ""
         
         echo "Beat Scheduler:"
-        systemctl --user status neuroinsight-beat --no-pager -l | head -10
+        systemctl --user status neuroinsight-autohs-beat --no-pager -l | head -10
         echo ""
         
         echo "Job Monitor:"
-        systemctl --user status neuroinsight-monitor --no-pager -l | head -10
+        systemctl --user status neuroinsight-autohs-monitor --no-pager -l | head -10
         echo ""
         
         echo "Summary:"
@@ -353,7 +353,7 @@ case "$1" in
     start)
         # Check for --manual flag to force manual start
         if [[ "$2" == "--manual" ]]; then
-            echo "Starting NeuroInsight (manual mode)..."
+            echo "Starting NeuroInsight-AutoHS (manual mode)..."
             exec "$PYTHON_BIN" scripts/start.py
         fi
         
@@ -363,17 +363,17 @@ case "$1" in
         fi
         
         # Fall back to manual start
-        echo "Starting NeuroInsight (manual mode)..."
+        echo "Starting NeuroInsight-AutoHS (manual mode)..."
         exec "$PYTHON_BIN" scripts/start.py
         ;;
     dev-start)
-        echo "Starting NeuroInsight (dev backend)..."
+        echo "Starting NeuroInsight-AutoHS (dev backend)..."
         exec "$PYTHON_BIN" scripts/start_dev.py
         ;;
     stop)
         # Check for --manual flag to force manual stop
         if [[ "$2" == "--manual" ]]; then
-            echo "Stopping NeuroInsight (manual mode)..."
+            echo "Stopping NeuroInsight-AutoHS (manual mode)..."
             "$PYTHON_BIN" scripts/nosleep.py stop >/dev/null 2>&1 || true
             "$PYTHON_BIN" scripts/stop.py "${@:2}"
             # Stop Docker containers
@@ -388,7 +388,7 @@ case "$1" in
         fi
         
         # Fall back to manual stop
-        echo "Stopping NeuroInsight (manual mode)..."
+        echo "Stopping NeuroInsight-AutoHS (manual mode)..."
         "$PYTHON_BIN" scripts/nosleep.py stop >/dev/null 2>&1 || true
         "$PYTHON_BIN" scripts/stop.py "${@:2}"
         # Stop Docker containers
@@ -397,13 +397,13 @@ case "$1" in
         exit 0
         ;;
     dev-stop)
-        echo "Stopping NeuroInsight (dev backend)..."
+        echo "Stopping NeuroInsight-AutoHS (dev backend)..."
         exec "$PYTHON_BIN" scripts/stop_dev.py "${@:2}"
         ;;
     status)
         # Check for --manual flag to force manual status
         if [[ "$2" == "--manual" ]]; then
-            echo "NeuroInsight Status (manual mode)..."
+            echo "NeuroInsight-AutoHS Status (manual mode)..."
             exec ./scripts/status.sh
         fi
         
@@ -413,17 +413,17 @@ case "$1" in
         fi
         
         # Fall back to manual status
-        echo "NeuroInsight Status (manual mode)..."
+        echo "NeuroInsight-AutoHS Status (manual mode)..."
         exec ./scripts/status.sh
         ;;
     dev-status)
-        echo "NeuroInsight Dev Status..."
+        echo "NeuroInsight-AutoHS Dev Status..."
         exec ./scripts/status_dev.sh
         ;;
     restart)
         # Check for --manual flag to force manual restart
         if [[ "$2" == "--manual" ]]; then
-            echo "Restarting NeuroInsight (manual mode)..."
+            echo "Restarting NeuroInsight-AutoHS (manual mode)..."
             "$PYTHON_BIN" scripts/stop.py
             sleep 2
             exec "$PYTHON_BIN" scripts/start.py
@@ -435,7 +435,7 @@ case "$1" in
         fi
         
         # Fall back to manual restart
-        echo "Restarting NeuroInsight (manual mode)..."
+        echo "Restarting NeuroInsight-AutoHS (manual mode)..."
         "$PYTHON_BIN" scripts/stop.py
         sleep 2
         exec "$PYTHON_BIN" scripts/start.py
@@ -445,27 +445,27 @@ case "$1" in
         exec "$PYTHON_BIN" scripts/logs.py "$@"
         ;;
     monitor)
-        echo "NeuroInsight Monitoring..."
+        echo "NeuroInsight-AutoHS Monitoring..."
         exec ./scripts/monitor.sh "${@:2}"
         ;;
     nosleep)
-        echo "NeuroInsight No-Sleep..."
+        echo "NeuroInsight-AutoHS No-Sleep..."
         exec "$PYTHON_BIN" scripts/nosleep.py start
         ;;
     clean)
-        echo "NeuroInsight Cleanup..."
+        echo "NeuroInsight-AutoHS Cleanup..."
         exec "$PYTHON_BIN" scripts/clean.py "${@:2}"
         ;;
     delete)
-        echo "NeuroInsight Job Deletion..."
+        echo "NeuroInsight-AutoHS Job Deletion..."
         exec "$PYTHON_BIN" scripts/delete_job.py "${@:2}"
         ;;
     bring)
-        echo "NeuroInsight Job Recovery..."
+        echo "NeuroInsight-AutoHS Job Recovery..."
         exec "$PYTHON_BIN" scripts/bring_job.py "${@:2}"
         ;;
     health)
-        echo "[HEALTH] NeuroInsight System Health Check"
+        echo "[HEALTH] NeuroInsight-AutoHS System Health Check"
         echo "=========================================="
 
             # Check system resources
@@ -482,8 +482,8 @@ case "$1" in
                 if [ -n "$containers" ]; then
                     echo "$containers"
                 else
-                    echo "  No NeuroInsight containers running"
-                    echo "  [ACTION] Run './neuroinsight start' to start services"
+                    echo "  No NeuroInsight-AutoHS containers running"
+                    echo "  [ACTION] Run './neuroinsight-autohs start' to start services"
                 fi
             else
                 echo "  Docker not available"
@@ -496,7 +496,7 @@ case "$1" in
                 echo "  [OK] Backend API responding"
             else
                 echo "  [FAIL] Backend API not responding"
-                echo "  [ACTION] Check if services are running with './neuroinsight status'"
+                echo "  [ACTION] Check if services are running with './neuroinsight-autohs status'"
             fi
 
             # Overall assessment
@@ -507,7 +507,7 @@ case "$1" in
                 echo "  [OK] SYSTEM HEALTHY - All services operational"
             else
                 echo "  [WARN] ISSUES DETECTED - Some services may be down"
-                echo "  [ACTION] Run './neuroinsight start' to restart services"
+                echo "  [ACTION] Run './neuroinsight-autohs start' to restart services"
             fi
         ;;
     license)
@@ -520,7 +520,7 @@ case "$1" in
                 echo ""
                 echo "To update license:"
                 echo "1. Replace license.txt with new license file"
-                echo "2. Restart NeuroInsight: ./neuroinsight stop && ./neuroinsight start"
+                echo "2. Restart NeuroInsight-AutoHS: ./neuroinsight-autohs stop && ./neuroinsight-autohs start"
             else
                 echo "Warning: License file exists but may contain example content"
                 echo ""
@@ -536,10 +536,10 @@ case "$1" in
             echo "1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
             echo "2. Register with your research email"
             echo "3. Download the license.txt file"
-            echo "4. Place license.txt in this directory (same folder as NeuroInsight)"
-            echo "5. Restart NeuroInsight: ./neuroinsight stop && ./neuroinsight start"
+            echo "4. Place license.txt in this directory (same folder as NeuroInsight-AutoHS)"
+            echo "5. Restart NeuroInsight-AutoHS: ./neuroinsight-autohs stop && ./neuroinsight-autohs start"
             echo ""
-            echo "Note: Without license, NeuroInsight will use mock processing for demonstrations"
+            echo "Note: Without license, NeuroInsight-AutoHS will use mock processing for demonstrations"
         fi
         ;;
     check-wsl)
@@ -548,22 +548,22 @@ case "$1" in
             exec ./scripts/check_wsl.sh
         else
             echo "Error: check_wsl.sh not found in scripts/ directory"
-            echo "Please ensure you're in the NeuroInsight project directory"
+            echo "Please ensure you're in the NeuroInsight-AutoHS project directory"
             exit 1
         fi
         ;;
     reinstall)
-        echo "[REINSTALL] NeuroInsight Complete Reinstallation Guide"
+        echo "[REINSTALL] NeuroInsight-AutoHS Complete Reinstallation Guide"
         echo ""
-        echo "This will completely remove NeuroInsight and allow a fresh installation."
+        echo "This will completely remove NeuroInsight-AutoHS and allow a fresh installation."
         echo ""
 
             # Automated cleanup section
             echo "[CLEANUP] AUTOMATED CLEANUP (Running now...):"
             echo ""
 
-            # Stop any running NeuroInsight services first
-            echo "1. [STOP] Stopping any running NeuroInsight services..."
+            # Stop any running NeuroInsight-AutoHS services first
+            echo "1. [STOP] Stopping any running NeuroInsight-AutoHS services..."
             if command -v docker &> /dev/null; then
                 # Stop containers if they exist
                 if docker ps -q --filter "name=neuroinsight" | grep -q .; then
@@ -585,7 +585,7 @@ case "$1" in
             fi
 
             # Clean up any local files that might conflict
-            echo "2. [CLEAN] Cleaning up local NeuroInsight files..."
+            echo "2. [CLEAN] Cleaning up local NeuroInsight-AutoHS files..."
             # Remove any lingering PID files, logs, or databases
             rm -f *.pid *.log neuroinsight*.db 2>/dev/null || true
             rm -rf __pycache__/ 2>/dev/null || true
@@ -600,7 +600,7 @@ case "$1" in
             echo "3. [DIR] Navigate to the parent directory (where neuroinsight_local is located):"
             echo "   cd .."
             echo ""
-            echo "4. [REMOVE] Remove the entire NeuroInsight directory:"
+            echo "4. [REMOVE] Remove the entire NeuroInsight-AutoHS directory:"
             echo "   rm -rf neuroinsight_local/"
             echo ""
             echo "5. [CLONE] Re-clone the repository:"
@@ -608,13 +608,13 @@ case "$1" in
             echo "   cd neuroinsight_local"
             echo ""
             echo "6. [INSTALL] Run fresh installation:"
-            echo "   ./neuroinsight install"
+            echo "   ./neuroinsight-autohs install"
             echo ""
             echo "7. [LICENSE] Set up FreeSurfer license:"
-            echo "   ./neuroinsight license"
+            echo "   ./neuroinsight-autohs license"
             echo ""
-            echo "8. [START] Start NeuroInsight:"
-            echo "   ./neuroinsight start"
+            echo "8. [START] Start NeuroInsight-AutoHS:"
+            echo "   ./neuroinsight-autohs start"
             echo ""
             echo "[WARNING] WARNING: This will delete ALL data, jobs, and configurations!"
             echo "   Make sure to backup any important data before proceeding."
@@ -623,28 +623,28 @@ case "$1" in
             echo "[TIP] This is useful if you encounter persistent issues or want a completely clean setup."
         ;;
     install)
-        echo "NeuroInsight Installation"
+        echo "NeuroInsight-AutoHS Installation"
         if [ -f "scripts/install.sh" ]; then
             echo "Running installation script..."
             exec ./scripts/install.sh
         else
             echo "Error: install.sh not found in scripts/ directory"
-            echo "Please ensure you're in the NeuroInsight project directory"
+            echo "Please ensure you're in the NeuroInsight-AutoHS project directory"
             exit 1
         fi
         ;;
     install-systemd)
-        echo "Installing NeuroInsight systemd services..."
+        echo "Installing NeuroInsight-AutoHS systemd services..."
         if [ -f "systemd/install_systemd.sh" ]; then
             exec ./systemd/install_systemd.sh
         else
             echo "Error: systemd/install_systemd.sh not found"
-            echo "Please ensure you're in the NeuroInsight project directory"
+            echo "Please ensure you're in the NeuroInsight-AutoHS project directory"
             exit 1
         fi
         ;;
     uninstall-systemd)
-        echo "Uninstalling NeuroInsight systemd services..."
+        echo "Uninstalling NeuroInsight-AutoHS systemd services..."
         if [ -f "systemd/uninstall_systemd.sh" ]; then
             exec ./systemd/uninstall_systemd.sh
         else
@@ -653,83 +653,83 @@ case "$1" in
         fi
         ;;
     start-systemd)
-        echo "Starting NeuroInsight services via systemd..."
+        echo "Starting NeuroInsight-AutoHS services via systemd..."
         echo ""
         
         # Check if services are installed
-        if ! systemctl --user list-unit-files | grep -q "neuroinsight-backend.service"; then
+        if ! systemctl --user list-unit-files | grep -q "neuroinsight-autohs-backend.service"; then
             echo "ERROR: Systemd services not installed!"
-            echo "Run: ./neuroinsight install-systemd"
+            echo "Run: ./neuroinsight-autohs install-systemd"
             exit 1
         fi
         
         # Start services in order
         echo "Starting backend..."
-        systemctl --user start neuroinsight-backend
+        systemctl --user start neuroinsight-autohs-backend
         sleep 2
         
         echo "Starting worker..."
-        systemctl --user start neuroinsight-worker
+        systemctl --user start neuroinsight-autohs-worker
         sleep 1
         
         echo "Starting beat scheduler..."
-        systemctl --user start neuroinsight-beat
+        systemctl --user start neuroinsight-autohs-beat
         sleep 1
         
         echo "Starting job monitor..."
-        systemctl --user start neuroinsight-monitor
+        systemctl --user start neuroinsight-autohs-monitor
         
         echo ""
         echo "Services started! Check status with:"
-        echo "  ./neuroinsight status-systemd"
+        echo "  ./neuroinsight-autohs status-systemd"
         ;;
     stop-systemd)
-        echo "Stopping NeuroInsight services via systemd..."
-        systemctl --user stop neuroinsight-monitor 2>/dev/null || true
-        systemctl --user stop neuroinsight-beat 2>/dev/null || true
-        systemctl --user stop neuroinsight-worker 2>/dev/null || true
-        systemctl --user stop neuroinsight-backend 2>/dev/null || true
+        echo "Stopping NeuroInsight-AutoHS services via systemd..."
+        systemctl --user stop neuroinsight-autohs-monitor 2>/dev/null || true
+        systemctl --user stop neuroinsight-autohs-beat 2>/dev/null || true
+        systemctl --user stop neuroinsight-autohs-worker 2>/dev/null || true
+        systemctl --user stop neuroinsight-autohs-backend 2>/dev/null || true
         echo "Systemd services stopped!"
         echo "Stopping Docker containers..."
         stop_docker_containers
         echo "All services stopped!"
         ;;
     restart-systemd)
-        echo "Restarting NeuroInsight services via systemd..."
-        systemctl --user restart neuroinsight-backend
-        systemctl --user restart neuroinsight-worker
-        systemctl --user restart neuroinsight-beat
-        systemctl --user restart neuroinsight-monitor
+        echo "Restarting NeuroInsight-AutoHS services via systemd..."
+        systemctl --user restart neuroinsight-autohs-backend
+        systemctl --user restart neuroinsight-autohs-worker
+        systemctl --user restart neuroinsight-autohs-beat
+        systemctl --user restart neuroinsight-autohs-monitor
         echo "Services restarted!"
         ;;
     status-systemd)
-        echo "NeuroInsight Systemd Services Status"
+        echo "NeuroInsight-AutoHS Systemd Services Status"
         echo "===================================="
         echo ""
         
         # Check if services are installed
-        if ! systemctl --user list-unit-files | grep -q "neuroinsight-backend.service"; then
+        if ! systemctl --user list-unit-files | grep -q "neuroinsight-autohs-backend.service"; then
             echo "WARNING: Systemd services not installed"
             echo ""
-            echo "To install: ./neuroinsight install-systemd"
+            echo "To install: ./neuroinsight-autohs install-systemd"
             exit 0
         fi
         
         # Show status of each service
         echo "Backend:"
-        systemctl --user status neuroinsight-backend --no-pager -l | head -15
+        systemctl --user status neuroinsight-autohs-backend --no-pager -l | head -15
         echo ""
         
         echo "Worker:"
-        systemctl --user status neuroinsight-worker --no-pager -l | head -15
+        systemctl --user status neuroinsight-autohs-worker --no-pager -l | head -15
         echo ""
         
         echo "Beat Scheduler:"
-        systemctl --user status neuroinsight-beat --no-pager -l | head -15
+        systemctl --user status neuroinsight-autohs-beat --no-pager -l | head -15
         echo ""
         
         echo "Job Monitor:"
-        systemctl --user status neuroinsight-monitor --no-pager -l | head -15
+        systemctl --user status neuroinsight-autohs-monitor --no-pager -l | head -15
         echo ""
         
         echo "Summary:"
@@ -739,7 +739,7 @@ case "$1" in
         # Follow logs for specified service or all
         service="${2:-all}"
         if [ "$service" = "all" ]; then
-            echo "Following all NeuroInsight logs (Ctrl+C to stop)..."
+            echo "Following all NeuroInsight-AutoHS logs (Ctrl+C to stop)..."
             journalctl --user -u neuroinsight-* -f
         else
             echo "Following $service logs (Ctrl+C to stop)..."
@@ -747,15 +747,15 @@ case "$1" in
         fi
         ;;
     *)
-        echo "NeuroInsight Control Script"
+        echo "NeuroInsight-AutoHS Control Script"
         echo ""
         echo "Usage: $0 {install|start|stop|status|monitor|health|license|...}"
         echo ""
         echo "Main Commands:"
-        echo "  install           - Run NeuroInsight installation"
+        echo "  install           - Run NeuroInsight-AutoHS installation"
         echo "  check-wsl         - Check WSL environment (Windows users)"
-        echo "  start             - Start all NeuroInsight services (manual)"
-        echo "  stop              - Stop all NeuroInsight services (manual)"
+        echo "  start             - Start all NeuroInsight-AutoHS services (manual)"
+        echo "  stop              - Stop all NeuroInsight-AutoHS services (manual)"
         echo "  status            - Show system status"
         echo "  health            - Quick system health check"
         echo "  license           - FreeSurfer license management"
@@ -784,7 +784,7 @@ case "$1" in
         echo ""
         echo "  # Installation & Setup"
         echo "  $0 check-wsl                  # Check WSL environment (Windows/WSL users)"
-        echo "  $0 install                    # Install NeuroInsight"
+        echo "  $0 install                    # Install NeuroInsight-AutoHS"
         echo "  $0 license                    # Setup FreeSurfer license"
         echo ""
         echo "  # Basic Usage (Auto-detects systemd)"

@@ -1,5 +1,5 @@
 #!/bin/bash
-# NeuroInsight Installation Script
+# NeuroInsight-AutoHS Installation Script
 # One-command installation for Ubuntu/Debian systems
 #
 # Features:
@@ -41,7 +41,7 @@ if [[ $EUID -eq 0 ]]; then
     exit 1
 fi
 
-log_info "Starting NeuroInsight installation..."
+log_info "Starting NeuroInsight-AutoHS installation..."
 
 # Check OS compatibility
 log_info "Checking system compatibility..."
@@ -67,7 +67,7 @@ log_info "Checking system requirements..."
 # Check RAM (7GB minimum for installation, 16GB recommended for processing)
 TOTAL_RAM=$(free -g | awk 'NR==2{printf "%.0f", $2}')
 if (( TOTAL_RAM < 7 )); then
-    log_error "Insufficient RAM for NeuroInsight installation."
+    log_error "Insufficient RAM for NeuroInsight-AutoHS installation."
     log_error "Minimum required: 7GB (for basic functionality)"
     log_error "Detected: ${TOTAL_RAM}GB"
     exit 1
@@ -107,7 +107,7 @@ else
 fi
 
 if (( AVAILABLE_SPACE < MIN_DISK_GB )); then
-    log_error "Insufficient disk space. NeuroInsight requires at least ${MIN_DISK_GB}GB free."
+    log_error "Insufficient disk space. NeuroInsight-AutoHS requires at least ${MIN_DISK_GB}GB free."
     log_error "Detected: ${AVAILABLE_SPACE}GB available"
     echo ""
     log_error "Please free up disk space before installation:"
@@ -119,7 +119,7 @@ if (( AVAILABLE_SPACE < MIN_DISK_GB )); then
     echo "     df -h /"
     echo ""
     log_info "  3. Retry installation:"
-    echo "     ./neuroinsight install"
+    echo "     ./neuroinsight-autohs install"
     echo ""
     log_info "For more cleanup options, see TROUBLESHOOTING.md:"
     echo "  https://github.com/phindagijimana/neuroinsight_local/blob/master/TROUBLESHOUTING.md#insufficient-disk-space"
@@ -134,8 +134,8 @@ fi
 
 log_success "System requirements met: ${TOTAL_RAM}GB RAM, ${AVAILABLE_SPACE}GB disk, $CPU_CORES cores"
 
-# Check for existing NeuroInsight installation/conflicts
-log_info "Checking for existing NeuroInsight installation..."
+# Check for existing NeuroInsight-AutoHS installation/conflicts
+log_info "Checking for existing NeuroInsight-AutoHS installation..."
 
 CONFLICTS_FOUND=false
 
@@ -145,24 +145,24 @@ if [ -d "venv" ]; then
     CONFLICTS_FOUND=true
 fi
 
-# Check if NeuroInsight is currently running
-if [ -f "neuroinsight.pid" ]; then
-    PID=$(cat neuroinsight.pid 2>/dev/null)
+# Check if NeuroInsight-AutoHS is currently running
+if [ -f "neuroinsight-autohs.pid" ]; then
+    PID=$(cat neuroinsight-autohs.pid 2>/dev/null)
     if ps -p "$PID" > /dev/null 2>&1; then
-        log_warning "NeuroInsight appears to be running (PID: $PID)"
+        log_warning "NeuroInsight-AutoHS appears to be running (PID: $PID)"
         CONFLICTS_FOUND=true
     fi
 fi
 
 # Check for running processes
 if pgrep -f "backend/main.py" > /dev/null 2>&1 || pgrep -f "celery.*processing_web" > /dev/null 2>&1; then
-    log_warning "NeuroInsight processes are currently running"
+    log_warning "NeuroInsight-AutoHS processes are currently running"
     CONFLICTS_FOUND=true
 fi
 
 # Check for Docker containers
 if docker ps --filter "name=neuroinsight" --format "{{.Names}}" 2>/dev/null | grep -q "neuroinsight"; then
-    log_warning "NeuroInsight Docker containers are running"
+    log_warning "NeuroInsight-AutoHS Docker containers are running"
     CONFLICTS_FOUND=true
 fi
 
@@ -182,19 +182,19 @@ if [ "$CONFLICTS_FOUND" = true ]; then
     log_error "INSTALLATION CONFLICT DETECTED"
     echo ""
     echo -e "${RED}Potential issues found:${NC}"
-    echo "  • NeuroInsight may already be installed or running"
+    echo "  • NeuroInsight-AutoHS may already be installed or running"
     echo "  • Required ports may be in use"
     echo "  • Processes or containers from previous installation detected"
     echo ""
     echo -e "${BLUE}Recommended actions:${NC}"
-    echo "  1. Stop NeuroInsight if running:"
-    echo -e "     ${GREEN}./neuroinsight stop${NC}"
+    echo "  1. Stop NeuroInsight-AutoHS if running:"
+    echo -e "     ${GREEN}./neuroinsight-autohs stop${NC}"
     echo ""
     echo "  2. Check what's using the ports:"
     echo -e "     ${GREEN}sudo lsof -i :8000 -i :5432 -i :6379 -i :9000${NC}"
     echo ""
     echo "  3. If re-installing, clean up first:"
-    echo -e "     ${GREEN}./neuroinsight stop${NC}"
+    echo -e "     ${GREEN}./neuroinsight-autohs stop${NC}"
     echo -e "     ${GREEN}docker rm -f \$(docker ps -aq --filter 'name=neuroinsight')${NC}"
     echo -e "     ${GREEN}rm -rf venv/  # Remove virtual environment${NC}"
     echo ""
@@ -683,10 +683,10 @@ if [ ! -f "license.txt" ]; then
     echo "   1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
     echo "   2. Register (free for research)"
     echo "   3. Save your license as: license.txt"
-    echo "   4. Run: ./neuroinsight license"
+    echo "   4. Run: ./neuroinsight-autohs license"
     echo
 else
-    ./neuroinsight license
+    ./neuroinsight-autohs license
 fi
 
 # Final verification
@@ -814,7 +814,7 @@ DOCKER_GID=999
 # Host paths for Docker-in-Docker
 # Note: These are NOT needed for native installation (auto-detected at runtime)
 # Only required when backend runs inside Docker container and spawns FreeSurfer containers
-# For native mode: Python uses ~/.local/share/neuroinsight/ (XDG standard)
+# For native mode: Python uses ~/.local/share/neuroinsight-autohs/ (XDG standard)
 EOF
     log_success ".env file created"
     
@@ -822,7 +822,7 @@ EOF
     if [ -f ".env.backup" ]; then
         log_info "Changes made to .env:"
         echo "  - Removed broken HOST_UPLOAD_DIR and HOST_OUTPUT_DIR"
-        echo "  - Native mode now auto-detects paths from ~/.local/share/neuroinsight/"
+        echo "  - Native mode now auto-detects paths from ~/.local/share/neuroinsight-autohs/"
         echo "  - Backup saved to: .env.backup"
     fi
 else
@@ -874,12 +874,12 @@ if [ "$CONTAINERS_STARTED" = false ]; then
     log_info "Starting containers with direct docker commands..."
     
     # Create network if it doesn't exist
-    run_docker_cmd docker network create neuroinsight-network 2>/dev/null || true
+    run_docker_cmd docker network create neuroinsight-autohs-network 2>/dev/null || true
     
     # Start PostgreSQL
     run_docker_cmd docker run -d \
-        --name neuroinsight-db \
-        --network neuroinsight-network \
+        --name neuroinsight-autohs-db \
+        --network neuroinsight-autohs-network \
         -e POSTGRES_USER=neuroinsight \
         -e POSTGRES_PASSWORD=neuroinsight_secure_password \
         -e POSTGRES_DB=neuroinsight \
@@ -889,16 +889,16 @@ if [ "$CONTAINERS_STARTED" = false ]; then
     
     # Start Redis
     run_docker_cmd docker run -d \
-        --name neuroinsight-redis \
-        --network neuroinsight-network \
+        --name neuroinsight-autohs-redis \
+        --network neuroinsight-autohs-network \
         -p 6379:6379 \
         --restart unless-stopped \
         redis:7-alpine > /dev/null 2>&1 || log_warning "Redis container may already exist"
     
     # Start MinIO
     run_docker_cmd docker run -d \
-        --name neuroinsight-minio \
-        --network neuroinsight-network \
+        --name neuroinsight-autohs-minio \
+        --network neuroinsight-autohs-network \
         -e MINIO_ROOT_USER=minioadmin \
         -e MINIO_ROOT_PASSWORD=minioadmin_secure \
         -p 9000:9000 \
@@ -925,10 +925,10 @@ fi
 
 # Create required data directories
 log_info "Creating required data directories..."
-mkdir -p "$HOME/.local/share/neuroinsight/uploads"
-mkdir -p "$HOME/.local/share/neuroinsight/results"
-mkdir -p "$HOME/.local/share/neuroinsight/outputs"
-if [ -d "$HOME/.local/share/neuroinsight/uploads" ]; then
+mkdir -p "$HOME/.local/share/neuroinsight-autohs/uploads"
+mkdir -p "$HOME/.local/share/neuroinsight-autohs/results"
+mkdir -p "$HOME/.local/share/neuroinsight-autohs/outputs"
+if [ -d "$HOME/.local/share/neuroinsight-autohs/uploads" ]; then
     log_success "Data directories created"
 else
     log_warning "Failed to create data directories - uploads may fail"
@@ -941,7 +941,7 @@ if [ $RUNNING_CONTAINERS -gt 0 ]; then
     # Wait for PostgreSQL to be fully ready
     log_info "Waiting for PostgreSQL to be ready..."
     for i in {1..30}; do
-        if run_docker_cmd docker exec neuroinsight-db pg_isready -U neuroinsight > /dev/null 2>&1; then
+        if run_docker_cmd docker exec neuroinsight-autohs-db pg_isready -U neuroinsight > /dev/null 2>&1; then
             log_success "PostgreSQL is ready"
             break
         fi
@@ -979,11 +979,11 @@ if command -v systemctl &> /dev/null; then
         # Run systemd installation silently
         if ./systemd/install_systemd.sh > /tmp/neuroinsight_systemd_install.log 2>&1; then
             log_success "Systemd services installed (auto-restart enabled)"
-            log_info "Services will start automatically with './neuroinsight start'"
+            log_info "Services will start automatically with './neuroinsight-autohs start'"
         else
             log_warning "Systemd service installation had issues (see /tmp/neuroinsight_systemd_install.log)"
-            log_info "You can retry with: ./neuroinsight install-systemd"
-            log_info "Or use manual mode: ./neuroinsight start --manual"
+            log_info "You can retry with: ./neuroinsight-autohs install-systemd"
+            log_info "Or use manual mode: ./neuroinsight-autohs start --manual"
         fi
     else
         log_warning "systemd/install_systemd.sh not found"
@@ -993,7 +993,7 @@ else
     log_info "Systemd not available - will use manual start mode"
 fi
 
-log_success "NeuroInsight installation completed successfully!"
+log_success "NeuroInsight-AutoHS installation completed successfully!"
 echo
 
 # Add docker group message if user was just added
@@ -1004,7 +1004,7 @@ if [ "$USER_IN_DOCKER_GROUP" = false ]; then
     echo "   To use Docker without 'sudo', you MUST log out and log back in."
     echo ""
     echo "   After logging back in, run:"
-    echo "      ./neuroinsight start"
+    echo "      ./neuroinsight-autohs start"
     echo ""
 fi
 
@@ -1012,13 +1012,13 @@ echo "Next steps:"
 echo "   1. Set up your FreeSurfer license (if not done):"
 echo "      - Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
 echo "      - Download your license.txt file"
-echo "      - Place license.txt in this directory (same folder as NeuroInsight)"
-echo "   2. Start NeuroInsight:"
-echo "      ./neuroinsight start"
+echo "      - Place license.txt in this directory (same folder as NeuroInsight-AutoHS)"
+echo "   2. Start NeuroInsight-AutoHS:"
+echo "      ./neuroinsight-autohs start"
 echo "   3. Open your browser:"
-echo "      http://localhost:8000 (or auto-selected port - check ./neuroinsight status)"
+echo "      http://localhost:8000 (or auto-selected port - check ./neuroinsight-autohs status)"
 echo
 echo "For help, see: README.md"
-echo "For troubleshooting: ./neuroinsight license"
+echo "For troubleshooting: ./neuroinsight-autohs license"
 
 exit 0

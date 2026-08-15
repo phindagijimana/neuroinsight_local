@@ -73,6 +73,37 @@ cd neuroinsight_local
 
 ---
 
+### Docker (Linux & macOS)
+
+Only manual step: place your FreeSurfer `license.txt` before install.
+
+```bash
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local/deploy
+
+# Place license in the neuroinsight_local folder (recommended):
+#   ../license.txt
+# Or: ~/Documents/license.txt  or  ~/license.txt
+
+./neuroinsight-docker check     # verify license, Docker, ports (no install)
+./neuroinsight-docker setup     # install + start (non-interactive)
+./neuroinsight-docker status    # web URL and service health
+```
+
+If anything is missing, `check` runs 9 step-by-step checks and prints all blockers at once (license path, Docker, ports, etc.).
+
+`install` / `setup` automatically:
+- Verifies Docker is running
+- Pulls `phindagijimana321/neuroinsight:latest` and `freesurfer/freesurfer:7.4.1`
+- Picks free ports (web 8000–8050, MinIO 9000–9050)
+- Mounts Docker socket (FreeSurfer jobs) and patched entrypoint (macOS Docker Desktop)
+- Uses `--platform linux/amd64` on Apple Silicon
+- Waits for the web UI before finishing
+
+**Best for:** macOS, shared servers, or anyone who prefers a single container
+
+---
+
 ## File Requirements
 
 NeuroInsight-AutoHS processes T1-weighted MRI scans only. Filenames must contain:

@@ -11,7 +11,11 @@ param(
 
 $ContainerName = "neuroinsight"
 $ImageName = "phindagijimana321/neuroinsight:latest"
+$FreeSurferImage = if ($env:FREESURFER_IMAGE) { $env:FREESURFER_IMAGE } else { "freesurfer/freesurfer:7.4.1" }
 $VolumeName = "neuroinsight-data"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$DeployDir = Join-Path (Split-Path -Parent $ScriptDir) "deploy"
+$ProjectRoot = Split-Path -Parent $DeployDir
 
 # Colors
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }
@@ -49,11 +53,322 @@ function Get-ContainerPort {
     return $null
 }
 
+function Get-DockerPlatformArgs {
+    if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") {
+        return @("--platform", "linux/amd64")
+    }
+    return @()
+}
+
+function Get-EntrypointMountArgs {
+    $entrypoint = Join-Path $DeployDir "entrypoint.sh"
+    if (Test-Path $entrypoint) {
+        return @("-v", "${entrypoint}:/app/entrypoint.sh:ro")
+    }
+    return @()
+}
+
+function Find-LicensePath {
+    $candidates = @(
+        (Join-Path $DeployDir "license.txt"),
+        (Join-Path (Split-Path -Parent $DeployDir) "license.txt"),
+        (Join-Path $env:USERPROFILE "Documents\license.txt"),
+        (Join-Path $env:USERPROFILE "license.txt")
+    )
+    foreach ($path in $candidates) {
+        if (Test-Path $path) {
+            $content = Get-Content $path -Raw -ErrorAction SilentlyContinue
+            if ($content -match "REPLACE THIS EXAMPLE" -or $content -match "FreeSurfer License File - EXAMPLE") {
+                continue
+            }
+            return (Resolve-Path $path).Path
+        }
+    }
+    return $null
+}
+
+function Write-LicenseHelp {
+    param([string]$Reason = "not found")
+    Write-Host "FreeSurfer license.txt $Reason."
+    Write-Host ""
+    Write-Host "This is the only manual setup step. Place your license file here (recommended):"
+    Write-Host "  $(Join-Path $ProjectRoot 'license.txt')"
+    Write-Host ""
+    Write-Host "Other accepted locations:"
+    Write-Host "  $env:USERPROFILE\Documents\license.txt"
+    Write-Host "  $env:USERPROFILE\license.txt"
+    Write-Host ""
+    Write-Host "Get a free research license (required for MRI processing):"
+    Write-Host "  https://surfer.nmr.mgh.harvard.edu/registration.html"
+    Write-Host ""
+    Write-Host "After adding the license, run:"
+    Write-Host "  .\neuroinsight-docker.ps1 setup"
+}
+
+function Test-PortFree {
+    param([int]$Port)
+    $connection = Test-NetConnection -ComputerName localhost -Port $Port -InformationLevel Quiet -WarningAction SilentlyContinue
+    return (-not $connection)
+}
+
+function Invoke-PreflightInstall {
+    param([switch]$ShowSteps)
+
+    $blockers = @()
+    $fixes = @()
+    $warnings = @()
+    $totalSteps = 9
+    $step = 0
+
+    function Write-PreflightStepBegin {
+        param([string]$Label)
+        $script:step++
+        if ($ShowSteps) {
+            Write-Host ""
+            Write-Host "[$($script:step)/$totalSteps] $Label..." -ForegroundColor Cyan
+        }
+    }
+
+    function Write-PreflightStepOk {
+        param([string]$Message)
+        if ($ShowSteps) { Write-Host "      OK   $Message" -ForegroundColor Green }
+    }
+
+    function Write-PreflightStepFail {
+        param([string]$Message)
+        if ($ShowSteps) { Write-Host "      FAIL $Message" -ForegroundColor Red }
+    }
+
+    function Write-PreflightStepWarn {
+        param([string]$Message)
+        if ($ShowSteps) { Write-Host "      WARN $Message" -ForegroundColor Yellow }
+    }
+
+    function Test-DockerDaemon {
+        try {
+            docker info 2>$null | Out-Null
+            return ($LASTEXITCODE -eq 0)
+        } catch {
+            return $false
+        }
+    }
+
+    if ($ShowSteps) {
+        Write-Host ""
+        Write-Info "Project: $ProjectRoot"
+        Write-Info "Running $totalSteps setup checks..."
+    }
+
+    Write-PreflightStepBegin "Checking Docker installation"
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
+        Write-PreflightStepFail "Docker CLI not found"
+        $blockers += "Docker is not installed"
+        $fixes += @(
+            "Install Docker Desktop, then re-run:",
+            "  .\neuroinsight-docker.ps1 setup",
+            "  https://www.docker.com/products/docker-desktop/"
+        ) -join "`n"
+    } else {
+        Write-PreflightStepOk "Docker CLI found"
+    }
+
+    Write-PreflightStepBegin "Checking Docker daemon"
+    if ((Get-Command docker -ErrorAction SilentlyContinue) -and (Test-DockerDaemon)) {
+        Write-PreflightStepOk "Docker daemon is running"
+    } elseif (Get-Command docker -ErrorAction SilentlyContinue) {
+        Write-PreflightStepFail "Docker daemon is not running"
+        $blockers += "Docker is installed but the daemon is not running"
+        $fixes += @(
+            "Start Docker Desktop, then re-run:",
+            "  .\neuroinsight-docker.ps1 setup"
+        ) -join "`n"
+    } else {
+        Write-PreflightStepFail "Skipped (Docker not installed)"
+    }
+
+    Write-PreflightStepBegin "Checking FreeSurfer license.txt"
+    $licensePath = Find-LicensePath
+    if (-not $licensePath) {
+        Write-PreflightStepFail "license.txt not found"
+        $blockers += "FreeSurfer license.txt not found"
+        $fixes += @(
+            "Place your license in the neuroinsight_local folder (recommended):",
+            "  $(Join-Path $ProjectRoot 'license.txt')",
+            "",
+            "Other accepted locations:",
+            "  $env:USERPROFILE\Documents\license.txt",
+            "  $env:USERPROFILE\license.txt",
+            "",
+            "Get a free research license:",
+            "  https://surfer.nmr.mgh.harvard.edu/registration.html"
+        ) -join "`n"
+    } else {
+        Write-PreflightStepOk "Valid license found at $licensePath"
+    }
+
+    Write-PreflightStepBegin "Checking web UI port (8000-8050)"
+    $webPort = $null
+    for ($p = 8000; $p -le 8050; $p++) {
+        if (Test-PortFree -Port $p) { $webPort = $p; break }
+    }
+    if (-not $webPort) {
+        Write-PreflightStepFail "No free port in range 8000-8050"
+        $blockers += "No free port for web UI (range 8000-8050)"
+        $fixes += "Stop other services using ports 8000-8050, then re-run setup."
+    } else {
+        Write-PreflightStepOk "Port $webPort available for web UI"
+    }
+
+    Write-PreflightStepBegin "Checking MinIO ports (9000-9050)"
+    $minioApiPort = $null
+    $minioConsolePort = $null
+    for ($p = 9000; $p -le 9050; $p++) {
+        if (Test-PortFree -Port $p) { $minioApiPort = $p; break }
+    }
+    for ($p = 9000; $p -le 9050; $p++) {
+        if ($p -eq $minioApiPort) { continue }
+        if (Test-PortFree -Port $p) { $minioConsolePort = $p; break }
+    }
+    if (-not $minioApiPort -or -not $minioConsolePort) {
+        Write-PreflightStepFail "Need two free ports in range 9000-9050"
+        $blockers += "No free ports for MinIO (range 9000-9050)"
+        $fixes += "Stop other services using ports 9000-9050, then re-run setup."
+    } else {
+        Write-PreflightStepOk "Ports $minioApiPort (API) and $minioConsolePort (console) available"
+    }
+
+    Write-PreflightStepBegin "Checking Docker Desktop entrypoint fix"
+    $entrypoint = Join-Path $DeployDir "entrypoint.sh"
+    if (Test-Path $entrypoint) {
+        Write-PreflightStepOk "deploy/entrypoint.sh present (will mount on install)"
+    } else {
+        Write-PreflightStepWarn "deploy/entrypoint.sh missing — some Docker Desktop installs may fail"
+        $warnings += "deploy/entrypoint.sh missing — some Docker Desktop installs may fail"
+    }
+
+    Write-PreflightStepBegin "Checking network tools (UI readiness wait)"
+    Write-PreflightStepOk "Invoke-WebRequest available (built-in on Windows)"
+
+    Write-PreflightStepBegin "Checking disk space"
+    try {
+        $drive = (Get-Location).Drive
+        if ($drive) {
+            $freeGb = [math]::Round($drive.Free / 1GB)
+            if ($freeGb -lt 50) {
+                Write-PreflightStepWarn "$freeGb GB free (recommend 50GB+ for MRI data)"
+                $warnings += "Low disk space: ${freeGb}GB free (recommend 50GB+ for MRI data)"
+            } else {
+                Write-PreflightStepOk "$freeGb GB free disk space"
+            }
+        } else {
+            Write-PreflightStepOk "Disk space check skipped"
+        }
+    } catch {
+        Write-PreflightStepOk "Disk space check skipped"
+    }
+
+    Write-PreflightStepBegin "Checking system memory"
+    try {
+        $memGb = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+        if ($memGb -lt 16) {
+            Write-PreflightStepWarn "$memGb GB RAM (recommend 16GB+ for MRI processing)"
+            $warnings += "Low RAM: ${memGb}GB (recommend 16GB+ for MRI processing)"
+        } else {
+            Write-PreflightStepOk "$memGb GB RAM"
+        }
+    } catch {
+        Write-PreflightStepOk "Memory check skipped"
+    }
+
+    if ($ShowSteps) {
+        Write-Host ""
+        Write-Host "======================================" -ForegroundColor Cyan
+        if ($blockers.Count -eq 0) {
+            Write-Host "Check complete — all required items OK" -ForegroundColor Green
+        } else {
+            Write-Host "Check complete — $($blockers.Count) required item(s) need attention" -ForegroundColor Red
+        }
+        Write-Host "======================================" -ForegroundColor Cyan
+    }
+
+    if ($blockers.Count -eq 0) {
+        if (-not $ShowSteps) {
+            foreach ($w in $warnings) { Write-Warning $w }
+        }
+        return $true
+    }
+
+    if (-not $ShowSteps) {
+        Write-Host ""
+        Write-Host "======================================" -ForegroundColor Red
+        Write-Host "Setup requirements not met" -ForegroundColor Red
+        Write-Host "======================================" -ForegroundColor Red
+    }
+    Write-Host ""
+    Write-Host "Fix the items below, then re-run:"
+    if ($ShowSteps) {
+        Write-Host "  .\neuroinsight-docker.ps1 check"
+        Write-Host "  .\neuroinsight-docker.ps1 setup"
+    } else {
+        Write-Host "  .\neuroinsight-docker.ps1 setup"
+    }
+    Write-Host ""
+
+    for ($i = 0; $i -lt $blockers.Count; $i++) {
+        Write-Error $blockers[$i]
+        Write-Host ""
+        Write-Host $fixes[$i]
+        Write-Host ""
+    }
+
+    if ($warnings.Count -gt 0) {
+        Write-Host "Warnings (non-blocking):"
+        foreach ($w in $warnings) { Write-Warning $w }
+        Write-Host ""
+    }
+
+    return $false
+}
+
+function Invoke-PullRequiredImages {
+    $platform = Get-DockerPlatformArgs
+    Write-Info "Pulling application image: $ImageName..."
+    docker pull @platform $ImageName
+    Write-Info "Pulling FreeSurfer image: $FreeSurferImage (large download)..."
+    try {
+        docker pull @platform $FreeSurferImage | Out-Null
+    } catch {
+        Write-Warning "FreeSurfer image pull failed — will retry when a job starts"
+    }
+}
+
+function Wait-WebReady {
+    param([int]$Port, [int]$Attempts = 60)
+    Write-Info "Waiting for NeuroInsight web UI on port $Port..."
+    for ($i = 1; $i -le $Attempts; $i++) {
+        try {
+            $response = Invoke-WebRequest -Uri "http://localhost:$Port/" -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
+            if ($response.StatusCode -ge 200) {
+                Write-Success "Web UI is ready (http://localhost:$Port)"
+                return $true
+            }
+        } catch {
+            if (-not (Test-ContainerRunning)) {
+                Write-Error "Container stopped while starting"
+                return $false
+            }
+        }
+        Start-Sleep -Seconds 5
+    }
+    Write-Warning "Web UI did not respond in time — check status"
+    return $false
+}
+
 # Command: install
 function Invoke-Install {
-    param([int]$Port = 8000)
+    param([switch]$AssumeYes)
     
-    if (-not (Test-Docker)) { exit 1 }
+    if (-not (Invoke-PreflightInstall)) { exit 1 }
     
     Write-Host ""
     Write-Host "======================================" -ForegroundColor Cyan
@@ -63,80 +378,75 @@ function Invoke-Install {
     
     # Check existing
     if (Test-ContainerExists) {
-        Write-Warning "NeuroInsight container already exists"
-        $response = Read-Host "Remove and reinstall? (y/N)"
-        if ($response -ne "y" -and $response -ne "Y") {
-            Write-Info "Installation cancelled"
-            exit 0
+        if ($AssumeYes) {
+            Invoke-Remove
+        } else {
+            Write-Warning "NeuroInsight container already exists"
+            $response = Read-Host "Remove and reinstall? (y/N)"
+            if ($response -ne "y" -and $response -ne "Y") {
+                Write-Info "Keeping existing container — run: .\neuroinsight-docker.ps1 start"
+                exit 0
+            }
+            Invoke-Remove
         }
-        Invoke-Remove
     }
     
     # Find available port
     Write-Info "Finding available port (range: 8000-8050)..."
-    $selectedPort = $Port
-    $portFound = $false
-    
-    for ($testPort = $selectedPort; $testPort -le 8050; $testPort++) {
+    $selectedPort = $null
+    for ($testPort = 8000; $testPort -le 8050; $testPort++) {
         $connection = Test-NetConnection -ComputerName localhost -Port $testPort -InformationLevel Quiet -WarningAction SilentlyContinue
         if (-not $connection) {
             $selectedPort = $testPort
-            $portFound = $true
             break
         }
     }
     
-    if (-not $portFound) {
+    if (-not $selectedPort) {
         Write-Error "No available ports found in range 8000-8050"
         exit 1
     }
     
-    Write-Success "Selected port: $selectedPort"
+    Write-Success "Selected web port: $selectedPort"
     
-    # Calculate additional ports
-    $minioApiPort = $selectedPort + 1000
-    $minioConsolePort = $selectedPort + 1001
-    
-    # Search for license
-    Write-Info "Searching for FreeSurfer license..."
-    $licenseMount = @()
-    
-    $licensePaths = @(
-        ".\license.txt",
-        "..\license.txt",
-        "$env:USERPROFILE\license.txt",
-        "$env:USERPROFILE\Desktop\license.txt",
-        "$env:USERPROFILE\Documents\license.txt"
-    )
-    
-    $licenseFound = $false
-    foreach ($path in $licensePaths) {
-        if (Test-Path $path) {
-            $content = Get-Content $path -Raw
-            if ($content -notmatch "REPLACE THIS EXAMPLE" -and $content -notmatch "EXAMPLE") {
-                $licenseFound = $true
-                $fullPath = (Resolve-Path $path).Path
-                $licenseMount = @("-v", "${fullPath}:/app/license.txt:ro")
-                Write-Success "Found license: $fullPath"
-                break
-            }
+    # MinIO ports in 9000-9050 (exclude web-derived offsets)
+    $minioApiPort = $null
+    for ($testPort = 9000; $testPort -le 9050; $testPort++) {
+        $connection = Test-NetConnection -ComputerName localhost -Port $testPort -InformationLevel Quiet -WarningAction SilentlyContinue
+        if (-not $connection) {
+            $minioApiPort = $testPort
+            break
         }
     }
-    
-    if (-not $licenseFound) {
-        Write-Warning "FreeSurfer license not found (will run in demo mode)"
-        Write-Host "Get license: https://surfer.nmr.mgh.harvard.edu/registration.html" -ForegroundColor Yellow
-    }
-    
-    # Pull image
-    Write-Info "Pulling NeuroInsight Docker image..."
-    try {
-        docker pull $ImageName
-        Write-Success "Image pulled"
-    } catch {
-        Write-Error "Failed to pull image"
+    if (-not $minioApiPort) {
+        Write-Error "No available ports found in range 9000-9050 for MinIO API"
         exit 1
     }
+    Write-Success "Selected MinIO API port: $minioApiPort"
+    
+    $minioConsolePort = $null
+    for ($testPort = 9000; $testPort -le 9050; $testPort++) {
+        if ($testPort -eq $minioApiPort) { continue }
+        $connection = Test-NetConnection -ComputerName localhost -Port $testPort -InformationLevel Quiet -WarningAction SilentlyContinue
+        if (-not $connection) {
+            $minioConsolePort = $testPort
+            break
+        }
+    }
+    if (-not $minioConsolePort) {
+        Write-Error "No available ports found in range 9000-9050 for MinIO Console"
+        exit 1
+    }
+    Write-Success "Selected MinIO Console port: $minioConsolePort"
+    
+    $licensePath = Find-LicensePath
+    if (-not $licensePath) {
+        Write-LicenseHelp
+        exit 1
+    }
+    Write-Success "License found and will be mounted: $licensePath"
+    
+    Invoke-PullRequiredImages
     
     # Create volume
     Write-Info "Creating data volume..."
@@ -148,12 +458,10 @@ function Invoke-Install {
         Write-Success "Volume exists (preserving data)"
     }
     
-    # Get volume path
-    $volumePath = "/var/lib/docker/volumes/${VolumeName}/_data"
-    
     # Create container
     Write-Info "Creating container..."
     Write-Info "  Web Interface: http://localhost:${selectedPort}"
+    Write-Info "  MinIO API: http://localhost:${minioApiPort}"
     Write-Info "  MinIO Console: http://localhost:${minioConsolePort}"
     
     $dockerArgs = @(
@@ -164,15 +472,11 @@ function Invoke-Install {
         "-p", "${minioConsolePort}:9001",
         "-v", "/var/run/docker.sock:/var/run/docker.sock",
         "-v", "${VolumeName}:/data",
-        "-e", "HOST_UPLOAD_DIR=${volumePath}/uploads",
-        "-e", "HOST_OUTPUT_DIR=${volumePath}/outputs",
+        "-v", "${licensePath}:/app/license.txt:ro",
         "--restart", "unless-stopped"
     )
-    
-    if ($licenseMount.Count -gt 0) {
-        $dockerArgs += $licenseMount
-    }
-    
+    $dockerArgs += Get-EntrypointMountArgs
+    $dockerArgs += Get-DockerPlatformArgs
     $dockerArgs += $ImageName
     
     try {
@@ -183,11 +487,8 @@ function Invoke-Install {
         exit 1
     }
     
-    # Wait for startup
-    Write-Info "Waiting for services to start (30 seconds)..."
-    Start-Sleep -Seconds 30
+    Wait-WebReady -Port $selectedPort | Out-Null
     
-    # Show status
     Invoke-Status
     
     Write-Host ""
@@ -196,12 +497,35 @@ function Invoke-Install {
     Write-Host ""
 }
 
+function Invoke-Setup {
+    Invoke-Install -AssumeYes
+}
+
+function Invoke-Check {
+    Write-Host "======================================" -ForegroundColor Cyan
+    Write-Host "NeuroInsight setup check" -ForegroundColor Cyan
+    Write-Host "======================================" -ForegroundColor Cyan
+    if (Invoke-PreflightInstall -ShowSteps) {
+        Write-Host ""
+        Write-Success "All requirements met — run: .\neuroinsight-docker.ps1 setup"
+    } else {
+        exit 1
+    }
+}
+
 # Command: start
 function Invoke-Start {
     if (-not (Test-Docker)) { exit 1 }
     
     if (-not (Test-ContainerExists)) {
-        Write-Error "Container does not exist. Run: .\neuroinsight-docker.ps1 install"
+        Write-Error "Container does not exist."
+        Write-Host ""
+        if (Find-LicensePath) {
+            Write-Host "License is ready. Run:"
+            Write-Host "  .\neuroinsight-docker.ps1 setup"
+        } else {
+            Write-LicenseHelp
+        }
         exit 1
     }
     
@@ -216,11 +540,12 @@ function Invoke-Start {
     
     Write-Info "Starting NeuroInsight..."
     docker start $ContainerName | Out-Null
-    Start-Sleep -Seconds 5
+    Start-Sleep -Seconds 3
     
     Write-Success "Container started"
     $port = Get-ContainerPort
     if ($port) {
+        Wait-WebReady -Port ([int]$port) -Attempts 24 | Out-Null
         Write-Host "Web Interface: http://localhost:$port" -ForegroundColor Cyan
     }
 }
@@ -430,23 +755,16 @@ function Invoke-Update {
     Write-Info "Updating NeuroInsight to latest version..."
     Write-Host ""
     
-    # Pull latest
-    Write-Info "Pulling latest image..."
-    docker pull $ImageName
-    Write-Success "Image updated"
+    Invoke-PullRequiredImages
     
     if (-not (Test-ContainerExists)) {
-        Write-Info "No container to update. Run: .\neuroinsight-docker.ps1 install"
+        Write-Info "No container to update. Run: .\neuroinsight-docker.ps1 setup"
         exit 0
     }
     
-    # Recreate container
     Write-Info "Recreating container with new image..."
-    $port = Get-ContainerPort
-    if (-not $port) { $port = 8000 }
-    
     Invoke-Remove
-    Invoke-Install -Port $port
+    Invoke-Install -AssumeYes
 }
 
 # Command: license
@@ -489,7 +807,9 @@ USAGE:
     .\neuroinsight-docker.ps1 <command> [options]
 
 COMMANDS:
-    install         Install and start NeuroInsight
+    setup           First-time install (non-interactive; license.txt required)
+    check           Run step-by-step prerequisite checks (license, Docker, ports)
+    install [-y]    Install and start NeuroInsight
     start           Start the container
     stop            Stop the container
     restart         Restart the container
@@ -506,6 +826,7 @@ COMMANDS:
     help            Show this help
 
 EXAMPLES:
+    .\neuroinsight-docker.ps1 setup
     .\neuroinsight-docker.ps1 install
     .\neuroinsight-docker.ps1 start
     .\neuroinsight-docker.ps1 status
@@ -530,9 +851,15 @@ MORE INFO:
 
 # Main command dispatcher
 switch ($Command.ToLower()) {
+    "setup" {
+        Invoke-Setup
+    }
+    "check" {
+        Invoke-Check
+    }
     "install" {
-        $portArg = if ($Arguments[0]) { [int]$Arguments[0] } else { 8000 }
-        Invoke-Install -Port $portArg
+        $assumeYes = ($Arguments -contains "-y")
+        Invoke-Install -AssumeYes:$assumeYes
     }
     "start" {
         Invoke-Start

@@ -4,9 +4,14 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CONTAINER_NAME="neuroinsight"
 IMAGE_NAME="phindagijimana321/neuroinsight:latest"
+FREESURFER_IMAGE="${FREESURFER_IMAGE:-freesurfer/freesurfer:7.4.1}"
 VOLUME_NAME="neuroinsight-data"
+MIN_DISK_GB="${NEUROINSIGHT_MIN_DISK_GB:-50}"
+MIN_RAM_GB="${NEUROINSIGHT_MIN_RAM_GB:-16}"
 
 # Colors
 RED='\033[0;31m'
@@ -31,13 +36,391 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if Docker is installed
+# Check if Docker is installed and the daemon is reachable
 check_docker() {
     if ! command -v docker &> /dev/null; then
         log_error "Docker is not installed."
         echo "Please install Docker first:"
-        echo "  https://docs.docker.com/get-docker/"
+        echo "  Linux:   https://docs.docker.com/engine/install/"
+        echo "  macOS:   https://www.docker.com/products/docker-desktop/"
         exit 1
+    fi
+    if ! docker info >/dev/null 2>&1; then
+        log_error "Docker is installed but the daemon is not running."
+        echo "Start Docker Desktop (macOS/Windows) or run: sudo systemctl start docker"
+        exit 1
+    fi
+}
+
+# Optional platform flag for Apple Silicon / arm64 hosts (published image is linux/amd64)
+docker_platform_args() {
+    local arch
+    arch="$(uname -m 2>/dev/null || echo unknown)"
+    if [ "$arch" = "arm64" ] || [ "$arch" = "aarch64" ]; then
+        echo "--platform linux/amd64"
+    fi
+}
+
+# Warn if the host may be under-resourced (non-fatal)
+preflight_resources() {
+    if command -v df >/dev/null 2>&1; then
+        local free_gb
+        free_gb="$(df -g . 2>/dev/null | awk 'NR==2 {print $4}' || df -BG . 2>/dev/null | awk 'NR==2 {gsub(/G/,""); print $4}')"
+        if [ -n "$free_gb" ] && [ "$free_gb" -lt "$MIN_DISK_GB" ] 2>/dev/null; then
+            log_warning "Low disk space: ${free_gb}GB free (recommend ${MIN_DISK_GB}GB+)"
+        fi
+    fi
+    if command -v sysctl >/dev/null 2>&1; then
+        local mem_bytes mem_gb
+        mem_bytes="$(sysctl -n hw.memsize 2>/dev/null || echo 0)"
+        if [ "$mem_bytes" -gt 0 ] 2>/dev/null; then
+            mem_gb=$((mem_bytes / 1024 / 1024 / 1024))
+            if [ "$mem_gb" -lt "$MIN_RAM_GB" ]; then
+                log_warning "Low RAM: ${mem_gb}GB (recommend ${MIN_RAM_GB}GB+ for MRI processing)"
+            fi
+        fi
+    elif [ -r /proc/meminfo ]; then
+        local mem_gb
+        mem_gb="$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)"
+        if [ -n "$mem_gb" ] && [ "$mem_gb" -lt "$MIN_RAM_GB" ] 2>/dev/null; then
+            log_warning "Low RAM: ${mem_gb}GB (recommend ${MIN_RAM_GB}GB+ for MRI processing)"
+        fi
+    fi
+}
+
+# Find FreeSurfer license.txt on the host (only manual step for the user)
+find_license_path() {
+    local candidate
+    for candidate in \
+        "${SCRIPT_DIR}/license.txt" \
+        "${SCRIPT_DIR}/../license.txt" \
+        "${SCRIPT_DIR}/../../license.txt" \
+        "${HOME}/Documents/license.txt" \
+        "${HOME}/license.txt"
+    do
+        if [ -f "$candidate" ]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+license_is_example() {
+    local path="$1"
+    grep -q "REPLACE THIS EXAMPLE CONTENT" "$path" 2>/dev/null || \
+        grep -q "FreeSurfer License File - EXAMPLE" "$path" 2>/dev/null
+}
+
+# Shared guidance when license.txt is missing or invalid
+print_license_help() {
+    local reason="${1:-not found}"
+    echo "FreeSurfer license.txt ${reason}."
+    echo ""
+    echo "This is the only manual setup step. Place your license file here (recommended):"
+    echo "  ${PROJECT_ROOT}/license.txt"
+    echo ""
+    echo "Other accepted locations:"
+    echo "  ${HOME}/Documents/license.txt"
+    echo "  ${HOME}/license.txt"
+    echo ""
+    echo "Get a free research license (required for MRI processing):"
+    echo "  https://surfer.nmr.mgh.harvard.edu/registration.html"
+    echo ""
+    echo "After adding the license, run:"
+    echo "  ./neuroinsight-docker setup"
+}
+
+# Check license status; prints help and returns 1 if not usable
+check_license_ready() {
+    local license_path=""
+    if ! license_path="$(find_license_path)"; then
+        print_license_help "not found"
+        return 1
+    fi
+    if license_is_example "$license_path"; then
+        echo "Found license file but it contains example content (not valid):"
+        echo "  ${license_path}"
+        echo ""
+        print_license_help "is invalid"
+        return 1
+    fi
+    return 0
+}
+
+# Verify all install prerequisites; report every missing item before exiting
+# Pass --verbose to print each check step (used by ./neuroinsight-docker check)
+preflight_install() {
+    local show_steps=false
+    if [ "${1:-}" = "--verbose" ] || [ "${1:-}" = "-v" ]; then
+        show_steps=true
+    fi
+
+    local -a blockers=()
+    local -a fixes=()
+    local -a warnings=()
+    local total_steps=9
+    local step=0
+
+    preflight_step_begin() {
+        step=$((step + 1))
+        if [ "$show_steps" = true ]; then
+            echo ""
+            echo -e "${BLUE}[${step}/${total_steps}]${NC} $1..."
+        fi
+    }
+
+    preflight_step_ok() {
+        if [ "$show_steps" = true ]; then
+            echo -e "      ${GREEN}OK${NC}  $1"
+        fi
+    }
+
+    preflight_step_fail() {
+        if [ "$show_steps" = true ]; then
+            echo -e "      ${RED}FAIL${NC}  $1"
+        fi
+    }
+
+    preflight_step_warn() {
+        if [ "$show_steps" = true ]; then
+            echo -e "      ${YELLOW}WARN${NC}  $1"
+        fi
+    }
+
+    if [ "$show_steps" = true ]; then
+        echo ""
+        log_info "Project: ${PROJECT_ROOT}"
+        log_info "Running ${total_steps} setup checks..."
+    fi
+
+    preflight_step_begin "Checking Docker installation"
+    if ! command -v docker &>/dev/null; then
+        preflight_step_fail "Docker CLI not found"
+        blockers+=("Docker is not installed")
+        fixes+=("Install Docker, then re-run ./neuroinsight-docker setup
+  Linux:   https://docs.docker.com/engine/install/
+  macOS:   https://www.docker.com/products/docker-desktop/
+  Windows: https://www.docker.com/products/docker-desktop/")
+    else
+        preflight_step_ok "Docker CLI found ($(command -v docker))"
+    fi
+
+    preflight_step_begin "Checking Docker daemon"
+    if command -v docker &>/dev/null && docker info >/dev/null 2>&1; then
+        preflight_step_ok "Docker daemon is running"
+    elif command -v docker &>/dev/null; then
+        preflight_step_fail "Docker daemon is not running"
+        blockers+=("Docker is installed but the daemon is not running")
+        fixes+=("Start Docker Desktop (macOS/Windows) or run:
+  sudo systemctl start docker
+Then re-run: ./neuroinsight-docker setup")
+    else
+        preflight_step_fail "Skipped (Docker not installed)"
+    fi
+
+    preflight_step_begin "Checking FreeSurfer license.txt"
+    local license_path=""
+    if ! license_path="$(find_license_path)"; then
+        preflight_step_fail "license.txt not found"
+        blockers+=("FreeSurfer license.txt not found")
+        fixes+=("Place your license in the neuroinsight_local folder (recommended):
+  ${PROJECT_ROOT}/license.txt
+
+Other accepted locations:
+  ${HOME}/Documents/license.txt
+  ${HOME}/license.txt
+
+Get a free research license:
+  https://surfer.nmr.mgh.harvard.edu/registration.html")
+    elif license_is_example "$license_path"; then
+        preflight_step_fail "license.txt is example content (not valid)"
+        blockers+=("FreeSurfer license.txt is example content (not valid)")
+        fixes+=("Replace the example file with your real license:
+  ${license_path}
+
+Or place a valid license at:
+  ${PROJECT_ROOT}/license.txt
+
+Get a free research license:
+  https://surfer.nmr.mgh.harvard.edu/registration.html")
+    else
+        preflight_step_ok "Valid license found at ${license_path}"
+    fi
+
+    preflight_step_begin "Checking web UI port (8000-8050)"
+    local web_port=""
+    web_port="$(find_available_port 2>/dev/null || true)"
+    if [ -z "$web_port" ]; then
+        preflight_step_fail "No free port in range 8000-8050"
+        blockers+=("No free port for web UI (range 8000-8050)")
+        fixes+=("Stop other services using ports 8000-8050, then re-run:
+  ./neuroinsight-docker setup")
+    else
+        preflight_step_ok "Port ${web_port} available for web UI"
+    fi
+
+    preflight_step_begin "Checking MinIO ports (9000-9050)"
+    local minio_api_port minio_console_port
+    minio_api_port="$(find_available_port_in_range 9000 9050 2>/dev/null || true)"
+    minio_console_port=""
+    if [ -n "$minio_api_port" ]; then
+        minio_console_port="$(find_available_port_in_range 9000 9050 "$minio_api_port" 2>/dev/null || true)"
+    fi
+    if [ -z "$minio_api_port" ] || [ -z "$minio_console_port" ]; then
+        preflight_step_fail "Need two free ports in range 9000-9050"
+        blockers+=("No free ports for MinIO (range 9000-9050)")
+        fixes+=("Stop other services using ports 9000-9050, then re-run:
+  ./neuroinsight-docker setup")
+    else
+        preflight_step_ok "Ports ${minio_api_port} (API) and ${minio_console_port} (console) available"
+    fi
+
+    preflight_step_begin "Checking macOS Docker Desktop entrypoint fix"
+    if [ -f "${SCRIPT_DIR}/entrypoint.sh" ]; then
+        preflight_step_ok "deploy/entrypoint.sh present (will mount on install)"
+    else
+        preflight_step_warn "deploy/entrypoint.sh missing — macOS Docker Desktop may fail"
+        warnings+=("deploy/entrypoint.sh missing — macOS Docker Desktop installs may fail")
+    fi
+
+    preflight_step_begin "Checking curl (UI readiness wait)"
+    if command -v curl &>/dev/null; then
+        preflight_step_ok "curl found"
+    else
+        preflight_step_warn "curl not installed — install will continue but UI wait may be skipped"
+        warnings+=("curl not installed — install will continue but UI readiness check may be skipped")
+    fi
+
+    preflight_step_begin "Checking disk space"
+    if command -v df >/dev/null 2>&1; then
+        local free_gb
+        free_gb="$(df -g . 2>/dev/null | awk 'NR==2 {print $4}' || df -BG . 2>/dev/null | awk 'NR==2 {gsub(/G/,""); print $4}')"
+        if [ -n "$free_gb" ] && [ "$free_gb" -lt "$MIN_DISK_GB" ] 2>/dev/null; then
+            preflight_step_warn "${free_gb}GB free (recommend ${MIN_DISK_GB}GB+ for MRI data)"
+            warnings+=("Low disk space: ${free_gb}GB free (recommend ${MIN_DISK_GB}GB+ for MRI data)")
+        elif [ -n "$free_gb" ]; then
+            preflight_step_ok "${free_gb}GB free disk space"
+        else
+            preflight_step_ok "Disk space check skipped"
+        fi
+    else
+        preflight_step_ok "df not available — disk check skipped"
+    fi
+
+    preflight_step_begin "Checking system memory"
+    local mem_gb=""
+    if command -v sysctl >/dev/null 2>&1; then
+        local mem_bytes
+        mem_bytes="$(sysctl -n hw.memsize 2>/dev/null || echo 0)"
+        if [ "$mem_bytes" -gt 0 ] 2>/dev/null; then
+            mem_gb=$((mem_bytes / 1024 / 1024 / 1024))
+        fi
+    elif [ -r /proc/meminfo ]; then
+        mem_gb="$(awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo)"
+    fi
+    if [ -n "$mem_gb" ] && [ "$mem_gb" -lt "$MIN_RAM_GB" ] 2>/dev/null; then
+        preflight_step_warn "${mem_gb}GB RAM (recommend ${MIN_RAM_GB}GB+ for MRI processing)"
+        warnings+=("Low RAM: ${mem_gb}GB (recommend ${MIN_RAM_GB}GB+ for MRI processing)")
+    elif [ -n "$mem_gb" ]; then
+        preflight_step_ok "${mem_gb}GB RAM"
+    else
+        preflight_step_ok "Memory check skipped"
+    fi
+
+    if [ "$show_steps" = true ]; then
+        echo ""
+        echo "======================================"
+        if [ "${#blockers[@]}" -eq 0 ]; then
+            echo "Check complete — all required items OK"
+        else
+            echo "Check complete — ${#blockers[@]} required item(s) need attention"
+        fi
+        echo "======================================"
+    fi
+
+    if [ "${#blockers[@]}" -eq 0 ]; then
+        if [ "$show_steps" != true ] && [ "${#warnings[@]}" -gt 0 ]; then
+            for w in "${warnings[@]}"; do
+                log_warning "$w"
+            done
+        fi
+        return 0
+    fi
+
+    if [ "$show_steps" != true ]; then
+        echo ""
+        echo "======================================"
+        echo "Setup requirements not met"
+        echo "======================================"
+    fi
+    echo ""
+    echo "Fix the items below, then re-run:"
+    if [ "$show_steps" = true ]; then
+        echo "  ./neuroinsight-docker check"
+        echo "  ./neuroinsight-docker setup"
+    else
+        echo "  ./neuroinsight-docker setup"
+    fi
+    echo ""
+
+    local i
+    for i in "${!blockers[@]}"; do
+        log_error "${blockers[$i]}"
+        echo ""
+        echo "${fixes[$i]}"
+        echo ""
+    done
+
+    if [ "${#warnings[@]}" -gt 0 ]; then
+        echo "Warnings (non-blocking):"
+        for w in "${warnings[@]}"; do
+            log_warning "$w"
+        done
+        echo ""
+    fi
+
+    exit 1
+}
+
+# Pull application and processing images
+pull_required_images() {
+    local platform_args
+    platform_args="$(docker_platform_args)"
+    # shellcheck disable=SC2086
+    log_info "Pulling application image: ${IMAGE_NAME}..."
+    docker pull ${platform_args} "${IMAGE_NAME}"
+    log_info "Pulling FreeSurfer image: ${FREESURFER_IMAGE} (first install; large download)..."
+    docker pull ${platform_args} "${FREESURFER_IMAGE}" || \
+        log_warning "FreeSurfer image pull failed — will retry when a job starts"
+}
+
+# Wait until the web UI responds
+wait_for_web_ready() {
+    local port="$1"
+    local attempts="${2:-60}"
+    local i=1
+    log_info "Waiting for NeuroInsight web UI on port ${port}..."
+    while [ "$i" -le "$attempts" ]; do
+        if curl -sf "http://localhost:${port}/" >/dev/null 2>&1; then
+            log_success "Web UI is ready (http://localhost:${port})"
+            return 0
+        fi
+        if ! container_running; then
+            log_error "Container stopped while starting — check: ./neuroinsight-docker logs container"
+            return 1
+        fi
+        sleep 5
+        i=$((i + 1))
+    done
+    log_warning "Web UI did not respond in time — check: ./neuroinsight-docker status"
+    return 1
+}
+
+# Mount patched entrypoint from this repo until Hub image includes macOS Docker Desktop fix
+entrypoint_mount_args() {
+    if [ -f "${SCRIPT_DIR}/entrypoint.sh" ]; then
+        echo "-v ${SCRIPT_DIR}/entrypoint.sh:/app/entrypoint.sh:ro"
     fi
 }
 
@@ -177,12 +560,18 @@ cmd_start() {
     if container_exists; then
         log_info "Starting existing container..."
         docker start ${CONTAINER_NAME}
-        sleep 5
+        sleep 3
         log_success "Container started"
-        
-        local port=$(get_container_port)
-        local minio_api=$(get_container_minio_api_port)
-        local minio_console=$(get_container_minio_console_port)
+
+        local port
+        port=$(get_container_port)
+        if [ -n "$port" ]; then
+            wait_for_web_ready "$port" 24 || true
+        fi
+
+        local minio_api minio_console
+        minio_api=$(get_container_minio_api_port)
+        minio_console=$(get_container_minio_console_port)
         
         echo ""
         log_success "NeuroInsight is ready!"
@@ -196,7 +585,14 @@ cmd_start() {
             echo "MinIO Console: http://localhost:${minio_console}"
         fi
     else
-        log_error "Container does not exist. Please run: ./neuroinsight-docker install"
+        log_error "Container does not exist."
+        echo ""
+        if ! check_license_ready; then
+            :
+        else
+            echo "License is ready. Run:"
+            echo "  ./neuroinsight-docker setup"
+        fi
         exit 1
     fi
     
@@ -317,130 +713,123 @@ cmd_logs() {
 
 # Install/run container
 cmd_install() {
-    check_docker
-    
-    if container_exists; then
-        log_warning "Container already exists"
-        read -p "Remove and recreate? (y/n): " confirm
-        if [ "$confirm" != "y" ]; then
-            exit 0
-        fi
-        cmd_remove
+    local assume_yes=false
+    if [ "${1:-}" = "-y" ] || [ "${NEUROINSIGHT_INSTALL_YES:-}" = "1" ]; then
+        assume_yes=true
     fi
-    
-    log_info "Installing NeuroInsight..."
-    
+
+    preflight_install
+
+    if container_exists; then
+        if [ "$assume_yes" = true ]; then
+            cmd_remove
+        else
+            log_warning "Container already exists"
+            read -p "Remove and recreate? (y/n): " confirm
+            if [ "$confirm" != "y" ]; then
+                log_info "Keeping existing container — run: ./neuroinsight-docker start"
+                exit 0
+            fi
+            cmd_remove
+        fi
+    fi
+
+    log_info "Installing NeuroInsight (Docker all-in-one)..."
+    pull_required_images
+
     # Find available port for web interface
     log_info "Finding available port for web interface (range: 8000-8050)..."
-    local port=$(find_available_port)
-    
+    local port
+    port=$(find_available_port)
+
     if [ -z "$port" ]; then
         log_error "No available ports found in range 8000-8050"
         log_error "Please stop other services or free up a port in this range"
         exit 1
     fi
-    
+
     log_success "Selected web port: $port"
-    
+
     # Find available port for MinIO API
     log_info "Finding available port for MinIO API (range: 9000-9050)..."
-    local minio_api_port=$(find_available_port_in_range 9000 9050)
-    
+    local minio_api_port
+    minio_api_port=$(find_available_port_in_range 9000 9050)
+
     if [ -z "$minio_api_port" ]; then
         log_error "No available ports found in range 9000-9050 for MinIO API"
-        log_error "Please stop other services or free up a port in this range"
         exit 1
     fi
-    
+
     log_success "Selected MinIO API port: $minio_api_port"
-    
+
     # Find available port for MinIO Console (exclude API port)
     log_info "Finding available port for MinIO Console (range: 9000-9050)..."
-    local minio_console_port=$(find_available_port_in_range 9000 9050 $minio_api_port)
-    
+    local minio_console_port
+    minio_console_port=$(find_available_port_in_range 9000 9050 "$minio_api_port")
+
     if [ -z "$minio_console_port" ]; then
         log_error "No available ports found in range 9000-9050 for MinIO Console"
-        log_error "Please stop other services or free up a port in this range"
         exit 1
     fi
-    
+
     log_success "Selected MinIO Console port: $minio_console_port"
-    
-    # Check for license in multiple locations (like native deployment)
-    local license_mount=""
-    local license_path=""
-    
-    # Check current directory first (deploy/)
-    if [ -f "./license.txt" ]; then
-        license_path="$(pwd)/license.txt"
-        log_success "Found license.txt in current directory"
-    # Check parent directory (neuroinsight_local/)
-    elif [ -f "../license.txt" ]; then
-        license_path="$(cd .. && pwd)/license.txt"
-        log_success "Found license.txt in neuroinsight_local directory"
-    # Check src directory (one level up from neuroinsight_local)
-    elif [ -f "../../license.txt" ]; then
-        license_path="$(cd ../.. && pwd)/license.txt"
-        log_success "Found license.txt in src directory"
-    # Check home directory
-    elif [ -f "$HOME/license.txt" ]; then
-        license_path="$HOME/license.txt"
-        log_success "Found license.txt in home directory"
-    fi
-    
-    if [ -n "$license_path" ]; then
-        # Verify it's not an example file
-        if grep -q "REPLACE THIS EXAMPLE CONTENT" "$license_path" 2>/dev/null || \
-           grep -q "FreeSurfer License File - EXAMPLE" "$license_path" 2>/dev/null; then
-            log_warning "License file appears to be example content"
-            log_warning "Please replace with real FreeSurfer license"
-            log_warning "Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
-        else
-            license_mount="-v ${license_path}:/app/license.txt:ro"
-            log_success "License validated and will be mounted"
-        fi
-    else
-        log_warning "FreeSurfer license not found (will run in demo mode)"
-        log_info "To enable full FreeSurfer processing:"
-        log_info "  1. Get license: https://surfer.nmr.mgh.harvard.edu/registration.html"
-        log_info "  2. Save as license.txt in this directory"
-        log_info "  3. Run: ./neuroinsight-docker restart"
-    fi
-    
+
+    local license_mount="" license_path=""
+    license_path="$(find_license_path)"
+    license_mount="-v ${license_path}:/app/license.txt:ro"
+    log_success "License found and will be mounted: $license_path"
+
+    local platform_args entrypoint_mount
+    platform_args="$(docker_platform_args)"
+    entrypoint_mount="$(entrypoint_mount_args)"
+
     log_info "Creating container..."
     log_info "  Web Interface: http://localhost:${port}"
     log_info "  MinIO API: http://localhost:${minio_api_port}"
     log_info "  MinIO Console: http://localhost:${minio_console_port}"
-    
-    log_info "Docker permissions will be auto-configured at container startup"
-    log_info "This ensures compatibility with Linux, WSL2, and Docker Desktop"
-    log_info "Host paths will be auto-detected from volume mounts"
-    
+    log_info "Docker socket, platform, and entrypoint are configured automatically"
+
+    # shellcheck disable=SC2086
     docker run -d \
-        --name ${CONTAINER_NAME} \
-        -p ${port}:8000 \
-        -p ${minio_api_port}:9000 \
-        -p ${minio_console_port}:9001 \
+        --name "${CONTAINER_NAME}" \
+        -p "${port}:8000" \
+        -p "${minio_api_port}:9000" \
+        -p "${minio_console_port}:9001" \
         -v /var/run/docker.sock:/var/run/docker.sock \
-        -v ${VOLUME_NAME}:/data \
+        -v "${VOLUME_NAME}:/data" \
         ${license_mount} \
+        ${entrypoint_mount} \
+        ${platform_args} \
         --restart unless-stopped \
-        ${IMAGE_NAME}
-    
-    # Note: Container entrypoint automatically detects and configures Docker socket permissions
-    
+        "${IMAGE_NAME}"
+
     log_success "Container created"
-    log_info "Waiting for services to start (30 seconds)..."
-    sleep 30
-    
+    wait_for_web_ready "$port" || true
+
     cmd_status
     echo ""
     log_success "NeuroInsight is ready!"
     echo ""
-    local actual_port=$(get_container_port)
-    echo "Web Interface: http://localhost:${actual_port}"
+    echo "Web Interface: http://localhost:${port}"
     echo "MinIO API: http://localhost:${minio_api_port}"
     echo "MinIO Console: http://localhost:${minio_console_port}"
+    echo ""
+    log_info "Upload a T1 NIfTI scan in the Jobs page to start processing."
+}
+
+# First-time setup: install with defaults (non-interactive)
+cmd_setup() {
+    NEUROINSIGHT_INSTALL_YES=1 cmd_install -y
+}
+
+# Check prerequisites without installing
+cmd_check() {
+    echo "======================================"
+    echo "NeuroInsight setup check"
+    echo "======================================"
+    preflight_install --verbose
+    echo ""
+    log_success "All requirements met — run: ./neuroinsight-docker setup"
 }
 
 # Remove container
@@ -570,13 +959,13 @@ cmd_shell() {
 # Update image
 cmd_update() {
     check_docker
-    
-    log_info "Pulling latest image..."
-    docker pull ${IMAGE_NAME}
-    
+
+    log_info "Pulling latest images..."
+    pull_required_images
+
     log_info "Recreating container with new image..."
     cmd_remove
-    cmd_install
+    NEUROINSIGHT_INSTALL_YES=1 cmd_install -y
 }
 
 # Backup data
@@ -672,35 +1061,23 @@ cmd_license() {
         # Check on host system
         log_info "Checking for license files on host..."
         echo ""
-        
-        local found=false
-        
-        if [ -f "./license.txt" ]; then
-            log_success "Found: ./license.txt"
-            found=true
-        fi
-        
-        if [ -f "../neuroinsight_local/license.txt" ]; then
-            log_success "Found: ../neuroinsight_local/license.txt"
-            found=true
-        fi
-        
-        if [ -f "$HOME/license.txt" ]; then
-            log_success "Found: $HOME/license.txt"
-            found=true
-        fi
-        
-        if [ "$found" = false ]; then
+
+        if license_path="$(find_license_path)"; then
+            log_success "Found: $license_path"
+            if license_is_example "$license_path"; then
+                log_warning "License appears to be example content — replace before processing"
+                echo ""
+                print_license_help "is invalid"
+            else
+                log_success "Valid license file on host (mounted on install)"
+                echo ""
+                echo "Run setup if the container is not installed yet:"
+                echo "  ./neuroinsight-docker setup"
+            fi
+        else
             log_warning "No license file found"
             echo ""
-            echo "To enable FreeSurfer processing:"
-            echo "  1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html"
-            echo "  2. Register (free for research)"
-            echo "  3. Save license as license.txt in this directory"
-            echo "  4. Install/Start container"
-        else
-            echo ""
-            log_info "License will be automatically mounted when container starts"
+            print_license_help "not found"
         fi
     fi
 }
@@ -713,7 +1090,9 @@ NeuroInsight Docker Management CLI
 Usage: ./neuroinsight-docker <command> [options]
 
 Container Management:
-  install           - Install/create NeuroInsight container (auto-selects port 8000-8050)
+  setup             - First-time install (non-interactive; license.txt required)
+  install [-y]      - Install/create container (auto ports, images, macOS/Linux fixes)
+  check             - Run step-by-step prerequisite checks (license, Docker, ports)
   start             - Start the container
   stop              - Stop the container
   restart           - Restart the container
@@ -746,24 +1125,27 @@ Examples:
   ./neuroinsight-docker backup           # Create backup
   ./neuroinsight-docker update           # Update to latest
 
-Quick Start:
-  1. Build image:        ./build.sh
-  2. Install:            ./neuroinsight-docker install
-  3. Check status:       ./neuroinsight-docker status
-  4. Access web UI:      Check status output for URL
+Quick Start (Linux & macOS):
+  1. Install Docker (Docker Desktop on macOS)
+  2. Place license.txt in neuroinsight_local/ or ~/Documents/
+  3. ./neuroinsight-docker setup
+  4. Open the Web Interface URL printed by status
 
-Port Selection:
-  - Automatically finds available port in range 8000-8050
-  - Default: 8000 (if available)
-  - No manual port configuration required
+Automated on install/setup:
+  - Docker daemon check
+  - Pull phindagijimana321/neuroinsight:latest
+  - Pull freesurfer/freesurfer:7.4.1
+  - Port selection (8000-8050, 9000-9050)
+  - Docker socket mount for FreeSurfer jobs
+  - macOS/Windows Docker Desktop entrypoint fix (from repo)
+  - Apple Silicon: --platform linux/amd64 when needed
+  - Wait for web UI health
 
-License Detection:
-  - Automatically detects license.txt in multiple locations:
-    * Current directory (./license.txt)
-    * Parent directory (../neuroinsight_local/license.txt)
-    * Home directory (~/license.txt)
-  - Auto-mounts when container starts
-  - Check status: ./neuroinsight-docker license
+License (only manual step):
+  - neuroinsight_local/license.txt  (recommended)
+  - ~/Documents/license.txt
+  - ~/license.txt
+  - Check: ./neuroinsight-docker license
 
 Container: ${CONTAINER_NAME}
 Image: ${IMAGE_NAME}
@@ -776,8 +1158,15 @@ EOF
 
 # Main command dispatcher
 case "${1:-help}" in
+    setup)
+        cmd_setup
+        ;;
+    check)
+        cmd_check
+        ;;
     install)
-        cmd_install
+        shift
+        cmd_install "$@"
         ;;
     start)
         cmd_start

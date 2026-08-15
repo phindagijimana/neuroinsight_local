@@ -26,7 +26,13 @@ let bootstrapRunning = false;
 
 const SPLASH = { width: 440, height: 380 };
 const APP = { width: 1280, height: 860, minWidth: 960, minHeight: 640 };
-const ICON_PATH = path.join(__dirname, '../build/icon.png');
+
+function getIconPath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'icon.png');
+  }
+  return path.join(__dirname, '../build/icon.png');
+}
 
 app.setName('NeuroInsight-AutoHS');
 
@@ -61,7 +67,7 @@ function createWindow() {
     minHeight: SPLASH.height,
     resizable: false,
     title: 'NeuroInsight-AutoHS',
-    icon: ICON_PATH,
+    icon: getIconPath(),
     show: false,
     center: true,
     webPreferences: {
@@ -271,7 +277,8 @@ function registerIpc() {
 
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) {
-    app.dock.setIcon(nativeImage.createFromPath(ICON_PATH));
+    const icon = nativeImage.createFromPath(getIconPath());
+    if (!icon.isEmpty()) app.dock.setIcon(icon);
   }
   buildMenu();
   registerIpc();

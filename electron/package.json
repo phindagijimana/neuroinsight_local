@@ -1,6 +1,6 @@
 {
   "name": "neuroinsight-autohs-desktop",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "NeuroInsight-AutoHS desktop app (Docker all-in-one)",
   "main": "src/main.js",
   "author": "NeuroInsight-AutoHS",
@@ -41,6 +41,10 @@
       {
         "from": "../deploy/entrypoint.sh",
         "to": "entrypoint.sh"
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
       }
     ],
     "mac": {

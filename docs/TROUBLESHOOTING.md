@@ -59,7 +59,7 @@ Windows:
 - Check logs in: `%APPDATA%\NeuroInsight-AutoHS\logs\`
 
 **Reinstall:**
-- Delete app and download fresh installer from [releases](https://github.com/phindagijimana/neuroinsight_desktop/releases)
+- Delete app and download fresh installer from [releases](https://github.com/phindagijimana/neuroinsight_local/releases)
 
 #### Port Already in Use (Desktop App)
 
@@ -94,7 +94,7 @@ docker stop neuroinsight-autohs  # If another instance running
 - First FreeSurfer image is ~7GB (one-time download)
 - Retry: Restart the app
 
-**For more Desktop App issues:** See [Desktop App Repository](https://github.com/phindagijimana/neuroinsight_desktop/issues)
+**For more Desktop App issues:** See [electron/README.md](https://github.com/phindagijimana/neuroinsight_local/blob/master/electron/README.md) and [GitHub Issues](https://github.com/phindagijimana/neuroinsight_local/issues)
 
 ---
 

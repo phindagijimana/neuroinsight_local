@@ -6,6 +6,9 @@ on:
     tags:
       - 'desktop-v*'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -14,10 +17,13 @@ jobs:
         include:
           - os: macos-latest
             script: dist:mac
+            artifact: macos
           - os: ubuntu-latest
             script: dist:linux
+            artifact: linux
           - os: windows-latest
             script: dist:win
+            artifact: windows
 
     runs-on: ${{ matrix.os }}
 
@@ -30,6 +36,18 @@ jobs:
           cache: npm
           cache-dependency-path: electron/package-lock.json
 
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/desktop-v')
+        working-directory: electron
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#desktop-v}"
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libfuse2
+
       - name: Install dependencies
         working-directory: electron
         run: npm ci
@@ -41,11 +59,50 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: neuroinsight-autohs-desktop-${{ matrix.os }}
+          name: desktop-${{ matrix.artifact }}
           path: |
             electron/dist/*.dmg
             electron/dist/*.zip
             electron/dist/*.AppImage
             electron/dist/*.deb
             electron/dist/*.exe
-          if-no-files-found: warn
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+
+      - name: List release files
+        run: find installers -type f | sort
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: NeuroInsight-AutoHS Desktop ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            ## NeuroInsight-AutoHS Desktop
+
+            GUI launcher for the Docker all-in-one container (`phindagijimana321/neuroinsight-autohs:latest`).
+
+            **Prerequisite:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+
+            ### Downloads
+
+            | Platform | Installers |
+            |----------|------------|
+            | **macOS** (Apple Silicon) | `.dmg` or `.zip` |
+            | **Linux** | `.AppImage` or `.deb` |
+            | **Windows** | `.exe` (NSIS) |
+
+            Place your FreeSurfer `license.txt` in `~/Documents/license.txt`, the repo root, or choose it in the setup screen.
+
+            Docs: [electron/README.md](https://github.com/${{ github.repository }}/blob/master/electron/README.md)
+          files: installers/**

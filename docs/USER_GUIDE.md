@@ -286,7 +286,7 @@ NeuroInsight-AutoHS offers four deployment methods:
 | **Linux Docker** | Isolated containerized environment | Docker + Docker Compose |
 | **Windows Docker** | Windows 10/11 systems | Docker Desktop + WSL2 |
 
-**New to NeuroInsight-AutoHS?** Start with the [Desktop App](https://github.com/phindagijimana/neuroinsight_desktop/releases) for the easiest installation.
+**New to NeuroInsight-AutoHS?** Start with the [Desktop App](https://github.com/phindagijimana/neuroinsight_local/releases) for the easiest installation.
 
 Choose Docker/Native deployment for servers, HPC clusters, or multi-user environments.
 
@@ -298,11 +298,12 @@ Choose Docker/Native deployment for servers, HPC clusters, or multi-user environ
 
 **Best for:** Researchers, clinicians, desktop users wanting the easiest setup
 
-**Download:** [NeuroInsight-AutoHS Desktop v1.0.0](https://github.com/phindagijimana/neuroinsight_desktop/releases/tag/v1.0.0)
+**Download:** [NeuroInsight-AutoHS Desktop releases](https://github.com/phindagijimana/neuroinsight_local/releases) (tags `desktop-v*`, e.g. [`desktop-v1.1.0`](https://github.com/phindagijimana/neuroinsight_local/releases/tag/desktop-v1.1.0))
 
 **Platforms:**
-- Windows 10/11 (Setup.exe or Portable.exe)
-- Linux (AppImage or DEB package)
+- macOS Apple Silicon (`.dmg` or `.zip`)
+- Windows 10/11 (`.exe` NSIS installer)
+- Linux (`.AppImage` or `.deb`)
 
 **Prerequisites:**
 - Docker Desktop installed (see Docker Installation section above)
@@ -311,22 +312,27 @@ Choose Docker/Native deployment for servers, HPC clusters, or multi-user environ
 **Quick Start:**
 
 **Windows:**
-1. Download `NeuroInsight-Setup-1.0.0.exe`
+1. Download the latest `.exe` from [Releases](https://github.com/phindagijimana/neuroinsight_local/releases)
 2. Run installer and follow wizard
 3. Launch from Start Menu
 
+**macOS:**
+1. Download the `.dmg` from [Releases](https://github.com/phindagijimana/neuroinsight_local/releases)
+2. Open the DMG and drag **NeuroInsight-AutoHS** to Applications
+3. Launch from Applications (requires Docker Desktop)
+
 **Linux (AppImage):**
 ```bash
-wget https://github.com/phindagijimana/neuroinsight_desktop/releases/download/v1.0.0/NeuroInsight-AutoHS-1.0.0.AppImage
-chmod +x NeuroInsight-AutoHS-1.0.0.AppImage
-./NeuroInsight-AutoHS-1.0.0.AppImage
+# Replace VERSION with the release tag, e.g. desktop-v1.1.0
+wget https://github.com/phindagijimana/neuroinsight_local/releases/download/desktop-v1.1.0/NeuroInsight-AutoHS-1.1.0.AppImage
+chmod +x NeuroInsight-AutoHS-1.1.0.AppImage
+./NeuroInsight-AutoHS-1.1.0.AppImage
 ```
 
 **Linux (DEB - Ubuntu/Debian):**
 ```bash
-wget https://github.com/phindagijimana/neuroinsight_desktop/releases/download/v1.0.0/NeuroInsight-AutoHS-1.0.0.deb
-sudo dpkg -i NeuroInsight-AutoHS-1.0.0.deb
-neuroinsight
+wget https://github.com/phindagijimana/neuroinsight_local/releases/download/desktop-v1.1.0/neuroinsight-autohs-desktop_1.1.0_amd64.deb
+sudo dpkg -i neuroinsight-autohs-desktop_1.1.0_amd64.deb
 ```
 
 **First Run:**
@@ -335,7 +341,7 @@ neuroinsight
 3. First run downloads FreeSurfer image (~7GB, one-time)
 4. Upload T1-weighted MRI files and start processing
 
-**Documentation:** See [Desktop App Documentation](https://github.com/phindagijimana/neuroinsight_desktop) for full details, troubleshooting, and advanced features.
+**Documentation:** See [electron/README.md](https://github.com/phindagijimana/neuroinsight_local/blob/master/electron/README.md) for build details, troubleshooting, and advanced features.
 
 **Note:** Desktop App uses Docker containers under the hood. For server deployments or advanced configurations, use the options below.
 

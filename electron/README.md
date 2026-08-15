@@ -20,14 +20,11 @@ Place `license.txt` in the repo root (`../license.txt`) or use **Choose license.
 
 ## Build installers
 
-Build on each target OS (or use CI):
+Build on each target OS (or use [GitHub Actions](https://github.com/phindagijimana/neuroinsight_local/actions/workflows/electron-build.yml) — see below):
 
 ```bash
 cd electron
 npm install
-
-# All platforms (from macOS with wine for win — or run per OS)
-npm run dist
 
 # Per platform
 npm run dist:mac     # .dmg + .zip
@@ -36,6 +33,21 @@ npm run dist:win     # NSIS .exe installer
 ```
 
 Outputs go to `electron/dist/`.
+
+## Publish to GitHub Releases
+
+CI builds all three platforms and attaches installers to a GitHub Release when you push a tag:
+
+```bash
+# 1. Set version in electron/package.json (e.g. 1.1.0)
+# 2. Commit, then tag and push:
+git tag desktop-v1.1.0
+git push origin desktop-v1.1.0
+```
+
+The workflow [`.github/workflows/electron-build.yml`](../.github/workflows/electron-build.yml) runs on `desktop-v*` tags. Download from [Releases](https://github.com/phindagijimana/neuroinsight_local/releases).
+
+`workflow_dispatch` on that workflow builds artifacts for testing without creating a release.
 
 ### Icons
 

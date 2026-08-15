@@ -22,7 +22,7 @@ The container now **automatically detects and configures** Docker socket permiss
 # At container startup:
 1. Detect the actual GID of /var/run/docker.sock
 2. Update the container's docker group to match
-3. Ensure neuroinsight user is in the docker group
+3. Ensure neuroinsight-autohs user is in the docker group
 4. Verify Docker access works
 ```
 
@@ -60,10 +60,10 @@ if [ -S /var/run/docker.sock ]; then
     groupmod -g "$DOCKER_SOCKET_GID" docker
     
     # Ensure user is in group
-    usermod -aG docker neuroinsight
+    usermod -aG docker neuroinsight-autohs
     
     # Verify access
-    su - neuroinsight -c "docker ps"
+    su - neuroinsight-autohs -c "docker ps"
 fi
 ```
 
@@ -85,7 +85,7 @@ fi
 
 **Option 1: Pull new image and restart**
 ```bash
-docker pull phindagijimana321/neuroinsight:latest
+docker pull phindagijimana321/neuroinsight-autohs:latest
 ./neuroinsight-autohs-docker restart
 ```
 
@@ -141,7 +141,7 @@ docker run -d \
   --group-add $DOCKER_GID \
   -v /var/run/docker.sock:/var/run/docker.sock \
   ... other flags ...
-  phindagijimana321/neuroinsight:latest
+  phindagijimana321/neuroinsight-autohs:latest
 ```
 
 But this should never be necessary with the new image.
@@ -154,7 +154,7 @@ the `root` group, and `set -e` caused a crash loop.
 
 **Fix (in current `entrypoint.sh`):**
 
-- If socket GID is **0**, add the `neuroinsight` user to the **root** group instead of calling `groupmod`.
+- If socket GID is **0**, add the neuroinsight-autohs user to the **root** group instead of calling `groupmod`.
 - Treat `groupmod` failures on other GIDs as warnings, not fatal errors.
 
 After pulling an image that includes this fix, `./neuroinsight-autohs-docker install` works on

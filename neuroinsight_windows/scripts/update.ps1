@@ -5,7 +5,7 @@ param(
 )
 
 $ContainerName = "neuroinsight-autohs"
-$ImageName = "phindagijimana321/neuroinsight:latest"
+$ImageName = "phindagijimana321/neuroinsight-autohs:latest"
 
 function Write-Info { param([string]$Message); Write-Host "[INFO] $Message" -ForegroundColor Cyan }
 function Write-Success { param([string]$Message); Write-Host "[SUCCESS] $Message" -ForegroundColor Green }

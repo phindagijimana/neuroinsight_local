@@ -10,7 +10,7 @@ param(
 )
 
 $ContainerName = "neuroinsight-autohs"
-$ImageName = "phindagijimana321/neuroinsight:latest"
+$ImageName = "phindagijimana321/neuroinsight-autohs:latest"
 $FreeSurferImage = if ($env:FREESURFER_IMAGE) { $env:FREESURFER_IMAGE } else { "freesurfer/freesurfer:7.4.1" }
 $VolumeName = "neuroinsight-autohs-data"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

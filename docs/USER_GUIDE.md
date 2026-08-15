@@ -642,7 +642,7 @@ For advanced users who want to pull and run the Docker image directly without in
 
 ```bash
 # Pull image
-docker pull phindagijimana321/neuroinsight:latest
+docker pull phindagijimana321/neuroinsight-autohs:latest
 
 # Run container
 docker run -d \
@@ -651,7 +651,7 @@ docker run -d \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v neuroinsight-autohs-data:/data \
   -v $(pwd)/license.txt:/app/license.txt:ro \
-  phindagijimana321/neuroinsight:latest
+  phindagijimana321/neuroinsight-autohs:latest
 
 # Access at http://localhost:8000
 ```
@@ -660,7 +660,7 @@ docker run -d \
 
 ```powershell
 # Pull image
-docker pull phindagijimana321/neuroinsight:latest
+docker pull phindagijimana321/neuroinsight-autohs:latest
 
 # Run container
 docker run -d `
@@ -669,7 +669,7 @@ docker run -d `
   -v /var/run/docker.sock:/var/run/docker.sock `
   -v neuroinsight-autohs-data:/data `
   -v ${PWD}/license.txt:/app/license.txt:ro `
-  phindagijimana321/neuroinsight:latest
+  phindagijimana321/neuroinsight-autohs:latest
 
 # Access at http://localhost:8000
 ```

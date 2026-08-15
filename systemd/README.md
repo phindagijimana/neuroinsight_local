@@ -54,8 +54,8 @@ Or manually:
 
 ```bash
 docker run -d --name neuroinsight-autohs-postgres \
-  -e POSTGRES_DB=neuroinsight \
-  -e POSTGRES_USER=neuroinsight \
+  -e POSTGRES_DB=neuroinsight_autohs \
+  -e POSTGRES_USER=neuroinsight_autohs \
   -e POSTGRES_PASSWORD=JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg \
   -p 5432:5432 --restart unless-stopped \
   postgres:15-alpine

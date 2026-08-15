@@ -7,7 +7,7 @@
 set -e
 
 NAMESPACE="${DOCKERHUB_NAMESPACE:-phindagijimana321}"
-REPO="${DOCKERHUB_REPO:-neuroinsight}"
+REPO="${DOCKERHUB_REPO:-neuroinsight-autohs}"
 KEEP_TAG="latest"
 DRY_RUN=false
 

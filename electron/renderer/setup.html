@@ -4,45 +4,39 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* http://localhost:*" />
-  <title>NeuroInsight-AutoHS Setup</title>
+  <title>NeuroInsight-AutoHS</title>
   <link rel="stylesheet" href="setup.css" />
 </head>
 <body>
-  <div class="layout">
-    <header>
-      <h1>NeuroInsight-AutoHS</h1>
-      <p class="subtitle">Docker desktop setup for NeuroInsight-AutoHS</p>
-      <p class="version" id="version"></p>
+  <div class="splash">
+    <header class="brand">
+      <div class="brand-mark" aria-hidden="true">NI</div>
+      <div>
+        <h1>NeuroInsight-AutoHS</h1>
+        <p class="version" id="version"></p>
+      </div>
     </header>
 
-    <section class="card">
-      <h2>Before you start</h2>
-      <ul>
-        <li>Install and start <strong>Docker Desktop</strong> (required for MRI processing).</li>
-        <li>Place your FreeSurfer <code>license.txt</code> or choose it below.</li>
-        <li>First install downloads large Docker images — this can take 10–30 minutes.</li>
-      </ul>
-      <p class="hint" id="license-hint"></p>
-      <div class="actions">
-        <button type="button" id="btn-license" class="secondary">Choose license.txt…</button>
-        <button type="button" id="btn-check" class="primary">Run checks</button>
+    <section id="state-loading" class="panel">
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="status" id="status-message">Starting…</p>
+    </section>
+
+    <section id="state-blocked" class="panel hidden">
+      <h2 id="blocked-title">Setup needed</h2>
+      <p class="blocked-message" id="blocked-message"></p>
+      <div class="actions" id="blocked-actions">
+        <button type="button" id="btn-license" class="primary hidden">Choose license.txt…</button>
+        <button type="button" id="btn-docker" class="secondary hidden">Get Docker Desktop</button>
+        <button type="button" id="btn-retry" class="primary">Try again</button>
       </div>
     </section>
 
-    <section class="card">
-      <h2>Setup checks</h2>
+    <details id="details-panel" class="details hidden">
+      <summary>Technical details</summary>
       <ol id="steps" class="steps"></ol>
-    </section>
-
-    <section class="card">
-      <h2>Log</h2>
       <pre id="log" class="log"></pre>
-    </section>
-
-    <section class="actions footer-actions">
-      <button type="button" id="btn-install" class="primary" disabled>Install &amp; start</button>
-      <button type="button" id="btn-open" class="primary" disabled>Open NeuroInsight-AutoHS</button>
-    </section>
+    </details>
   </div>
   <script src="setup.js"></script>
 </body>

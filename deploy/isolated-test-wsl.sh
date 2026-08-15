@@ -13,7 +13,7 @@
 
 set -e
 
-IMAGE="${IMAGE:-phindagijimana321/neuroinsight:latest}"
+IMAGE="${IMAGE:-phindagijimana321/neuroinsight-autohs:latest}"
 CONTAINER_NAME="neuroinsight-isolated-test"
 VOLUME_NAME="neuroinsight-isolated-test-data"
 # Use a different port so we don't conflict with a real deployment
@@ -66,7 +66,7 @@ docker run -d \
   -v "${VOLUME_NAME}:/data" \
   $LICENSE_MOUNT \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -e POSTGRES_PASSWORD=neuroinsight_secure_password \
+  -e POSTGRES_PASSWORD=neuroinsight_autohs_secure_password \
   -e REDIS_PASSWORD=redis_secure_password \
   -e MINIO_ROOT_PASSWORD=minioadmin_secure \
   "$IMAGE"

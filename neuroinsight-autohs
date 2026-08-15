@@ -99,7 +99,7 @@ start_docker_containers() {
                 # Wait for PostgreSQL to be ready
                 echo "  Waiting for PostgreSQL to be ready..."
                 for i in {1..15}; do
-                    if docker exec neuroinsight-autohs-db pg_isready -U neuroinsight > /dev/null 2>&1; then
+                    if docker exec neuroinsight-autohs-db pg_isready -U neuroinsight_autohs > /dev/null 2>&1; then
                         echo "  PostgreSQL is ready"
                         break
                     fi
@@ -113,7 +113,7 @@ start_docker_containers() {
                 echo "  Docker containers already running ($running_count containers)"
                 
                 # Verify PostgreSQL is responsive
-                if docker exec neuroinsight-autohs-db pg_isready -U neuroinsight > /dev/null 2>&1; then
+                if docker exec neuroinsight-autohs-db pg_isready -U neuroinsight_autohs > /dev/null 2>&1; then
                     echo "  PostgreSQL is responsive"
                 else
                     echo "  Warning: PostgreSQL may not be ready"
@@ -129,7 +129,7 @@ start_docker_containers() {
             if [ -f "backend/alembic.ini" ]; then
                 # Quick check: try to query the database
                 local schema_ok=false
-                if docker exec neuroinsight-autohs-db psql -U neuroinsight -d neuroinsight -c "SELECT 1 FROM jobs LIMIT 1" > /dev/null 2>&1; then
+                if docker exec neuroinsight-autohs-db psql -U neuroinsight_autohs -d neuroinsight_autohs -c "SELECT 1 FROM jobs LIMIT 1" > /dev/null 2>&1; then
                     schema_ok=true
                 fi
                 

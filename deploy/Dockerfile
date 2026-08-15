@@ -21,10 +21,10 @@ ENV PYTHONUNBUFFERED=1 \
     POSTGRES_VERSION=15 \
     REDIS_VERSION=7.0 \
     MINIO_VERSION=RELEASE.2024-01-18T22-51-28Z \
-    HOME=/home/neuroinsight
+    HOME=/home/neuroinsight-autohs
 
 # Create application user and add to docker group for socket access
-RUN useradd -m -u 1000 -s /bin/bash neuroinsight
+RUN useradd -m -u 1000 -s /bin/bash neuroinsight-autohs
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -60,11 +60,11 @@ RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /
     rm -rf /var/lib/apt/lists/* && \
     # Create docker group with placeholder GID (will be updated at runtime by entrypoint)
     groupadd -g 999 docker || true && \
-    usermod -aG docker neuroinsight && \
-    # Create Docker config directory for neuroinsight user to avoid /root permission errors
-    mkdir -p /home/neuroinsight/.docker && \
-    echo '{}' > /home/neuroinsight/.docker/config.json && \
-    chown -R neuroinsight:neuroinsight /home/neuroinsight/.docker
+    usermod -aG docker neuroinsight-autohs && \
+    # Create Docker config directory for neuroinsight-autohs user to avoid /root permission errors
+    mkdir -p /home/neuroinsight-autohs/.docker && \
+    echo '{}' > /home/neuroinsight-autohs/.docker/config.json && \
+    chown -R neuroinsight-autohs:neuroinsight-autohs /home/neuroinsight-autohs/.docker
 
 # Add PostgreSQL APT repository and install
 RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg && \
@@ -116,7 +116,7 @@ RUN mkdir -p /var/lib/postgresql/data && \
 
 # Set permissions
 RUN chmod +x /app/entrypoint.sh /app/healthcheck.sh && \
-    chown -R neuroinsight:neuroinsight /app /data
+    chown -R neuroinsight-autohs:neuroinsight-autohs /app /data
 
 # Expose ports
 EXPOSE 8000 5432 6379 9000 9001

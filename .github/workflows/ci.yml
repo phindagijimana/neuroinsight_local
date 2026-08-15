@@ -59,7 +59,7 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: test_neuroinsight
+          POSTGRES_DB: test_neuroinsight_autohs
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -137,7 +137,7 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: test_neuroinsight
+          POSTGRES_DB: test_neuroinsight_autohs
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -254,8 +254,8 @@ jobs:
         run: |
           sudo systemctl start postgresql
           sudo -u postgres createdb neuroinsight_test || true
-          sudo -u postgres psql -c "CREATE USER neuroinsight WITH PASSWORD 'test_password';" || true
-          sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE neuroinsight_test TO neuroinsight;" || true
+          sudo -u postgres psql -c "CREATE USER neuroinsight_autohs WITH PASSWORD 'test_password';" || true
+          sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE neuroinsight_autohs_test TO neuroinsight_autohs;" || true
 
       - name: Start Redis service
         run: sudo systemctl start redis-server
@@ -320,7 +320,7 @@ jobs:
         image: postgres:15-alpine
         env:
           POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: test_neuroinsight
+          POSTGRES_DB: test_neuroinsight_autohs
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -429,8 +429,8 @@ jobs:
         run: |
           sudo systemctl start postgresql
           sudo -u postgres createdb neuroinsight_test || true
-          sudo -u postgres psql -c "CREATE USER neuroinsight WITH PASSWORD 'test_password';" || true
-          sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE neuroinsight_test TO neuroinsight;" || true
+          sudo -u postgres psql -c "CREATE USER neuroinsight_autohs WITH PASSWORD 'test_password';" || true
+          sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE neuroinsight_autohs_test TO neuroinsight_autohs;" || true
 
       - name: Start Redis service
         run: sudo systemctl start redis-server
@@ -480,7 +480,7 @@ jobs:
         run: |
           python -c "
           from sqlalchemy import create_engine, text
-          engine = create_engine('postgresql://neuroinsight:test_password@localhost:5432/neuroinsight_test')
+          engine = create_engine('postgresql://neuroinsight_autohs:test_password@localhost:5432/neuroinsight_autohs_test')
           with engine.connect() as conn:
               result = conn.execute(text('SELECT version()'))
               print('PASS: PostgreSQL connected:', result.fetchone()[0][:50] + '...')
@@ -807,7 +807,7 @@ POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_USER=test_user
 POSTGRES_PASSWORD=test_password
-POSTGRES_DB=neuroinsight_test
+POSTGRES_DB=neuroinsight_autohs_test
 REDIS_HOST=localhost
 REDIS_PORT=6379
 MINIO_ACCESS_KEY=minioadmin
@@ -880,7 +880,7 @@ EOF
         run: |
           python -c "
           from sqlalchemy import create_engine, text
-          engine = create_engine('postgresql://test_user:test_password@localhost:5432/neuroinsight_test')
+          engine = create_engine('postgresql://test_user:test_password@localhost:5432/neuroinsight_autohs_test')
           with engine.connect() as conn:
               result = conn.execute(text('SELECT version()')).fetchone()
               print(f'PASS: PostgreSQL connected: {result[0][:50]}...')

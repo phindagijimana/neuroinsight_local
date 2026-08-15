@@ -98,15 +98,15 @@ class Settings(BaseSettings):
     # PostgreSQL Database Configuration (Native Deployment)
     postgres_host: str = Field(default="localhost", env="POSTGRES_HOST")
     postgres_port: int = Field(default=5432, env="POSTGRES_PORT")
-    postgres_user: str = Field(default="neuroinsight", env="POSTGRES_USER")
+    postgres_user: str = Field(default="neuroinsight_autohs", env="POSTGRES_USER")
     postgres_password: str = Field(default="secure_password_change_in_production", env="POSTGRES_PASSWORD")
-    postgres_db: str = Field(default="neuroinsight", env="POSTGRES_DB")
+    postgres_db: str = Field(default="neuroinsight_autohs", env="POSTGRES_DB")
 
     # Storage Configuration (MinIO/S3)
     minio_endpoint: str = Field(default="localhost:9000", env="MINIO_ENDPOINT")
     minio_access_key: str = Field(default="minioadmin", env="MINIO_ACCESS_KEY")
     minio_secret_key: str = Field(default="minioadmin", env="MINIO_SECRET_KEY")
-    minio_bucket: str = Field(default="neuroinsight", env="MINIO_BUCKET")
+    minio_bucket: str = Field(default="neuroinsight_autohs", env="MINIO_BUCKET")
     minio_use_ssl: bool = Field(default=False, env="MINIO_USE_SSL")
 
     # Task Queue Configuration (Redis/Celery)

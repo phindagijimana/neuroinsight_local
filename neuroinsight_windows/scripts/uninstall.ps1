@@ -42,7 +42,7 @@ if ($response -eq "y" -or $response -eq "Y") {
 $response = Read-Host "Remove NeuroInsight-AutoHS image? (y/N)"
 if ($response -eq "y" -or $response -eq "Y") {
     Write-Info "Removing NeuroInsight-AutoHS image..."
-    docker rmi phindagijimana321/neuroinsight:latest 2>$null | Out-Null
+    docker rmi phindagijimana321/neuroinsight-autohs:latest 2>$null | Out-Null
     Write-Success "NeuroInsight-AutoHS image removed"
 }
 

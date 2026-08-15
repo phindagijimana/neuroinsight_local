@@ -797,9 +797,9 @@ fi
 if [ "$RECREATE_ENV" = true ]; then
     cat > .env << 'EOF'
 # PostgreSQL Database
-POSTGRES_USER=neuroinsight
-POSTGRES_PASSWORD=neuroinsight_secure_password
-POSTGRES_DB=neuroinsight
+POSTGRES_USER=neuroinsight_autohs
+POSTGRES_PASSWORD=neuroinsight_autohs_secure_password
+POSTGRES_DB=neuroinsight_autohs
 
 # Redis
 REDIS_PASSWORD=redis_secure_password
@@ -880,9 +880,9 @@ if [ "$CONTAINERS_STARTED" = false ]; then
     run_docker_cmd docker run -d \
         --name neuroinsight-autohs-db \
         --network neuroinsight-autohs-network \
-        -e POSTGRES_USER=neuroinsight \
-        -e POSTGRES_PASSWORD=neuroinsight_secure_password \
-        -e POSTGRES_DB=neuroinsight \
+        -e POSTGRES_USER=neuroinsight_autohs \
+        -e POSTGRES_PASSWORD=neuroinsight_autohs_secure_password \
+        -e POSTGRES_DB=neuroinsight_autohs \
         -p 5432:5432 \
         --restart unless-stopped \
         postgres:15-alpine > /dev/null 2>&1 || log_warning "PostgreSQL container may already exist"
@@ -941,7 +941,7 @@ if [ $RUNNING_CONTAINERS -gt 0 ]; then
     # Wait for PostgreSQL to be fully ready
     log_info "Waiting for PostgreSQL to be ready..."
     for i in {1..30}; do
-        if run_docker_cmd docker exec neuroinsight-autohs-db pg_isready -U neuroinsight > /dev/null 2>&1; then
+        if run_docker_cmd docker exec neuroinsight-autohs-db pg_isready -U neuroinsight_autohs > /dev/null 2>&1; then
             log_success "PostgreSQL is ready"
             break
         fi

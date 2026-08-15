@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   neuroinsight-autohs:
-    image: phindagijimana321/neuroinsight:latest
+    image: phindagijimana321/neuroinsight-autohs:latest
     container_name: neuroinsight-autohs
     ports:
       - "8000:8000"    # Web interface
@@ -19,7 +19,7 @@ services:
     # This ensures compatibility across Linux, WSL2, and Docker Desktop
     environment:
       # Override default passwords (recommended for production)
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-neuroinsight_secure_password}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-neuroinsight_autohs_secure_password}
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_secure_password}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin_secure}
       # Note: HOST_UPLOAD_DIR and HOST_OUTPUT_DIR are auto-detected from volume mounts

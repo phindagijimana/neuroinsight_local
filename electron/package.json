@@ -6,7 +6,7 @@
   "author": "NeuroInsight-AutoHS",
   "license": "MIT",
   "scripts": {
-    "start": "electron .",
+    "start": "env -u ELECTRON_RUN_AS_NODE electron .",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --mac --linux --win",
     "dist:mac": "electron-builder --mac",

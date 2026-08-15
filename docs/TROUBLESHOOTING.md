@@ -434,7 +434,7 @@ The fix adds the Docker group to the container, giving it permission to use Dock
 ./neuroinsight-autohs-docker backup
 
 # Force pull new image
-docker pull phindagijimana321/neuroinsight:latest
+docker pull phindagijimana321/neuroinsight-autohs:latest
 
 # Reinstall
 ./neuroinsight-autohs-docker stop
@@ -448,7 +448,7 @@ docker rm -f neuroinsight
 .\neuroinsight-autohs-docker.ps1 backup
 
 # Force pull
-docker pull phindagijimana321/neuroinsight:latest
+docker pull phindagijimana321/neuroinsight-autohs:latest
 
 # Reinstall
 .\neuroinsight-autohs-docker.ps1 stop
@@ -1184,7 +1184,7 @@ Fixed in v1.0.27+ - Removed duplicate image rotations.
 git pull origin master
 
 # Docker deployment
-docker pull phindagijimana321/neuroinsight:latest
+docker pull phindagijimana321/neuroinsight-autohs:latest
 ./neuroinsight-autohs-docker stop
 docker rm neuroinsight
 ./neuroinsight-autohs-docker install
@@ -1231,7 +1231,7 @@ Fixed in v1.0.28+ - Added L/R markers and color legend.
 git pull origin master
 
 # Docker
-docker pull phindagijimana321/neuroinsight:v1.0.28
+docker pull phindagijimana321/neuroinsight-autohs:v1.0.28
 ./neuroinsight-autohs-docker restart
 
 # Native
@@ -1335,7 +1335,7 @@ rm -rf ~/.local/share/neuroinsight-autohs/    # Native
 git pull origin master
 
 # Docker: Rebuild and restart
-docker pull phindagijimana321/neuroinsight:latest
+docker pull phindagijimana321/neuroinsight-autohs:latest
 ./neuroinsight-autohs-docker stop
 docker rm neuroinsight
 ./neuroinsight-autohs-docker install

@@ -6,8 +6,8 @@ services:
     image: postgres:15-alpine
     container_name: neuroinsight-autohs-postgres
     environment:
-      POSTGRES_DB: neuroinsight
-      POSTGRES_USER: neuroinsight
+      POSTGRES_DB: neuroinsight_autohs
+      POSTGRES_USER: neuroinsight_autohs
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_change_me}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -15,7 +15,7 @@ services:
       - "5432:5432"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U neuroinsight"]
+      test: ["CMD-SHELL", "pg_isready -U neuroinsight_autohs"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,7 +63,7 @@ services:
       dockerfile: docker/Dockerfile.backend
     container_name: neuroinsight-autohs-api
     environment:
-      - DATABASE_URL=postgresql://neuroinsight:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/neuroinsight
+      - DATABASE_URL=postgresql://neuroinsight_autohs:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/neuroinsight_autohs
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secure_password}@redis:6379/0
       - UPLOAD_DIR=/data/uploads
       - OUTPUT_DIR=/data/outputs
@@ -98,7 +98,7 @@ services:
       dockerfile: docker/Dockerfile.worker
     container_name: neuroinsight-autohs-worker
     environment:
-      - DATABASE_URL=postgresql://neuroinsight:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/neuroinsight
+      - DATABASE_URL=postgresql://neuroinsight_autohs:${POSTGRES_PASSWORD:-secure_password_change_me}@postgres:5432/neuroinsight_autohs
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secure_password}@redis:6379/0
       - UPLOAD_DIR=/data/uploads
       - OUTPUT_DIR=/data/outputs

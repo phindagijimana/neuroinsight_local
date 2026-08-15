@@ -1,11 +1,10 @@
 # NeuroInsight-AutoHS Desktop (Electron)
 
-Desktop app for the Docker all-in-one deployment. The app:
+Desktop app for the Docker all-in-one deployment. On launch it connects to an existing container or runs setup in the background, then opens the web UI. A splash screen appears only when user action is needed (Docker not running, license missing, etc.).
 
-1. Runs setup checks (Docker, license, ports)
-2. Pulls `phindagijimana321/neuroinsight:latest` + FreeSurfer image
-3. Creates/starts the `neuroinsight-autohs` container
-4. Opens the web UI served from the container
+1. Connects immediately if NeuroInsight-AutoHS is already running
+2. Otherwise pulls `phindagijimana321/neuroinsight-autohs:latest` + FreeSurfer and starts the container quietly
+3. Opens the web UI automatically when ready
 
 **Prerequisite:** Docker Desktop must be installed and running.
 
@@ -88,4 +87,4 @@ The container serves the NeuroInsight-AutoHS frontend. The app injects `window.B
 ## Related
 
 - CLI equivalent: `../deploy/neuroinsight-autohs-docker`
-- Hub image: `phindagijimana321/neuroinsight:latest`
+- Hub image: `phindagijimana321/neuroinsight-autohs:latest`

@@ -1,143 +1,121 @@
 'use strict';
 
+const loadingEl = document.getElementById('state-loading');
+const blockedEl = document.getElementById('state-blocked');
+const statusEl = document.getElementById('status-message');
+const blockedTitleEl = document.getElementById('blocked-title');
+const blockedMessageEl = document.getElementById('blocked-message');
+const detailsPanel = document.getElementById('details-panel');
 const stepsEl = document.getElementById('steps');
 const logEl = document.getElementById('log');
-const btnCheck = document.getElementById('btn-check');
-const btnLicense = document.getElementById('btn-license');
-const btnInstall = document.getElementById('btn-install');
-const btnOpen = document.getElementById('btn-open');
 const versionEl = document.getElementById('version');
-const licenseHintEl = document.getElementById('license-hint');
+const btnLicense = document.getElementById('btn-license');
+const btnDocker = document.getElementById('btn-docker');
+const btnRetry = document.getElementById('btn-retry');
 
-/** @type {Map<number, HTMLLIElement>} */
-const stepNodes = new Map();
-let lastCheckOk = false;
-let runtimeReady = false;
+const DOCKER_URL = 'https://www.docker.com/products/docker-desktop/';
 
-function log(line) {
+function showLoading(message) {
+  loadingEl.classList.remove('hidden');
+  blockedEl.classList.add('hidden');
+  statusEl.textContent = message || 'Starting…';
+}
+
+function showBlocked(payload) {
+  loadingEl.classList.add('hidden');
+  blockedEl.classList.remove('hidden');
+  detailsPanel.classList.remove('hidden');
+
+  blockedTitleEl.textContent = payload.title || 'Setup needed';
+  blockedMessageEl.textContent = payload.message || '';
+
+  btnLicense.classList.add('hidden');
+  btnDocker.classList.add('hidden');
+
+  const action = payload.action || 'retry';
+  if (action === 'license') btnLicense.classList.remove('hidden');
+  if (action === 'docker-install') btnDocker.classList.remove('hidden');
+
+  if (payload.fix) appendLog(payload.fix);
+}
+
+function appendLog(line) {
   logEl.textContent += `${line}\n`;
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-function badgeClass(status) {
-  if (status === 'ok') return 'ok';
-  if (status === 'fail') return 'fail';
-  if (status === 'warn') return 'warn';
-  return 'pending';
-}
-
 function renderStep(step) {
-  let li = stepNodes.get(step.step);
-  if (!li) {
-    li = document.createElement('li');
-    li.dataset.step = String(step.step);
-    stepsEl.appendChild(li);
-    stepNodes.set(step.step, li);
-  }
-  li.innerHTML = `
-    <span class="badge ${badgeClass(step.status)}">${step.status.toUpperCase()}</span>
-    <div class="step-body">
-      <div class="step-label">[${step.step}/${step.total}] ${step.label}</div>
-      <div class="step-detail">${step.detail || ''}</div>
-    </div>
-  `;
-}
-
-function setBusy(busy) {
-  btnCheck.disabled = busy;
-  btnInstall.disabled = busy || !lastCheckOk;
-  btnOpen.disabled = busy || !runtimeReady;
-  btnLicense.disabled = busy;
+  const li = document.createElement('li');
+  const mark = step.status === 'ok' ? '✓' : step.status === 'fail' ? '✗' : '·';
+  li.textContent = `${mark} ${step.label}${step.detail ? ` — ${step.detail}` : ''}`;
+  stepsEl.appendChild(li);
 }
 
 async function init() {
   if (!window.electronAPI) {
-    log('Electron API unavailable.');
+    showBlocked({
+      title: 'Launcher error',
+      message: 'Could not connect to the desktop shell.',
+    });
     return;
   }
 
   const version = await window.electronAPI.getAppVersion();
   versionEl.textContent = `Version ${version}`;
 
-  const paths = await window.electronAPI.getPaths();
-  licenseHintEl.textContent = `Recommended license path: ${paths.recommendedLicense}`;
+  window.electronAPI.onSetupPhase((payload) => {
+    if (payload.phase === 'checking' || payload.phase === 'starting' || payload.phase === 'connecting') {
+      showLoading(payload.message);
+    } else if (payload.phase === 'blocked') {
+      showBlocked(payload);
+    } else if (payload.phase === 'error') {
+      showBlocked({
+        title: 'Something went wrong',
+        message: payload.message || 'NeuroInsight-AutoHS could not start.',
+        action: 'retry',
+      });
+      detailsPanel.classList.remove('hidden');
+    }
+  });
 
-  window.electronAPI.onSetupStep(renderStep);
-  window.electronAPI.onSetupLog(log);
+  window.electronAPI.onSetupStep((step) => {
+    renderStep(step);
+  });
+
+  window.electronAPI.onSetupLog((line) => {
+    appendLog(line);
+  });
+
+  btnRetry.addEventListener('click', () => {
+    stepsEl.innerHTML = '';
+    logEl.textContent = '';
+    showLoading('Retrying…');
+    window.electronAPI.retryBootstrap();
+  });
 
   btnLicense.addEventListener('click', async () => {
-    setBusy(true);
-    try {
-      const saved = await window.electronAPI.pickLicense();
-      if (saved) {
-        log(`License saved to ${saved}`);
-        await runChecks();
-      }
-    } finally {
-      setBusy(false);
-    }
-  });
-
-  btnCheck.addEventListener('click', runChecks);
-
-  btnInstall.addEventListener('click', async () => {
-    setBusy(true);
-    runtimeReady = false;
-    try {
-      log('--- install/start ---');
-      const result = await window.electronAPI.runStart();
-      log(`Ready at ${result.webUrl}`);
-      runtimeReady = true;
-      btnOpen.disabled = false;
-      const paths = await window.electronAPI.getPaths();
-      if (paths.isPackaged) {
-        await window.electronAPI.openApp();
-      }
-    } catch (error) {
-      log(`Install failed: ${error.message || error}`);
-    } finally {
-      setBusy(false);
-    }
-  });
-
-  btnOpen.addEventListener('click', async () => {
-    setBusy(true);
-    try {
-      await window.electronAPI.openApp();
-    } catch (error) {
-      log(`Open failed: ${error.message || error}`);
-    } finally {
-      setBusy(false);
-    }
-  });
-
-  await runChecks();
-}
-
-async function runChecks() {
-  setBusy(true);
-  stepsEl.innerHTML = '';
-  stepNodes.clear();
-  log('--- running checks ---');
-  try {
-    const report = await window.electronAPI.runCheck();
-    lastCheckOk = report.ok;
-    if (report.blockers?.length) {
-      report.blockers.forEach((b) => {
-        log(`BLOCKER: ${b.blocker}`);
-        if (b.fix) log(b.fix);
-      });
+    showLoading('Saving license…');
+    const saved = await window.electronAPI.pickLicense();
+    if (saved) {
+      stepsEl.innerHTML = '';
+      logEl.textContent = '';
+      window.electronAPI.retryBootstrap();
     } else {
-      log('All required checks passed.');
+      showBlocked({
+        title: 'FreeSurfer license needed',
+        message: 'Choose your license.txt file to continue.',
+        action: 'license',
+      });
     }
-    btnInstall.disabled = !lastCheckOk;
-  } catch (error) {
-    log(`Check failed: ${error.message || error}`);
-    lastCheckOk = false;
-    btnInstall.disabled = true;
-  } finally {
-    setBusy(false);
-  }
+  });
+
+  btnDocker.addEventListener('click', () => {
+    window.electronAPI.openExternal(DOCKER_URL);
+  });
+
+  blockedMessageEl.addEventListener('dblclick', () => {
+    detailsPanel.classList.toggle('hidden');
+  });
 }
 
 init();

@@ -7,11 +7,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAppVersion: () => ipcRenderer.invoke('app:get-version'),
   getPaths: () => ipcRenderer.invoke('app:get-paths'),
   pickLicense: () => ipcRenderer.invoke('license:pick'),
-  runCheck: () => ipcRenderer.invoke('setup:check'),
-  runInstall: () => ipcRenderer.invoke('setup:install'),
-  runStart: () => ipcRenderer.invoke('setup:start'),
+  retryBootstrap: () => ipcRenderer.invoke('setup:retry'),
   openApp: () => ipcRenderer.invoke('setup:open-app'),
   openExternal: (url) => ipcRenderer.invoke('shell:open-external', url),
+  onSetupPhase: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('setup:phase', listener);
+    return () => ipcRenderer.removeListener('setup:phase', listener);
+  },
   onSetupStep: (callback) => {
     const listener = (_event, step) => callback(step);
     ipcRenderer.on('setup:step', listener);

@@ -9,7 +9,7 @@ echo "======================================"
 wait_for_postgres() {
     echo "Waiting for PostgreSQL to be ready..."
     for i in {1..30}; do
-        if su - postgres -c "pg_isready -U neuroinsight" > /dev/null 2>&1; then
+        if su - postgres -c "pg_isready -U neuroinsight_autohs" > /dev/null 2>&1; then
             echo "PostgreSQL is ready!"
             return 0
         fi
@@ -54,9 +54,9 @@ if [ ! -f /data/postgresql/PG_VERSION ]; then
     sleep 5
     
     # Create database and user
-    su - postgres -c "psql -c \"CREATE USER neuroinsight WITH PASSWORD 'neuroinsight_secure_password';\""
-    su - postgres -c "psql -c \"CREATE DATABASE neuroinsight OWNER neuroinsight;\""
-    su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE neuroinsight TO neuroinsight;\""
+    su - postgres -c "psql -c \"CREATE USER neuroinsight_autohs WITH PASSWORD 'neuroinsight_autohs_secure_password';\""
+    su - postgres -c "psql -c \"CREATE DATABASE neuroinsight_autohs OWNER neuroinsight_autohs;\""
+    su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE neuroinsight_autohs TO neuroinsight_autohs;\""
     
     # Stop PostgreSQL
     su - postgres -c "/usr/lib/postgresql/15/bin/pg_ctl -D /data/postgresql stop"
@@ -68,27 +68,27 @@ fi
 
 # Create Redis data directory
 mkdir -p /data/redis
-chown -R neuroinsight:neuroinsight /data/redis
+chown -R neuroinsight-autohs:neuroinsight-autohs /data/redis
 
 # Create MinIO data directory
 mkdir -p /data/minio
-chown -R neuroinsight:neuroinsight /data/minio
+chown -R neuroinsight-autohs:neuroinsight-autohs /data/minio
 
 # Create upload/output directories
 mkdir -p /data/uploads /data/outputs /data/logs
-chown -R neuroinsight:neuroinsight /data/uploads /data/outputs /data/logs
+chown -R neuroinsight-autohs:neuroinsight-autohs /data/uploads /data/outputs /data/logs
 
 # Create .env file if it doesn't exist
 if [ ! -f /app/.env ]; then
     echo "Creating .env configuration file..."
     cat > /app/.env << EOF
 # PostgreSQL Database
-POSTGRES_USER=neuroinsight
-POSTGRES_PASSWORD=neuroinsight_secure_password
-POSTGRES_DB=neuroinsight
+POSTGRES_USER=neuroinsight_autohs
+POSTGRES_PASSWORD=neuroinsight_autohs_secure_password
+POSTGRES_DB=neuroinsight_autohs
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-DATABASE_URL=postgresql://neuroinsight:neuroinsight_secure_password@localhost:5432/neuroinsight
+DATABASE_URL=postgresql://neuroinsight_autohs:neuroinsight_autohs_secure_password@localhost:5432/neuroinsight_autohs
 
 # Redis
 REDIS_PASSWORD=redis_secure_password
@@ -112,7 +112,7 @@ OUTPUT_DIR=/data/outputs
 # Environment
 ENVIRONMENT=production
 EOF
-    chown neuroinsight:neuroinsight /app/.env
+    chown neuroinsight-autohs:neuroinsight-autohs /app/.env
 fi
 
 # Check for FreeSurfer license

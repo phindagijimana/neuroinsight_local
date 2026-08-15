@@ -237,8 +237,8 @@ def get_system_stats(db: Session = Depends(get_db)):
     executor_stats = TaskService.get_executor_stats()
 
     # Storage statistics
-    upload_dir = os.getenv("UPLOAD_DIR", "/tmp/neuroinsight/uploads")
-    output_dir = os.getenv("OUTPUT_DIR", "/tmp/neuroinsight/outputs")
+    upload_dir = os.getenv("UPLOAD_DIR", "/tmp/neuroinsight-autohs/uploads")
+    output_dir = os.getenv("OUTPUT_DIR", "/tmp/neuroinsight-autohs/outputs")
 
     try:
         import shutil

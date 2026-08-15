@@ -4,7 +4,7 @@
 
 set -e
 
-IMAGE_NAME="phindagijimana321/neuroinsight"
+IMAGE_NAME="phindagijimana321/neuroinsight-autohs"
 
 # Colors
 RED='\033[0;31m'

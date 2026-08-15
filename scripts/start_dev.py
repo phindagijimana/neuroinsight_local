@@ -58,7 +58,7 @@ def ensure_dev_database():
         conn = psycopg2.connect(
             host='localhost',
             port=5432,
-            user='neuroinsight',
+            user='neuroinsight_autohs',
             password='JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg',
             database='postgres',
         )
@@ -92,9 +92,9 @@ def build_dev_env():
     env['PORT'] = '8001'
     env['FORCE_CELERY'] = '1'
     env['DATABASE_URL'] = (
-        'postgresql://neuroinsight:'
+        'postgresql://neuroinsight_autohs:'
         'JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg'
-        '@localhost:5432/neuroinsight_dev'
+        '@localhost:5432/neuroinsight_autohs_dev'
     )
     env['REDIS_URL'] = 'redis://:redis_secure_password@localhost:6379/1'
     env['UPLOAD_DIR'] = upload_dir

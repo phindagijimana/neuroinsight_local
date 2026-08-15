@@ -19,7 +19,7 @@ check_service() {
 }
 
 # Check PostgreSQL
-check_service "PostgreSQL" "pg_isready -U neuroinsight -h localhost" || exit 1
+check_service "PostgreSQL" "pg_isready -U neuroinsight_autohs -h localhost" || exit 1
 
 # Check Redis
 check_service "Redis" "redis-cli -a redis_secure_password ping" || exit 1

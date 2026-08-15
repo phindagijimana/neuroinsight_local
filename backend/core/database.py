@@ -33,7 +33,7 @@ if settings.database_url.startswith("sqlite"):
 
 elif "postgresql" in settings.database_url:
     # PostgreSQL-specific settings for production deployment
-    connect_args = {"application_name": "neuroinsight"}
+    connect_args = {"application_name": "neuroinsight-autohs"}
     pool_class = sqlalchemy.pool.QueuePool
 
     # PostgreSQL connection pool settings

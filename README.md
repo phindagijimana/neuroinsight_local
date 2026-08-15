@@ -94,7 +94,7 @@ If anything is missing, `check` runs 9 step-by-step checks and prints all blocke
 
 `install` / `setup` automatically:
 - Verifies Docker is running
-- Pulls `phindagijimana321/neuroinsight:latest` and `freesurfer/freesurfer:7.4.1`
+- Pulls `phindagijimana321/neuroinsight-autohs:latest` and `freesurfer/freesurfer:7.4.1`
 - Picks free ports (web 8000–8050, MinIO 9000–9050)
 - Mounts Docker socket (FreeSurfer jobs) and patched entrypoint (macOS Docker Desktop)
 - Uses `--platform linux/amd64` on Apple Silicon

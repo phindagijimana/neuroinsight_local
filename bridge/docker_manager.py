@@ -110,8 +110,8 @@ class DockerManager:
                 "remove": False,  # Keep container for inspection
                 "name": f"{self.container_prefix}{job_id}",
                 "labels": {
-                    "neuroinsight.job_id": job_id,
-                    "neuroinsight.type": "freesurfer-processor"
+                    "neuroinsight-autohs.job_id": job_id,
+                    "neuroinsight-autohs.type": "freesurfer-processor"
                 }
             }
 

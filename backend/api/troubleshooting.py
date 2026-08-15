@@ -478,7 +478,7 @@ async def get_recent_logs(lines: int = 50):
         # Try to find log files
         possible_log_paths = [
             Path.cwd() / "logs" / "neuroinsight-autohs.log",
-            Path.home() / ".neuroinsight" / "logs" / "neuroinsight-autohs.log",
+            Path.home() / ".neuroinsight-autohs" / "logs" / "neuroinsight-autohs.log",
             Path("/var/log/neuroinsight-autohs.log")
         ]
 

@@ -103,8 +103,8 @@ def start_docker_services():
         postgres_cmd = [
             'docker', 'run', '-d',
             '--name', 'neuroinsight-autohs-postgres',
-            '-e', 'POSTGRES_DB=neuroinsight',
-            '-e', 'POSTGRES_USER=neuroinsight',
+            '-e', 'POSTGRES_DB=neuroinsight_autohs',
+            '-e', 'POSTGRES_USER=neuroinsight_autohs',
             '-e', 'POSTGRES_PASSWORD=JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg',
             '-p', '5432:5432',
             '--restart', 'unless-stopped',
@@ -180,7 +180,7 @@ def start_backend(port):
         env['ENVIRONMENT'] = 'production'
         env['MAX_CONCURRENT_JOBS'] = '1'
         # Force PostgreSQL usage for production
-        env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
+        env['DATABASE_URL'] = 'postgresql://neuroinsight_autohs:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight_autohs'
 
         # Start backend with docker group access
         # Use 'sg docker' to ensure docker group is active even if user just logged in
@@ -254,7 +254,7 @@ def start_celery():
         env = os.environ.copy()
         env['PYTHONPATH'] = str(Path.cwd())
         env['ENVIRONMENT'] = 'production'
-        env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
+        env['DATABASE_URL'] = 'postgresql://neuroinsight_autohs:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight_autohs'
         env['FREESURFER_CONTAINER_PREFIX'] = 'freesurfer-job-'
 
         # Start celery with docker group access
@@ -300,7 +300,7 @@ def start_celery_beat():
         env = os.environ.copy()
         env['PYTHONPATH'] = str(Path.cwd())
         env['ENVIRONMENT'] = 'production'
-        env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
+        env['DATABASE_URL'] = 'postgresql://neuroinsight_autohs:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight_autohs'
 
         # Start celery beat
         proc = subprocess.Popen([
@@ -330,7 +330,7 @@ def start_job_monitor():
         env = os.environ.copy()
         env['PYTHONPATH'] = str(Path.cwd())
         env['ENVIRONMENT'] = 'production'
-        env['DATABASE_URL'] = 'postgresql://neuroinsight:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight'
+        env['DATABASE_URL'] = 'postgresql://neuroinsight_autohs:JkBTFCoM0JepvhEjvoWtQlfuy4XBXFTnzwExLxe1rg@localhost:5432/neuroinsight_autohs'
         env['FREESURFER_CONTAINER_PREFIX'] = 'freesurfer-job-'
 
         # Start monitor

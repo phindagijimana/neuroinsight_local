@@ -34,8 +34,8 @@ if [ -S /var/run/docker.sock ]; then
             echo "  Updating docker group GID to match socket..."
             if [ "$DOCKER_SOCKET_GID" = "0" ]; then
                 # Docker Desktop (macOS/Windows): socket is root-owned; GID 0 is the root group
-                echo "  Docker socket owned by root (GID 0) — adding neuroinsight to root group"
-                usermod -aG root neuroinsight 2>/dev/null || true
+                echo "  Docker socket owned by root (GID 0) — adding neuroinsight-autohs to root group"
+                usermod -aG root neuroinsight-autohs 2>/dev/null || true
             elif groupmod -g "$DOCKER_SOCKET_GID" docker 2>/dev/null; then
                 echo "  [OK] Docker group updated to GID $DOCKER_SOCKET_GID"
             else
@@ -48,7 +48,7 @@ if [ -S /var/run/docker.sock ]; then
         # Docker group doesn't exist, create it with correct GID (skip GID 0 — root group exists)
         if [ "$DOCKER_SOCKET_GID" = "0" ]; then
             echo "  Docker socket GID 0 — using root group for Docker Desktop"
-            usermod -aG root neuroinsight 2>/dev/null || true
+            usermod -aG root neuroinsight-autohs 2>/dev/null || true
         else
             echo "  Creating docker group with GID $DOCKER_SOCKET_GID..."
             groupadd -g "$DOCKER_SOCKET_GID" docker
@@ -56,17 +56,17 @@ if [ -S /var/run/docker.sock ]; then
         fi
     fi
     
-    # Ensure neuroinsight user is in docker group
-    if ! id -nG neuroinsight | grep -qw docker; then
-        echo "  Adding neuroinsight user to docker group..."
-        usermod -aG docker neuroinsight
+    # Ensure neuroinsight-autohs user is in docker group
+    if ! id -nG neuroinsight-autohs | grep -qw docker; then
+        echo "  Adding neuroinsight-autohs user to docker group..."
+        usermod -aG docker neuroinsight-autohs
         echo "  [OK] User added to docker group"
     else
         echo "  [OK] User already in docker group"
     fi
     
     # Verify Docker access
-    if su - neuroinsight -c "docker ps > /dev/null 2>&1"; then
+    if su - neuroinsight-autohs -c "docker ps > /dev/null 2>&1"; then
         echo "  [OK] Docker access verified - FreeSurfer spawning enabled"
     else
         echo "  [WARNING] Warning: Docker access test failed"
@@ -89,7 +89,7 @@ fi
 wait_for_postgres() {
     echo "Waiting for PostgreSQL to be ready..."
     for i in {1..30}; do
-        if su - postgres -c "pg_isready -U neuroinsight" > /dev/null 2>&1; then
+        if su - postgres -c "pg_isready -U neuroinsight_autohs" > /dev/null 2>&1; then
             echo "PostgreSQL is ready!"
             return 0
         fi
@@ -134,9 +134,9 @@ if [ ! -f /data/postgresql/PG_VERSION ]; then
     sleep 5
     
     # Create database and user
-    su - postgres -c "psql -c \"CREATE USER neuroinsight WITH PASSWORD 'neuroinsight_secure_password';\""
-    su - postgres -c "psql -c \"CREATE DATABASE neuroinsight OWNER neuroinsight;\""
-    su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE neuroinsight TO neuroinsight;\""
+    su - postgres -c "psql -c \"CREATE USER neuroinsight_autohs WITH PASSWORD 'neuroinsight_autohs_secure_password';\""
+    su - postgres -c "psql -c \"CREATE DATABASE neuroinsight_autohs OWNER neuroinsight_autohs;\""
+    su - postgres -c "psql -c \"GRANT ALL PRIVILEGES ON DATABASE neuroinsight_autohs TO neuroinsight_autohs;\""
     
     # Stop PostgreSQL
     su - postgres -c "/usr/lib/postgresql/15/bin/pg_ctl -D /data/postgresql stop"
@@ -148,15 +148,15 @@ fi
 
 # Create Redis data directory
 mkdir -p /data/redis
-chown -R neuroinsight:neuroinsight /data/redis
+chown -R neuroinsight-autohs:neuroinsight-autohs /data/redis
 
 # Create MinIO data directory
 mkdir -p /data/minio
-chown -R neuroinsight:neuroinsight /data/minio
+chown -R neuroinsight-autohs:neuroinsight-autohs /data/minio
 
 # Create upload/output directories
 mkdir -p /data/uploads /data/outputs /data/logs
-chown -R neuroinsight:neuroinsight /data/uploads /data/outputs /data/logs
+chown -R neuroinsight-autohs:neuroinsight-autohs /data/uploads /data/outputs /data/logs
 
 # ============================================
 # Auto-detect Host Paths for Docker-in-Docker
@@ -207,12 +207,12 @@ if [ ! -f /app/.env ]; then
     echo "Creating .env configuration file..."
     cat > /app/.env << EOF
 # PostgreSQL Database
-POSTGRES_USER=neuroinsight
-POSTGRES_PASSWORD=neuroinsight_secure_password
-POSTGRES_DB=neuroinsight
+POSTGRES_USER=neuroinsight_autohs
+POSTGRES_PASSWORD=neuroinsight_autohs_secure_password
+POSTGRES_DB=neuroinsight_autohs
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-DATABASE_URL=postgresql://neuroinsight:neuroinsight_secure_password@localhost:5432/neuroinsight
+DATABASE_URL=postgresql://neuroinsight_autohs:neuroinsight_autohs_secure_password@localhost:5432/neuroinsight_autohs
 
 # Redis
 REDIS_PASSWORD=redis_secure_password
@@ -240,7 +240,7 @@ HOST_OUTPUT_DIR=${HOST_OUTPUT_DIR:-}
 # Environment
 ENVIRONMENT=production
 EOF
-    chown neuroinsight:neuroinsight /app/.env
+    chown neuroinsight-autohs:neuroinsight-autohs /app/.env
 else
     echo ".env file already exists"
 fi

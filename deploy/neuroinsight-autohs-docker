@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CONTAINER_NAME="neuroinsight-autohs"
-IMAGE_NAME="phindagijimana321/neuroinsight:latest"
+IMAGE_NAME="phindagijimana321/neuroinsight-autohs:latest"
 FREESURFER_IMAGE="${FREESURFER_IMAGE:-freesurfer/freesurfer:7.4.1}"
 VOLUME_NAME="neuroinsight-autohs-data"
 MIN_DISK_GB="${NEUROINSIGHT_MIN_DISK_GB:-50}"
@@ -878,7 +878,7 @@ cmd_clean() {
     if container_running; then
         log_info "Running cleanup (retaining last ${days} days)..."
         docker exec ${CONTAINER_NAME} bash -c "
-            export DATABASE_URL='postgresql://neuroinsight:neuroinsight_secure_password@localhost:5432/neuroinsight'
+            export DATABASE_URL='postgresql://neuroinsight_autohs:neuroinsight_autohs_secure_password@localhost:5432/neuroinsight_autohs'
             cd /app && PYTHONPATH=/app python3 scripts/clean.py --days ${days}
         "
         log_success "Cleanup completed"
@@ -1133,7 +1133,7 @@ Quick Start (Linux & macOS):
 
 Automated on install/setup:
   - Docker daemon check
-  - Pull phindagijimana321/neuroinsight:latest
+  - Pull phindagijimana321/neuroinsight-autohs:latest
   - Pull freesurfer/freesurfer:7.4.1
   - Port selection (8000-8050, 9000-9050)
   - Docker socket mount for FreeSurfer jobs

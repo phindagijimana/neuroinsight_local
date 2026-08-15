@@ -13,16 +13,16 @@ services:
     image: postgres:15-alpine
     container_name: neuroinsight-autohs-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-neuroinsight}
+      POSTGRES_USER: ${POSTGRES_USER:-neuroinsight_autohs}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
-      POSTGRES_DB: ${POSTGRES_DB:-neuroinsight}
+      POSTGRES_DB: ${POSTGRES_DB:-neuroinsight_autohs}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U neuroinsight"]
+      test: ["CMD-SHELL", "pg_isready -U neuroinsight_autohs"]
       interval: 10s
       timeout: 5s
       retries: 5

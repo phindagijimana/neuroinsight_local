@@ -61,7 +61,7 @@ else:
     backend_url = "db+sqlite:///celery_results.db"
 
 celery_app = Celery(
-    "neuroinsight",
+    "neuroinsight-autohs",
     broker=broker_url,
     backend=backend_url,
     include=["workers.tasks.processing_web"]

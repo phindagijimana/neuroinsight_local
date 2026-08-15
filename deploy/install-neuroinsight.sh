@@ -5,7 +5,7 @@
 set -e
 
 VERSION="v1.0.0"
-IMAGE="neuroinsight/allinone"
+IMAGE="phindagijimana321/neuroinsight-autohs"
 
 # Colors
 RED='\033[0;31m'

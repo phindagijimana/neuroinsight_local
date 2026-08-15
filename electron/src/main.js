@@ -8,6 +8,7 @@ const {
   dialog,
   shell,
   Menu,
+  nativeImage,
 } = require('electron');
 const orchestrator = require('./orchestrator');
 const { saveLicenseFromFile, recommendedLicensePath } = require('./orchestrator/license');
@@ -25,10 +26,9 @@ let bootstrapRunning = false;
 
 const SPLASH = { width: 440, height: 380 };
 const APP = { width: 1280, height: 860, minWidth: 960, minHeight: 640 };
+const ICON_PATH = path.join(__dirname, '../build/icon.png');
 
-if (process.platform === 'darwin') {
-  app.setName('NeuroInsight-AutoHS');
-}
+app.setName('NeuroInsight-AutoHS');
 
 function send(channel, payload) {
   mainWindow?.webContents.send(channel, payload);
@@ -61,6 +61,7 @@ function createWindow() {
     minHeight: SPLASH.height,
     resizable: false,
     title: 'NeuroInsight-AutoHS',
+    icon: ICON_PATH,
     show: false,
     center: true,
     webPreferences: {
@@ -269,6 +270,9 @@ function registerIpc() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(nativeImage.createFromPath(ICON_PATH));
+  }
   buildMenu();
   registerIpc();
   createWindow();

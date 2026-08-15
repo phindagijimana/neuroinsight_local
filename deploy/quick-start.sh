@@ -72,7 +72,7 @@ if docker ps -a --format '{{.Names}}' | grep -q '^neuroinsight-autohs$'; then
 fi
 
 # Check if image exists locally
-if ! docker images --format '{{.Repository}}:{{.Tag}}' | grep -q 'neuroinsight/allinone:latest'; then
+if ! docker images --format '{{.Repository}}:{{.Tag}}' | grep -q 'phindagijimana321/neuroinsight-autohs:latest'; then
     log_warning "Image not found locally."
     echo ""
     echo "Would you like to:"
@@ -85,7 +85,7 @@ if ! docker images --format '{{.Repository}}:{{.Tag}}' | grep -q 'neuroinsight/a
     case $choice in
         1)
             log_info "Pulling image from Docker Hub..."
-            docker pull neuroinsight/allinone:latest
+            docker pull phindagijimana321/neuroinsight-autohs:latest
             ;;
         2)
             log_info "Building image locally..."
@@ -142,7 +142,7 @@ if [ -n "$LICENSE_PATH" ]; then
         -v neuroinsight-autohs-data:/data \
         -v "$(pwd)/$LICENSE_PATH:/app/license.txt:ro" \
         --restart unless-stopped \
-        neuroinsight/allinone:latest
+        phindagijimana321/neuroinsight-autohs:latest
 else
     docker run -d \
         --name neuroinsight-autohs \
@@ -151,7 +151,7 @@ else
         -p 9001:9001 \
         -v neuroinsight-autohs-data:/data \
         --restart unless-stopped \
-        neuroinsight/allinone:latest
+        phindagijimana321/neuroinsight-autohs:latest
 fi
 
 log_success "Container started!"
@@ -190,8 +190,8 @@ echo ""
 echo "View logs:          docker logs -f neuroinsight-autohs"
 echo "Check health:       docker exec neuroinsight-autohs /app/healthcheck.sh"
 echo "Stop:               docker stop neuroinsight-autohs"
-echo "Start:              docker start neuroinsight-autohs-autohs"
-echo "Remove:             docker rm -f neuroinsight-autohs-autohs"
+echo "Start:              docker start neuroinsight-autohs"
+echo "Remove:             docker rm -f neuroinsight-autohs"
 echo ""
 echo "For more help, see: README.md"
 echo ""

@@ -118,9 +118,9 @@ docker logs neuroinsight-autohs 2>&1 | grep -A 10 "Docker socket"
 # [OK] Docker access verified - FreeSurfer spawning enabled
 
 # Method 2: Test Docker access from inside container
-docker exec neuroinsight docker ps
+docker exec neuroinsight-autohs docker ps
 
-# Should show running containers (including neuroinsight itself)
+# Should show running containers (including neuroinsight-autohs itself)
 
 # Method 3: Submit a test job
 # Upload a T1-weighted NIfTI through the web interface

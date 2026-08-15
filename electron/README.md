@@ -37,23 +37,18 @@ npm run dist:win     # NSIS .exe installer
 
 Outputs go to `electron/dist/`.
 
-### Icons (optional but recommended for release)
+### Icons
 
-Add icons before building:
+Brand icons (dark navy **NI-AutoHS**, `#003d7a`) are in `electron/build/`:
 
-- `build/icon.icns` — macOS
-- `build/icon.ico` — Windows
-- `build/icons/` — Linux (png sizes)
+| File | Platform |
+|------|----------|
+| `icon.icns` | macOS |
+| `icon.ico` | Windows |
+| `icons/` | Linux (256×256, 512×512 PNG) |
+| `icon.svg` | Source artwork |
 
-Without icons, electron-builder uses the default Electron icon.
-
-Generate from the project favicon:
-
-```bash
-# macOS with brew install png2icons imagemagick
-convert ../static/favicon.svg -resize 512x512 build/icon.png
-# then convert to .icns / .ico with your preferred tool
-```
+After editing `icon.svg`, regenerate raster assets and run `npm run dist:*` so installers pick up the new icon.
 
 ## License locations (checked in order)
 

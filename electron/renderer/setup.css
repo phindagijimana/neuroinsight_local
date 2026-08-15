@@ -28,6 +28,14 @@ body {
   flex-direction: column;
 }
 
+.brand-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -36,16 +44,7 @@ body {
 }
 
 .brand-mark {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 0.85rem;
-  letter-spacing: -0.03em;
+  display: none;
 }
 
 .brand h1 {

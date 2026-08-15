@@ -135,8 +135,8 @@ docker login
 ```
 
 Creates:
-- `neuroinsight/allinone:v1.0.0`
-- `neuroinsight/allinone:latest`
+- `phindagijimana321/neuroinsight-autohs:v1.0.0`
+- `phindagijimana321/neuroinsight-autohs:latest`
 
 ### List Versions
 
@@ -150,10 +150,10 @@ End users can pull from Docker Hub without needing source code:
 
 ```bash
 # Pull latest version
-docker pull neuroinsight/allinone:latest
+docker pull phindagijimana321/neuroinsight-autohs:latest
 
 # Or specific version
-docker pull neuroinsight/allinone:v1.0.0
+docker pull phindagijimana321/neuroinsight-autohs:v1.0.0
 
 # Then install
 ./neuroinsight-autohs-docker install

@@ -180,8 +180,8 @@ docker login
 ```
 
 This creates:
-- `neuroinsight/allinone:v1.0.0`
-- `neuroinsight/allinone:latest`
+- `phindagijimana321/neuroinsight-autohs:v1.0.0`
+- `phindagijimana321/neuroinsight-autohs:latest`
 
 ### List All Versions
 
@@ -222,13 +222,13 @@ lsof -i :8000-8050
 ./neuroinsight-autohs-docker license
 
 # Manually mount license
-docker stop neuroinsight
-docker rm neuroinsight
+docker stop neuroinsight-autohs
+docker rm -f neuroinsight-autohs
 docker run -d --name neuroinsight-autohs \
   -p 8000:8000 \
   -v neuroinsight-autohs-data:/data \
   -v /path/to/license.txt:/app/license.txt:ro \
-  neuroinsight/allinone:latest
+  phindagijimana321/neuroinsight-autohs:latest
 ```
 
 ### Services Not Healthy
@@ -327,12 +327,12 @@ Run multiple instances on different ports:
 docker run -d --name neuroinsight-8001 \
   -p 8001:8000 \
   -v neuroinsight-autohs-data-1:/data \
-  neuroinsight/allinone:latest
+  phindagijimana321/neuroinsight-autohs:latest
 
 docker run -d --name neuroinsight-8002 \
   -p 8002:8000 \
   -v neuroinsight-autohs-data-2:/data \
-  neuroinsight/allinone:latest
+  phindagijimana321/neuroinsight-autohs:latest
 ```
 
 ### Docker Compose
@@ -341,7 +341,7 @@ docker run -d --name neuroinsight-8002 \
 version: '3.8'
 services:
   neuroinsight-autohs:
-    image: neuroinsight/allinone:latest
+    image: phindagijimana321/neuroinsight-autohs:latest
     ports:
       - "8000:8000"
     volumes:
@@ -367,7 +367,7 @@ docker run -d --name neuroinsight-dev \
   -v neuroinsight-autohs-data:/data \
   -v $(pwd)/../backend:/app/backend \
   -v $(pwd)/../frontend:/app/frontend \
-  neuroinsight/allinone:latest
+  phindagijimana321/neuroinsight-autohs:latest
 ```
 
 ## Version Management
@@ -397,7 +397,7 @@ Users on `latest` tag get automatic updates:
 Users on specific versions need to manually update:
 
 ```bash
-docker pull neuroinsight/allinone:v1.1.0
+docker pull phindagijimana321/neuroinsight-autohs:v1.1.0
 # Then recreate container
 ```
 

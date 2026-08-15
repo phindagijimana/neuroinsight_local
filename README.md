@@ -1,180 +1,177 @@
 # NeuroInsight-AutoHS
 
-**NeuroInsight-AutoHS** is the name for this web application ([neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local)) — automated hippocampal segmentation and analysis from T1-weighted MRI with dashboard, job queue, PDF reports, and deployment tooling.
+**NeuroInsight-AutoHS** is the web application ([neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local)) for automated hippocampal segmentation and analysis from T1-weighted MRI — dashboard, job queue, PDF reports, and deployment tooling.
 
-It uses the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** for processing: a two-step workflow (FreeSurfer processing → AI-compute post-processing and reporting) defined in the separate [AutoHS repository](https://github.com/phindagijimana/AutoHS).
+It uses the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** for processing: a two-step workflow (FreeSurfer → AI post-processing and reporting) defined in the separate [AutoHS repository](https://github.com/phindagijimana/AutoHS).
 
 | Name | Repository | What it is |
 |------|------------|------------|
 | **NeuroInsight-AutoHS** | This repo (`neuroinsight_local`) | Web UI, API, Celery workers, deployment |
-| **AutoHS** | [AutoHS](https://github.com/phindagijimana/AutoHS) | Pipeline specification, CLI, and BIDS App (not the same as this app) |
+| **AutoHS** | [AutoHS](https://github.com/phindagijimana/AutoHS) | Pipeline specification, CLI, and BIDS App |
 
-## Platform Support
+## Deployment options
 
-- **Linux:** Ubuntu 20.04+ (native installation)
+Choose **one** way to run NeuroInsight-AutoHS:
 
-## Requirements
+| | **Native** | **Docker** | **Desktop** |
+|---|------------|------------|-------------|
+| **Best for** | Ubuntu / WSL2 servers | macOS, Linux, shared servers | macOS, Windows, Linux (GUI users) |
+| **Requires** | Ubuntu 20.04+, systemd | Docker Desktop or Engine | Docker Desktop + installer or dev build |
+| **Install** | `./neuroinsight-autohs install` | `./neuroinsight-autohs-docker setup` | Download `.dmg` / `.exe` / `.AppImage`, or `npm start` |
+| **Manage** | `./neuroinsight-autohs start\|stop\|status` | `./neuroinsight-autohs-docker …` | App menu + Docker in background |
+| **Data** | `~/.local/share/neuroinsight-autohs/` | Docker volume `neuroinsight-autohs-data` | Same Docker volume as Docker option |
+| **Docs** | [Commands](#commands-native-linux) below | [`deploy/README_DOCKER.md`](deploy/README_DOCKER.md) | [`electron/README.md`](electron/README.md) |
 
-- Ubuntu 20.04+ Linux (or WSL2 on Windows for native install)
-- Docker and Docker Compose
-- Redis (message broker for job processing)
-- 16GB+ RAM (32GB recommended)
-- 4+ CPU cores, 50GB storage
-- FreeSurfer license (free for research)
-
-## FreeSurfer Setup
-
-NeuroInsight-AutoHS requires a FreeSurfer license for MRI processing. FreeSurfer is free for research use.
-
-### Get FreeSurfer License
-
-1. Visit: https://surfer.nmr.mgh.harvard.edu/registration.html
-2. Complete the registration form
-3. Save the license file as `license.txt` in your project directory
-
-### License File Location
-
-The license file must be named `license.txt` and placed in the root directory of the project.
-
-Example structure:
-```
-neuroinsight_local/
-├── neuroinsight
-├── license.txt
-├── data/
-└── ...
-```
-
-## Quick Start
-
-### Native Linux (Ubuntu 20.04+)
-
-```bash
-# Clone repository
-git clone https://github.com/phindagijimana/neuroinsight_local.git
-cd neuroinsight_local
-
-# For WSL users: Check environment first (optional but recommended)
-./neuroinsight-autohs check-wsl
-
-# Install (one-time setup - auto-detects Linux/WSL)
-./neuroinsight-autohs install
-
-# Setup FreeSurfer license
-./neuroinsight-autohs license
-
-# Start NeuroInsight-AutoHS
-./neuroinsight-autohs start
-
-# Access at http://localhost:8000
-```
-
-**Best for:** Direct Ubuntu/Debian installation with systemd services
+All three options need a **FreeSurfer license** (`license.txt`) for real MRI processing. See [FreeSurfer setup](#freesurfer-setup).
 
 ---
 
-### Docker (Linux & macOS)
+### Option 1 — Native (Linux / WSL2)
 
-Only manual step: place your FreeSurfer `license.txt` before install.
+Direct installation with systemd services on Ubuntu 20.04+ (or WSL2).
+
+```bash
+git clone https://github.com/phindagijimana/neuroinsight_local.git
+cd neuroinsight_local
+
+./neuroinsight-autohs check-wsl    # optional, WSL only
+./neuroinsight-autohs install      # one-time setup
+./neuroinsight-autohs license      # place or verify license.txt
+./neuroinsight-autohs start
+
+# Open http://localhost:8000
+```
+
+---
+
+### Option 2 — Docker (Linux & macOS)
+
+Single all-in-one container. Image: `phindagijimana321/neuroinsight-autohs:latest`.
 
 ```bash
 git clone https://github.com/phindagijimana/neuroinsight_local.git
 cd neuroinsight_local/deploy
 
-# Place license in the neuroinsight_local folder (recommended):
+# license.txt — one of:
 #   ../license.txt
-# Or: ~/Documents/license.txt  or  ~/license.txt
+#   ~/Documents/license.txt
+#   ~/license.txt
 
-./neuroinsight-autohs-docker check     # verify license, Docker, ports (no install)
-./neuroinsight-autohs-docker setup     # install + start (non-interactive)
-./neuroinsight-autohs-docker status    # web URL and service health
+./neuroinsight-autohs-docker check     # verify license, Docker, ports
+./neuroinsight-autohs-docker setup     # pull image, start container
+./neuroinsight-autohs-docker status    # URL and health
 ```
 
-If anything is missing, `check` runs 9 step-by-step checks and prints all blockers at once (license path, Docker, ports, etc.).
+`setup` automatically pulls the image and FreeSurfer, picks free ports, mounts the Docker socket for FreeSurfer jobs, and uses `--platform linux/amd64` on Apple Silicon.
 
-`install` / `setup` automatically:
-- Verifies Docker is running
-- Pulls `phindagijimana321/neuroinsight-autohs:latest` and `freesurfer/freesurfer:7.4.1`
-- Picks free ports (web 8000–8050, MinIO 9000–9050)
-- Mounts Docker socket (FreeSurfer jobs) and patched entrypoint (macOS Docker Desktop)
-- Uses `--platform linux/amd64` on Apple Silicon
-- Waits for the web UI before finishing
+More detail: [`deploy/README_DOCKER.md`](deploy/README_DOCKER.md) · [`deploy/DEPLOYMENT_GUIDE.md`](deploy/DEPLOYMENT_GUIDE.md)
 
-**Best for:** macOS, shared servers, or anyone who prefers a single container
+---
 
-### Desktop app — NeuroInsight-AutoHS (Electron)
+### Option 3 — Desktop app (Electron)
+
+GUI launcher that runs the same Docker all-in-one container. Shows a splash only when something needs your attention (Docker stopped, license missing, etc.).
+
+**Prerequisites:** Docker Desktop installed and running.
+
+**From source (development):**
 
 ```bash
 cd electron
 npm install
-npm start          # dev
-npm run dist:mac   # macOS .dmg
-npm run dist:linux # Linux AppImage + .deb
-npm run dist:win   # Windows NSIS installer
+npm start
 ```
 
-See [`electron/README.md`](electron/README.md) for build details. Requires Docker Desktop.
+**Build installers:**
+
+```bash
+cd electron
+npm install
+npm run dist:mac      # macOS .dmg + .zip
+npm run dist:linux    # AppImage + .deb
+npm run dist:win      # Windows NSIS installer
+```
+
+Outputs: `electron/dist/` (e.g. `NeuroInsight-AutoHS.app`, `.dmg`).
+
+Place `license.txt` in the repo root (`../license.txt`) or choose it in the setup screen. Full details: [`electron/README.md`](electron/README.md).
 
 ---
 
-## File Requirements
+## Requirements
 
-NeuroInsight-AutoHS processes T1-weighted MRI scans only. Filenames must contain:
-`t1`, `t1w`, `t1-weighted`, `mprage`, `spgr`, `tfl`, `tfe`, `fspgr`
+- **Native:** Ubuntu 20.04+ (or WSL2), Redis, 16 GB+ RAM (32 GB recommended), 4+ CPU cores, 50 GB storage
+- **Docker / Desktop:** Docker Desktop or Engine, same RAM/storage guidance
+- **All:** FreeSurfer license (free for research)
 
-Supported formats: NIfTI (`.nii`, `.nii.gz`) only.
+## FreeSurfer setup
 
-## Commands Management (Native Linux)
+1. Register at https://surfer.nmr.mgh.harvard.edu/registration.html
+2. Save the file as `license.txt`
 
-| Command | `./neuroinsight-autohs` |
-|---------|-------------------|
-| **Installation** | `install` |
-| **Start** | `start` |
-| **Stop** | `stop` |
-| **Restart** | _(stop + start)_ |
-| **Status** | `status` |
-| **Health Check** | `monitor` |
-| **View Logs** | `logs` |
-| **Clean Jobs** | `clean` |
-| **Recover Job** | `bring <job_id>` |
-| **License** | `license` |
-| **Sleep Prevention** | `nosleep` |
+**Native:** project root `neuroinsight_local/license.txt`  
+**Docker / Desktop:** `../license.txt`, `~/Documents/license.txt`, or `~/license.txt`
 
-### Command Examples
+Example layout:
 
-```bash
-cd neuroinsight_local
-./neuroinsight-autohs install          # One-time setup
-./neuroinsight-autohs start            # Start services
-./neuroinsight-autohs status           # Check health
-./neuroinsight-autohs logs             # View logs
-./neuroinsight-autohs clean            # Clean old jobs
-./neuroinsight-autohs bring <job_id>   # Recover completed job
+```
+neuroinsight_local/
+├── neuroinsight-autohs      # native CLI
+├── license.txt
+├── deploy/
+│   └── neuroinsight-autohs-docker
+├── electron/                # desktop app
+└── data/
 ```
 
-### Command Notes
+## File requirements
 
-- **Native Linux:** Uses systemd services, runs directly on Linux
+T1-weighted MRI only. Filenames must contain: `t1`, `t1w`, `t1-weighted`, `mprage`, `spgr`, `tfl`, `tfe`, or `fspgr`.
+
+Supported formats: NIfTI (`.nii`, `.nii.gz`).
+
+## Commands (native Linux)
+
+| Command | `./neuroinsight-autohs` |
+|---------|-------------------------|
+| Install | `install` |
+| Start / stop | `start` · `stop` |
+| Status / health | `status` · `monitor` |
+| Logs | `logs` |
+| Clean jobs | `clean` |
+| Recover job | `bring <job_id>` |
+| License | `license` |
+| Sleep prevention | `nosleep` |
+
+```bash
+./neuroinsight-autohs install
+./neuroinsight-autohs start
+./neuroinsight-autohs status
+./neuroinsight-autohs logs
+./neuroinsight-autohs clean
+./neuroinsight-autohs bring <job_id>
+```
 
 ## Hippocampal asymmetry & HS classification
 
-NeuroInsight-AutoHS applies the same thresholds as the AutoHS pipeline:
+Same thresholds as the AutoHS pipeline:
 
 **Volume laterality** (±0.05): Left > Right if AI > 0.05; Right > Left if AI < −0.05; symmetric between.
 
-**HS classification:** Right HS suspected if AI > 0.046915816971433; Left HS suspected if AI < −0.070839747728063; otherwise Balanced (No HS).
+**HS classification:** Right HS if AI > 0.046915816971433; Left HS if AI < −0.070839747728063; otherwise Balanced (No HS).
 
-See the [AutoHS repository](https://github.com/phindagijimana/AutoHS) for the full pipeline specification and citation.
+See [AutoHS](https://github.com/phindagijimana/AutoHS) for the full pipeline spec.
 
-## Further Documentation
+## Further documentation
 
-- [User Guide](docs/USER_GUIDE.md) — complete usage instructions
-- [Troubleshooting](docs/TROUBLESHOOTING.md) — common issues
-- [AutoHS pipeline](https://github.com/phindagijimana/AutoHS) — workflow spec and CLI reference
-- [FreeSurfer License Setup](https://surfer.nmr.mgh.harvard.edu/registration.html) — get your license
+- [User Guide](docs/USER_GUIDE.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Docker deployment](deploy/README_DOCKER.md)
+- [Desktop app](electron/README.md)
+- [AutoHS pipeline](https://github.com/phindagijimana/AutoHS)
 
 ## License
 
-MIT License. FreeSurfer requires separate license for research use.
+MIT License. FreeSurfer requires a separate license for research use.
 
 © 2025 University of Rochester. All rights reserved.

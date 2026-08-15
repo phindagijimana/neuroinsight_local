@@ -951,7 +951,7 @@ cmd_shell() {
         return 1
     fi
     
-    local user="${1:-neuroinsight}"
+    local user="${1:-neuroinsight-autohs}"
     log_info "Opening shell as $user (type 'exit' to quit)..."
     docker exec -it -u ${user} ${CONTAINER_NAME} bash
 }
@@ -1104,7 +1104,7 @@ Status & Monitoring:
   health            - Run health check
   license           - Check FreeSurfer license status
   logs [service]    - View logs (backend|worker|beat|monitor|all|container)
-  shell [user]      - Access container shell (default: neuroinsight)
+  shell [user]      - Access container shell (default: neuroinsight-autohs)
 
 Maintenance:
   clean [--days N]  - Clean up old jobs (default: 30 days)

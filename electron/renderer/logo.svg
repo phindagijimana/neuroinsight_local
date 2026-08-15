@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NI-AutoHS">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0054a7"/>
+      <stop offset="100%" stop-color="#003d7a"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#shine)"/>
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="none" stroke="#00264d" stroke-width="4" opacity="0.45"/>
+  <text x="256" y="218" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="108" font-weight="800" fill="#ffffff" letter-spacing="-2">NI</text>
+  <text x="256" y="312" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="52" font-weight="700" fill="#b8d4f0" letter-spacing="1">AutoHS</text>
+  <rect x="156" y="336" width="200" height="6" rx="3" fill="#0054a7" opacity="0.9"/>
+</svg>

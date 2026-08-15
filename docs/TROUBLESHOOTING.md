@@ -130,7 +130,7 @@ sudo systemctl restart docker
 # Remove and recreate container
 cd neuroinsight_local/deploy
 ./neuroinsight-autohs-docker stop
-docker rm -f neuroinsight
+docker rm -f neuroinsight-autohs
 ./neuroinsight-autohs-docker install
 
 # Check logs for errors
@@ -145,7 +145,7 @@ docker rm -f neuroinsight
 # Remove and recreate
 cd neuroinsight_windows
 .\neuroinsight-autohs-docker.ps1 stop
-docker rm -f neuroinsight
+docker rm -f neuroinsight-autohs
 .\neuroinsight-autohs-docker.ps1 install
 ```
 
@@ -290,11 +290,11 @@ wsl
 docker volume ls | grep neuroinsight
 
 # Inspect volume
-docker volume inspect neuroinsight_data
+docker volume inspect neuroinsight-autohs-data
 
 # Recreate if corrupted
 ./neuroinsight-autohs-docker stop
-docker volume rm neuroinsight_data
+docker volume rm neuroinsight-autohs-data
 ./neuroinsight-autohs-docker install
 ```
 
@@ -303,7 +303,7 @@ docker volume rm neuroinsight_data
 # Same commands work in PowerShell
 docker volume ls | Select-String neuroinsight
 .\neuroinsight-autohs-docker.ps1 stop
-docker volume rm neuroinsight_data
+docker volume rm neuroinsight-autohs-data
 .\neuroinsight-autohs-docker.ps1 install
 ```
 
@@ -438,7 +438,7 @@ docker pull phindagijimana321/neuroinsight-autohs:latest
 
 # Reinstall
 ./neuroinsight-autohs-docker stop
-docker rm -f neuroinsight
+docker rm -f neuroinsight-autohs
 ./neuroinsight-autohs-docker install
 ```
 
@@ -452,7 +452,7 @@ docker pull phindagijimana321/neuroinsight-autohs:latest
 
 # Reinstall
 .\neuroinsight-autohs-docker.ps1 stop
-docker rm -f neuroinsight
+docker rm -f neuroinsight-autohs
 .\neuroinsight-autohs-docker.ps1 install
 ```
 
@@ -1186,7 +1186,7 @@ git pull origin master
 # Docker deployment
 docker pull phindagijimana321/neuroinsight-autohs:latest
 ./neuroinsight-autohs-docker stop
-docker rm neuroinsight
+docker rm neuroinsight-autohs
 ./neuroinsight-autohs-docker install
 
 # Native deployment
@@ -1337,7 +1337,7 @@ git pull origin master
 # Docker: Rebuild and restart
 docker pull phindagijimana321/neuroinsight-autohs:latest
 ./neuroinsight-autohs-docker stop
-docker rm neuroinsight
+docker rm neuroinsight-autohs
 ./neuroinsight-autohs-docker install
 
 # Native: Just restart

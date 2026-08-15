@@ -28,6 +28,7 @@
     "files": [
       "src/**/*",
       "renderer/**/*",
+      "renderer/logo.svg",
       "package.json"
     ],
     "extraResources": [
@@ -38,6 +39,7 @@
     ],
     "mac": {
       "category": "public.app-category.medical",
+      "icon": "build/icon.icns",
       "target": [
         "dmg",
         "zip"
@@ -46,6 +48,7 @@
       "gatekeeperAssess": false
     },
     "linux": {
+      "icon": "build/icons",
       "target": [
         "AppImage",
         "deb"
@@ -54,6 +57,7 @@
       "maintainer": "NeuroInsight-AutoHS <support@neuroinsight.local>"
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "nsis",

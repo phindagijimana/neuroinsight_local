@@ -5,6 +5,11 @@
   "main": "src/main.js",
   "author": "NeuroInsight-AutoHS",
   "license": "MIT",
+  "homepage": "https://github.com/phindagijimana/neuroinsight_local",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phindagijimana/neuroinsight_local.git"
+  },
   "scripts": {
     "start": "env -u ELECTRON_RUN_AS_NODE electron .",
     "pack": "electron-builder --dir",
@@ -21,6 +26,7 @@
     "appId": "com.neuroinsight.autohs.desktop",
     "productName": "NeuroInsight-AutoHS",
     "copyright": "Copyright © 2026 NeuroInsight-AutoHS",
+    "publish": null,
     "directories": {
       "output": "dist",
       "buildResources": "build"

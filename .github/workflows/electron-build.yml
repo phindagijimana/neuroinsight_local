@@ -57,6 +57,7 @@ jobs:
         run: npm run ${{ matrix.script }}
 
       - name: Upload artifacts
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: desktop-${{ matrix.artifact }}
@@ -71,7 +72,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    if: always() && startsWith(github.ref, 'refs/tags/desktop-v') && needs.build.result != 'cancelled'
 
     steps:
       - uses: actions/download-artifact@v4

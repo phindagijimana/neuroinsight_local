@@ -1,13 +1,13 @@
 # NeuroInsight-AutoHS
 
-**NeuroInsight-AutoHS** is the full web application for automated hippocampal segmentation and analysis from T1-weighted MRI scans using FreeSurfer — with dashboard, job queue, PDF reports, and deployment tooling.
+**NeuroInsight-AutoHS** is the name for this web application ([neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local)) — automated hippocampal segmentation and analysis from T1-weighted MRI with dashboard, job queue, PDF reports, and deployment tooling.
 
-It implements the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** — a structured two-step workflow (FreeSurfer processing → AI-compute post-processing and reporting) defined in the [AutoHS repository](https://github.com/phindagijimana/AutoHS) on GitHub.
+It uses the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** for processing: a two-step workflow (FreeSurfer processing → AI-compute post-processing and reporting) defined in the separate [AutoHS repository](https://github.com/phindagijimana/AutoHS).
 
-| Component | Repository | Role |
-|-----------|------------|------|
-| **NeuroInsight-AutoHS** (this repo) | [neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local) | Web UI, API, Celery workers, deployment |
-| **AutoHS pipeline** | [AutoHS](https://github.com/phindagijimana/AutoHS) | Canonical workflow spec, CLI, BIDS App, Docker runner |
+| Name | Repository | What it is |
+|------|------------|------------|
+| **NeuroInsight-AutoHS** | This repo (`neuroinsight_local`) | Web UI, API, Celery workers, deployment |
+| **AutoHS** | [AutoHS](https://github.com/phindagijimana/AutoHS) | Pipeline specification, CLI, and BIDS App (not the same as this app) |
 
 ## Platform Support
 

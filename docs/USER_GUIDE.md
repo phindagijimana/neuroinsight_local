@@ -1,8 +1,8 @@
 # NeuroInsight-AutoHS User Guide
 
-Complete guide for deploying and using **NeuroInsight-AutoHS** for hippocampal MRI analysis.
+Complete guide for deploying and using **NeuroInsight-AutoHS** — the [neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local) web application.
 
-NeuroInsight-AutoHS implements the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** — FreeSurfer segmentation followed by asymmetry indexing and HS classification. The canonical workflow definition lives in the [AutoHS GitHub repository](https://github.com/phindagijimana/AutoHS).
+This app uses the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** for MRI processing (FreeSurfer segmentation, asymmetry indexing, and HS classification). The pipeline itself is maintained separately in the [AutoHS GitHub repository](https://github.com/phindagijimana/AutoHS).
 
 ## Prerequisites
 

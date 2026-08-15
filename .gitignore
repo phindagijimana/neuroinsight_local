@@ -100,7 +100,9 @@ test_data/
 dual_env_status.sh
 fix.md
 
-# Planning documents (internal use only)
+# Electron desktop app
+electron/node_modules/
+electron/dist/
 DESKTOP_APP_PLAN.md
 DOCKER_DISTRIBUTION_PLAN.md
 AUTO_INSTALL_SUMMARY.md

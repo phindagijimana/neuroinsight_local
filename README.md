@@ -102,6 +102,19 @@ If anything is missing, `check` runs 9 step-by-step checks and prints all blocke
 
 **Best for:** macOS, shared servers, or anyone who prefers a single container
 
+### Desktop app (Electron — Pattern A)
+
+```bash
+cd electron
+npm install
+npm start          # dev
+npm run dist:mac   # macOS .dmg
+npm run dist:linux # Linux AppImage + .deb
+npm run dist:win   # Windows NSIS installer
+```
+
+See [`electron/README.md`](electron/README.md) for build details. Requires Docker Desktop.
+
 ---
 
 ## File Requirements

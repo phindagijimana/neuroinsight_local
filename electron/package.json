@@ -1,0 +1,77 @@
+{
+  "name": "neuroinsight-desktop",
+  "version": "1.1.0",
+  "description": "NeuroInsight desktop app (Pattern A — Docker all-in-one)",
+  "main": "src/main.js",
+  "author": "NeuroInsight",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --mac --linux --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
+    "dist:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.neuroinsight.desktop",
+    "productName": "NeuroInsight",
+    "copyright": "Copyright © 2026 NeuroInsight",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../deploy/entrypoint.sh",
+        "to": "entrypoint.sh"
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.medical",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Science",
+      "maintainer": "NeuroInsight <support@neuroinsight.local>"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NeuroInsight"
+    },
+    "dmg": {
+      "title": "NeuroInsight ${version}"
+    }
+  }
+}

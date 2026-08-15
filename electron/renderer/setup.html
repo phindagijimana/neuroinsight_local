@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:* http://localhost:*" />
+  <title>NeuroInsight Setup</title>
+  <link rel="stylesheet" href="setup.css" />
+</head>
+<body>
+  <div class="layout">
+    <header>
+      <h1>NeuroInsight</h1>
+      <p class="subtitle">Pattern A — Docker all-in-one desktop setup</p>
+      <p class="version" id="version"></p>
+    </header>
+
+    <section class="card">
+      <h2>Before you start</h2>
+      <ul>
+        <li>Install and start <strong>Docker Desktop</strong> (required for MRI processing).</li>
+        <li>Place your FreeSurfer <code>license.txt</code> or choose it below.</li>
+        <li>First install downloads large Docker images — this can take 10–30 minutes.</li>
+      </ul>
+      <p class="hint" id="license-hint"></p>
+      <div class="actions">
+        <button type="button" id="btn-license" class="secondary">Choose license.txt…</button>
+        <button type="button" id="btn-check" class="primary">Run checks</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Setup checks</h2>
+      <ol id="steps" class="steps"></ol>
+    </section>
+
+    <section class="card">
+      <h2>Log</h2>
+      <pre id="log" class="log"></pre>
+    </section>
+
+    <section class="actions footer-actions">
+      <button type="button" id="btn-install" class="primary" disabled>Install &amp; start</button>
+      <button type="button" id="btn-open" class="primary" disabled>Open NeuroInsight</button>
+    </section>
+  </div>
+  <script src="setup.js"></script>
+</body>
+</html>

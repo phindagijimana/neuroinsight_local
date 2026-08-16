@@ -107,6 +107,7 @@ COPY static/ /app/static/
 # Copy configuration files
 COPY deploy/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY deploy/entrypoint.sh /app/entrypoint.sh
+COPY deploy/ensure-postgres.sh /app/deploy/ensure-postgres.sh
 COPY deploy/healthcheck.sh /app/healthcheck.sh
 
 # Set up PostgreSQL
@@ -115,7 +116,7 @@ RUN mkdir -p /var/lib/postgresql/data && \
     chmod 700 /var/lib/postgresql/data
 
 # Set permissions
-RUN chmod +x /app/entrypoint.sh /app/healthcheck.sh && \
+RUN chmod +x /app/entrypoint.sh /app/healthcheck.sh /app/deploy/ensure-postgres.sh && \
     chown -R neuroinsight-autohs:neuroinsight-autohs /app /data
 
 # Expose ports

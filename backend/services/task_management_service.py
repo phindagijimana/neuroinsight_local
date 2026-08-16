@@ -245,7 +245,6 @@ class TaskManagementService:
 
         db = db_session or SessionLocal()
         settings = get_settings()
-        mismatch_grace_seconds = settings.processing_timeout
         try:
             # Find all running jobs
             running_jobs = db.query(Job).filter(Job.status == JobStatus.RUNNING).all()
@@ -260,7 +259,13 @@ class TaskManagementService:
                 reference_time = job.started_at or job.created_at
                 if reference_time:
                     elapsed_seconds = (datetime.utcnow() - reference_time).total_seconds()
-                    if elapsed_seconds < mismatch_grace_seconds:
+                    # No progress yet → short grace (worker never started / crashed immediately)
+                    progress = job.progress or 0
+                    if progress == 0 and not job.current_step:
+                        grace_seconds = settings.orphan_job_grace_minutes * 60
+                    else:
+                        grace_seconds = settings.processing_timeout
+                    if elapsed_seconds < grace_seconds:
                         continue
 
                 # Check if the container is running
@@ -283,7 +288,15 @@ class TaskManagementService:
                             )
 
                             # Mark job as failed
-                            error_message = "Processing interrupted - container or task stopped unexpectedly. Job remained in running state."
+                            error_message = (
+                                "Processing interrupted - container or task stopped unexpectedly. "
+                                "Job remained in running state."
+                            )
+                            if (job.progress or 0) == 0 and not job.current_step:
+                                error_message = (
+                                    "Processing did not start (worker or database error). "
+                                    "Delete the job and try again, or run setup after pulling the latest image."
+                                )
                             JobService.fail_job(db, job.id, error_message)
 
                             # Best-effort cleanup of any leftover container
@@ -464,9 +477,43 @@ class TaskManagementService:
             }
 
     @staticmethod
+    def reconcile_orphan_job_markers(db_session=None) -> List[dict]:
+        """Apply fail_job for jobs recorded on disk when Celery could not reach PostgreSQL."""
+        import json
+        from pathlib import Path
+        from backend.core.database import SessionLocal
+        from backend.services import JobService
+
+        marker_dir = Path(get_settings().output_dir).parent / "logs" / "orphaned_jobs"
+        if not marker_dir.is_dir():
+            return []
+
+        db = db_session or SessionLocal()
+        reconciled = []
+        try:
+            for marker in marker_dir.glob("*.json"):
+                try:
+                    payload = json.loads(marker.read_text(encoding="utf-8"))
+                    job_id = payload.get("job_id")
+                    error_message = payload.get("error") or "Processing failed"
+                    if not job_id:
+                        continue
+                    JobService.fail_job(db, job_id, error_message)
+                    marker.unlink(missing_ok=True)
+                    reconciled.append({"job_id": job_id, "source": "orphan_marker"})
+                except Exception as item_error:
+                    logger.warning("orphan_marker_reconcile_failed", path=str(marker), error=str(item_error))
+            return reconciled
+        finally:
+            if not db_session:
+                db.close()
+
+    @staticmethod
     def run_maintenance(db_session=None):
         """Run periodic maintenance tasks for desktop mode"""
         try:
+            orphan_reconciled = TaskManagementService.reconcile_orphan_job_markers(db_session)
+
             # Check for container-job mismatches (jobs running but containers stopped)
             container_mismatches = TaskManagementService.check_for_container_job_mismatches(db_session)
 
@@ -486,12 +533,14 @@ class TaskManagementService:
             # Log system stats
             stats = TaskManagementService.get_system_stats()
             logger.info("maintenance_completed",
+                       orphan_reconciled=len(orphan_reconciled),
                        container_mismatches=len(container_mismatches),
                        stuck_jobs=len(stuck_jobs),
                        cleaned_jobs=cleaned_count,
                        **stats)
 
             return {
+                "orphan_reconciled": orphan_reconciled,
                 "container_mismatches": container_mismatches,
                 "stuck_jobs": stuck_jobs,
                 "cleaned_jobs": cleaned_count,

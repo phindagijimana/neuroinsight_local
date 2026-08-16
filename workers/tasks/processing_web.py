@@ -7,7 +7,9 @@ Uses Redis as message broker and result backend.
 
 import os
 import time
+import json
 from datetime import datetime
+from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy import update
@@ -22,6 +24,7 @@ from pipeline.processors import MRIProcessor
 
 # Celery imports
 from celery import Celery
+from celery.signals import task_failure
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -80,6 +83,63 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,  # One task per worker
     worker_max_tasks_per_child=1,  # Restart worker after each task
 )
+
+
+def _orphan_marker_path(job_id: str) -> Path:
+    return Path(settings.output_dir).parent / "logs" / "orphaned_jobs" / f"{job_id}.json"
+
+
+def fail_job_safe(job_id: str, error_message: str) -> None:
+    """Mark job failed; write a marker file if the database is unreachable."""
+    try:
+        db = SessionLocal()
+        try:
+            JobService.fail_job(db, job_id, error_message)
+            marker = _orphan_marker_path(job_id)
+            if marker.exists():
+                marker.unlink(missing_ok=True)
+        finally:
+            db.close()
+    except Exception as db_error:
+        logger.error(
+            "job_status_update_failed",
+            job_id=job_id,
+            error=str(db_error),
+        )
+        try:
+            marker = _orphan_marker_path(job_id)
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.write_text(
+                json.dumps(
+                    {
+                        "job_id": job_id,
+                        "error": error_message,
+                        "recorded_at": datetime.utcnow().isoformat(),
+                    }
+                ),
+                encoding="utf-8",
+            )
+        except Exception as marker_error:
+            logger.error(
+                "orphan_job_marker_write_failed",
+                job_id=job_id,
+                error=str(marker_error),
+            )
+
+
+@task_failure.connect
+def on_process_mri_task_failure(sender=None, task_id=None, exception=None, args=None, kwargs=None, **kw):
+    """Ensure RUNNING jobs are not left orphaned when Celery tasks crash."""
+    if sender and getattr(sender, "name", None) != "process_mri_task":
+        return
+    job_id = None
+    if args:
+        job_id = str(args[0])
+    elif kwargs and kwargs.get("job_id"):
+        job_id = str(kwargs["job_id"])
+    if not job_id:
+        return
+    fail_job_safe(job_id, str(exception) if exception else "Processing task failed unexpectedly")
 
 
 def update_job_progress(db: Session, job_id, progress: int, current_step: str):
@@ -341,14 +401,7 @@ def process_mri_task(self, job_id: str):
 
     except Exception as e:
         logger.error("celery_task_failed", job_id=job_id, error=str(e), exc_info=True)
-
-        # Update job status to failed
-        try:
-            JobService.fail_job(db, job_id, str(e))
-        except Exception as db_error:
-            logger.error("job_status_update_failed", job_id=job_id, error=str(db_error))
-
-        # Re-raise the exception for Celery
+        fail_job_safe(job_id, str(e))
         raise
 
     finally:

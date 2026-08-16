@@ -119,6 +119,11 @@ class Settings(BaseSettings):
         env="FASTSURFER_CONTAINER"
     )
     processing_timeout: int = Field(default=25200, env="PROCESSING_TIMEOUT")  # 7 hours
+    orphan_job_grace_minutes: int = Field(
+        default=10,
+        env="ORPHAN_JOB_GRACE_MINUTES",
+        description="Minutes before RUNNING job with no container/progress is marked failed",
+    )
     max_concurrent_jobs: int = Field(default=1, env="MAX_CONCURRENT_JOBS")  # Only 1 job running at a time
     docker_cleanup_wait_timeout: int = Field(default=30, env="DOCKER_CLEANUP_WAIT_TIMEOUT")  # seconds
 

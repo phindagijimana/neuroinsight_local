@@ -8,6 +8,12 @@ Desktop app for the Docker all-in-one deployment. On launch it connects to an ex
 
 **Prerequisite:** Docker Desktop must be installed and running.
 
+### macOS first launch (Gatekeeper)
+
+The desktop app is not notarized yet. If macOS blocks the app on first open:
+- **Right-click** **NeuroInsight-AutoHS** → **Open**, or
+- Install from the release **`.dmg`**, then approve the app in **System Settings → Privacy & Security**.
+
 ## Development
 
 ```bash
@@ -86,6 +92,7 @@ The container serves the NeuroInsight-AutoHS frontend. The app injects `window.B
 
 ## Troubleshooting
 
+- **macOS Gatekeeper** — if the app won't open, **right-click → Open**, or install from the release `.dmg` and approve in **System Settings → Privacy & Security**
 - **Docker not running** — start Docker Desktop, then click **Run checks**
 - **macOS socket errors** — bundled `entrypoint.sh` is mounted automatically
 - **Apple Silicon** — uses `--platform linux/amd64` automatically

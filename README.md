@@ -74,7 +74,7 @@ GUI launcher that runs the same Docker all-in-one container. Shows a splash only
 
 **Prerequisites:** Docker Desktop installed and running.
 
-**Download installers:** [GitHub Releases](https://github.com/phindagijimana/neuroinsight_local/releases) — assets on tags `desktop-v*` (e.g. [`desktop-v1.1.2`](https://github.com/phindagijimana/neuroinsight_local/releases/tag/desktop-v1.1.2))
+**Download installers:** [GitHub Releases](https://github.com/phindagijimana/neuroinsight_local/releases) — assets on tags `desktop-v*` (e.g. [`desktop-v1.1.3`](https://github.com/phindagijimana/neuroinsight_local/releases/tag/desktop-v1.1.3))
 
 | Platform | Installers |
 |----------|------------|
@@ -82,7 +82,11 @@ GUI launcher that runs the same Docker all-in-one container. Shows a splash only
 | Linux | `.AppImage`, `.deb` |
 | Windows | `.exe` (NSIS) |
 
-**From source (development):****
+**macOS first launch (Gatekeeper):** The desktop app is not notarized yet. If macOS blocks the app, use one of these workarounds:
+- **Right-click** **NeuroInsight-AutoHS** → **Open**, or
+- Install from the release **`.dmg`**, then approve the app in **System Settings → Privacy & Security**.
+
+**From source (development):**
 
 ```bash
 cd electron

@@ -66,6 +66,12 @@ else
     echo "PostgreSQL already initialized"
 fi
 
+if [ -f /app/deploy/ensure-postgres.sh ]; then
+    bash /app/deploy/ensure-postgres.sh
+elif [ -f deploy/ensure-postgres.sh ]; then
+    bash deploy/ensure-postgres.sh
+fi
+
 # Create Redis data directory
 mkdir -p /data/redis
 chown -R neuroinsight-autohs:neuroinsight-autohs /data/redis

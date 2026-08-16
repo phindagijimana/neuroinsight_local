@@ -306,7 +306,15 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                 const jobId = job.id
                 const status = (job.status || 'pending').toLowerCase()
                 const isCompleted = status === 'completed'
-                const progress = job.progress ?? (status === 'completed' ? 100 : status === 'processing' || status === 'running' ? 50 : 0)
+                const rawProgress = job.progress
+                const progress =
+                  status === 'completed'
+                    ? 100
+                    : (status === 'running' || status === 'processing') &&
+                        (rawProgress == null || rawProgress === 0) &&
+                        !job.current_step
+                      ? null
+                      : rawProgress ?? (status === 'running' || status === 'processing' ? null : 0)
                 const filename = job.input_file || job.filename || `Job ${String(jobId).slice(-8)}`
                 return (
                   <div key={jobId} className="p-6 hover:bg-blue-50 transition">
@@ -335,17 +343,25 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                             <div className="mt-3">
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-sm text-gray-600">
-                                  {status === 'pending' ? 'Queued for processing' : 'Processing...'}
+                                  {status === 'pending'
+                                    ? 'Queued for processing'
+                                    : progress == null
+                                      ? 'Starting...'
+                                      : job.current_step || 'Processing...'}
                                 </span>
                                 <span className={`text-sm font-semibold ${status === 'pending' ? 'text-yellow-600' : 'text-blue-600'}`}>
-                                  {status === 'pending' ? 'Queued' : `${progress}%`}
+                                  {status === 'pending' ? 'Queued' : progress == null ? 'Starting...' : `${progress}%`}
                                 </span>
                               </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div
-                                  className={`h-2 rounded-full transition-all duration-500 ${status === 'pending' ? 'bg-yellow-600' : 'bg-blue-600'}`}
-                                  style={{ width: `${progress}%` }}
-                                />
+                              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                {progress == null && (status === 'running' || status === 'processing') ? (
+                                  <div className="h-2 rounded-full bg-blue-600 animate-pulse w-1/3" />
+                                ) : (
+                                  <div
+                                    className={`h-2 rounded-full transition-all duration-500 ${status === 'pending' ? 'bg-yellow-600' : 'bg-blue-600'}`}
+                                    style={{ width: `${progress ?? 0}%` }}
+                                  />
+                                )}
                               </div>
                             </div>
                           )}

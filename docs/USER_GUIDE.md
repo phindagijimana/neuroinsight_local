@@ -321,6 +321,10 @@ Choose Docker/Native deployment for servers, HPC clusters, or multi-user environ
 2. Open the DMG and drag **NeuroInsight-AutoHS** to Applications
 3. Launch from Applications (requires Docker Desktop)
 
+**macOS first launch (Gatekeeper):** The desktop app is not notarized yet. If macOS blocks the app, use one of these workarounds:
+- **Right-click** **NeuroInsight-AutoHS** → **Open**, or
+- Install from the release **`.dmg`**, then approve the app in **System Settings → Privacy & Security**.
+
 **Linux (AppImage):**
 ```bash
 # Replace VERSION with the release tag, e.g. desktop-v1.1.0

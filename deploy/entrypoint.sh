@@ -146,6 +146,13 @@ else
     echo "PostgreSQL already initialized"
 fi
 
+# Ensure app role/database on every start (handles upgrades and legacy volumes)
+if [ -f /app/deploy/ensure-postgres.sh ]; then
+    bash /app/deploy/ensure-postgres.sh
+elif [ -f /app/ensure-postgres.sh ]; then
+    bash /app/ensure-postgres.sh
+fi
+
 # Create Redis data directory
 mkdir -p /data/redis
 chown -R neuroinsight-autohs:neuroinsight-autohs /data/redis

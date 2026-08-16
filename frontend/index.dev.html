@@ -389,6 +389,17 @@
     };
 
     const isActiveJob = (status) => status === 'running' || status === 'pending';
+
+    const resolveJobProgress = (job, normalizedStatus) => {
+      if (normalizedStatus === 'completed') return 100;
+      if (normalizedStatus === 'running') {
+        const reported = job.progress;
+        if ((reported == null || reported === 0) && !job.current_step) return null;
+        if (reported != null && reported > 0) return reported;
+        return null;
+      }
+      return job.progress ?? 0;
+    };
     
     /**
      * Format date string for display
@@ -423,11 +434,11 @@
         id: job.id || job.job_id,
         filename: job.filename || job.file_path?.split('/').pop() || 'unknown',
         status: normalizedStatus,
-        progress: job.progress ?? (normalizedStatus === 'completed' ? 100 : normalizedStatus === 'running' ? 50 : 0),
+        progress: resolveJobProgress(job, normalizedStatus),
         uploadedAt: formatDate(job.created_at || job.started_at),
         completedAt: formatDate(job.completed_at),
         processingTime: job.processing_time || '',
-        currentStep: job.current_step ?? (normalizedStatus === 'running' ? 'Running...' : normalizedStatus === 'pending' ? 'Queued for processing' : ''),
+        currentStep: job.current_step ?? (normalizedStatus === 'running' ? 'Starting...' : normalizedStatus === 'pending' ? 'Queued for processing' : ''),
         errorMessage: job.error_message || null,
       };
     };
@@ -1321,11 +1332,15 @@
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-sm text-gray-600">{job.currentStep}</span>
                                 <span className={`text-sm font-semibold ${job.status === 'running' ? 'text-blue-600' : 'text-yellow-600'}`}>
-                                  {job.status === 'pending' ? 'Queued' : `${job.progress}%`}
+                                  {job.status === 'pending' ? 'Queued' : job.progress == null ? 'Starting...' : `${job.progress}%`}
                                 </span>
                               </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div className={`h-2 rounded-full transition-all duration-500 ${job.status === 'running' ? 'bg-blue-600' : 'bg-yellow-600'}`} style={{ width: `${job.progress}%` }}></div>
+                              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                {job.progress == null && job.status === 'running' ? (
+                                  <div className="h-2 rounded-full bg-blue-600 animate-pulse w-1/3" />
+                                ) : (
+                                  <div className={`h-2 rounded-full transition-all duration-500 ${job.status === 'running' ? 'bg-blue-600' : 'bg-yellow-600'}`} style={{ width: `${job.progress ?? 0}%` }}></div>
+                                )}
                               </div>
                             </div>
                           )}

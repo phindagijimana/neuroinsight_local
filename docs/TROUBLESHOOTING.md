@@ -29,6 +29,24 @@ tail -f neuroinsight-autohs.log     # Follow application logs
 
 **Solutions:**
 
+**macOS Gatekeeper (app won't open or closes immediately):**
+
+The desktop app is not notarized yet. If macOS blocks it on first launch:
+- **Right-click** **NeuroInsight-AutoHS** → **Open**, or
+- Install from the release **`.dmg`**, then approve the app in **System Settings → Privacy & Security**.
+
+**Job stuck at 0% / RUNNING forever:**
+
+The app auto-recovers orphaned jobs (no FreeSurfer container, no progress after ~10 minutes) and marks them **failed**. Common causes:
+- Docker worker could not reach PostgreSQL after a container upgrade (fixed in the **latest** Docker image via idempotent DB bootstrap)
+- FreeSurfer license or Docker Desktop not running
+
+Delete the failed job and upload again, or run:
+```bash
+./neuroinsight-autohs-docker update
+./neuroinsight-autohs-docker restart
+```
+
 **Check Docker is Running:**
 ```bash
 # Linux

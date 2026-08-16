@@ -21,6 +21,9 @@ check_service() {
 # Check PostgreSQL
 check_service "PostgreSQL" "pg_isready -U neuroinsight_autohs -h localhost" || exit 1
 
+# Verify app DB credentials (same path Celery worker uses)
+check_service "PostgreSQL app user" "PGPASSWORD=neuroinsight_autohs_secure_password psql -U neuroinsight_autohs -d neuroinsight_autohs -h localhost -c 'SELECT 1'" || exit 1
+
 # Check Redis
 check_service "Redis" "redis-cli -a redis_secure_password ping" || exit 1
 

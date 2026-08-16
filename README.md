@@ -74,7 +74,7 @@ GUI launcher that runs the same Docker all-in-one container. Shows a splash only
 
 **Prerequisites:** Docker Desktop installed and running.
 
-**Download installers:** [GitHub Releases](https://github.com/phindagijimana/neuroinsight_local/releases) — assets on tags `desktop-v*` (e.g. [`desktop-v1.1.3`](https://github.com/phindagijimana/neuroinsight_local/releases/tag/desktop-v1.1.3))
+**Download installers:** [GitHub Releases](https://github.com/phindagijimana/neuroinsight_local/releases) — assets on tags `desktop-v*` (e.g. [`desktop-v1.1.5`](https://github.com/phindagijimana/neuroinsight_local/releases/tag/desktop-v1.1.5))
 
 | Platform | Installers |
 |----------|------------|

@@ -894,11 +894,20 @@ docker-compose up -d db
 - Check FreeSurfer license: `./neuroinsight-autohs license` (native) or `./neuroinsight-autohs-docker license` (Docker)
 - **Docker:** Ensure FreeSurfer container can spawn: `docker ps -a | grep freesurfer`
 
-**Out of memory errors:**
-- Increase system RAM to 32GB+ for large datasets
+**Out of memory errors (exit code 137):**
+- FreeSurfer is memory-intensive; allocate **16 GB minimum** (32 GB recommended)
 - Process one job at a time
 - Close other applications during processing
-- Monitor memory usage: `free -h`
+- Monitor memory usage: `free -h` (Linux) or Activity Monitor (macOS)
+
+**Apple Silicon (M1/M2/M3) — FreeSurfer exit 137:**
+- FreeSurfer runs as **x86 emulation** on Apple Silicon (`--platform linux/amd64`)
+- In **Docker Desktop → Settings → Resources**, set **Memory to at least 16 GB** (32 GB recommended)
+- Ensure only one MRI job runs at a time
+- After updating the app, run `./deploy/neuroinsight-autohs-docker stop && ./deploy/neuroinsight-autohs-docker pull && ./deploy/neuroinsight-autohs-docker setup`
+- If you see a platform mismatch warning in job errors, update to the latest image (v1.1.4+)
+
+**Out of memory errors (general):**
 
 **File format issues:**
 - Only NIfTI files (.nii, .nii.gz) are supported

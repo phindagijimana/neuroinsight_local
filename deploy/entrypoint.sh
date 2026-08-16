@@ -209,6 +209,12 @@ fi
 echo "Docker-in-Docker configuration complete"
 echo ""
 
+# On Apple Silicon / arm64 hosts, FreeSurfer nested containers must request amd64 explicitly
+if docker info --format '{{.Architecture}}' 2>/dev/null | grep -qiE 'aarch64|arm64'; then
+    export FREESURFER_DOCKER_PLATFORM="${FREESURFER_DOCKER_PLATFORM:-linux/amd64}"
+    echo "  [OK] arm64 host detected — FREESURFER_DOCKER_PLATFORM=${FREESURFER_DOCKER_PLATFORM}"
+fi
+
 # Create .env file if it doesn't exist
 if [ ! -f /app/.env ]; then
     echo "Creating .env configuration file..."
@@ -243,6 +249,7 @@ OUTPUT_DIR=/data/outputs
 # Docker-in-Docker Host Paths (auto-detected for FreeSurfer container spawning)
 HOST_UPLOAD_DIR=${HOST_UPLOAD_DIR:-}
 HOST_OUTPUT_DIR=${HOST_OUTPUT_DIR:-}
+FREESURFER_DOCKER_PLATFORM=${FREESURFER_DOCKER_PLATFORM:-}
 
 # Environment
 ENVIRONMENT=production
@@ -263,6 +270,12 @@ if [ -n "$HOST_UPLOAD_DIR" ] && [ -n "$HOST_OUTPUT_DIR" ]; then
     echo "HOST_UPLOAD_DIR=$HOST_UPLOAD_DIR" >> /app/.env
     echo "HOST_OUTPUT_DIR=$HOST_OUTPUT_DIR" >> /app/.env
     echo "  [OK] Updated .env with detected host paths"
+fi
+
+if [ -n "$FREESURFER_DOCKER_PLATFORM" ]; then
+    sed -i '/^FREESURFER_DOCKER_PLATFORM=/d' /app/.env
+    echo "FREESURFER_DOCKER_PLATFORM=$FREESURFER_DOCKER_PLATFORM" >> /app/.env
+    echo "  [OK] Updated .env with FREESURFER_DOCKER_PLATFORM"
 fi
 
 # Check for FreeSurfer license

@@ -280,7 +280,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
         </div>
 
         {/* Recent Jobs - match native */}
-        <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-blue-100">
           <div className="px-6 py-4 border-b border-blue-100 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900">Recent Jobs</h2>
             <div className="text-sm text-gray-500">
@@ -318,110 +318,110 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                 const filename = job.input_file || job.filename || `Job ${String(jobId).slice(-8)}`
                 return (
                   <div key={jobId} className="p-6 hover:bg-blue-50 transition">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
-                        {getStatusIcon(job.status)}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <div className="flex items-start gap-4">
+                      {getStatusIcon(job.status)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <div className="flex items-center gap-3 min-w-0 flex-1 flex-wrap">
                             <h3 className="font-semibold text-gray-900 truncate">{filename}</h3>
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(job.status)}`}>
                               {(job.status || 'pending').toUpperCase()}
                             </span>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
-                            <span>ID: {jobId}</span>
-                            <span>•</span>
-                            <span>Created: {formatDate(job.created_at)}</span>
-                            {job.completed_at && (
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {isCompleted ? (
                               <>
-                                <span>•</span>
-                                <span>Completed: {formatDate(job.completed_at)}</span>
+                                <button
+                                  onClick={() => { setSelectedJobId(jobId); setActivePage('dashboard') }}
+                                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                                  title="View Statistics"
+                                >
+                                  <Activity className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => { setSelectedJobId(jobId); setActivePage('viewer') }}
+                                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                                  title="View 2D Slices"
+                                >
+                                  <Eye className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={(e) => handleGeneratePdf(jobId, e)}
+                                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                                  title="Generate PDF Report"
+                                >
+                                  <FileText className="w-5 h-5" />
+                                </button>
                               </>
+                            ) : (
+                              <button
+                                onClick={() => { setSelectedJobId(jobId); setActivePage('dashboard') }}
+                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                                title="View Details"
+                              >
+                                <Eye className="w-5 h-5" />
+                              </button>
                             )}
+                            <button
+                              onClick={(e) => handleDelete(jobId, e)}
+                              disabled={deletingId === jobId}
+                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition disabled:opacity-50 border border-red-200 bg-red-50"
+                              title="Delete job"
+                            >
+                              {deletingId === jobId ? (
+                                <span className="inline-block w-5 h-5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                              ) : (
+                                <Trash2 className="w-5 h-5" />
+                              )}
+                            </button>
                           </div>
-                          {(status === 'processing' || status === 'running' || status === 'pending') && (
-                            <div className="mt-3">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm text-gray-600">
-                                  {status === 'pending'
-                                    ? 'Queued for processing'
-                                    : progress == null
-                                      ? 'Starting...'
-                                      : job.current_step || 'Processing...'}
-                                </span>
-                                <span className={`text-sm font-semibold ${status === 'pending' ? 'text-yellow-600' : 'text-blue-600'}`}>
-                                  {status === 'pending' ? 'Queued' : progress == null ? 'Starting...' : `${progress}%`}
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                                {progress == null && (status === 'running' || status === 'processing') ? (
-                                  <div className="h-2 rounded-full bg-blue-600 animate-pulse w-1/3" />
-                                ) : (
-                                  <div
-                                    className={`h-2 rounded-full transition-all duration-500 ${status === 'pending' ? 'bg-yellow-600' : 'bg-blue-600'}`}
-                                    style={{ width: `${progress ?? 0}%` }}
-                                  />
-                                )}
-                              </div>
-                            </div>
-                          )}
-                          {status === 'failed' && job.error_message && (
-                            <div className="mt-3 max-h-52 overflow-auto bg-red-50 border border-red-200 rounded-lg p-3">
-                              <p className="text-sm text-red-800 font-semibold">Job Failed</p>
-                              <details className="text-xs mt-1">
-                                <summary className="cursor-pointer text-red-700 font-semibold">Show error details</summary>
-                                <pre className="mt-2 p-2 bg-red-100 rounded overflow-auto max-h-32 border border-red-200">{job.error_message}</pre>
-                              </details>
-                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
+                          <span>ID: {jobId}</span>
+                          <span>•</span>
+                          <span>Created: {formatDate(job.created_at)}</span>
+                          {job.completed_at && (
+                            <>
+                              <span>•</span>
+                              <span>Completed: {formatDate(job.completed_at)}</span>
+                            </>
                           )}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                        {isCompleted ? (
-                          <>
-                            <button
-                              onClick={() => { setSelectedJobId(jobId); setActivePage('dashboard') }}
-                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                              title="View Statistics"
-                            >
-                              <Activity className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => { setSelectedJobId(jobId); setActivePage('viewer') }}
-                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                              title="View 2D Slices"
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={(e) => handleGeneratePdf(jobId, e)}
-                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                              title="Generate PDF Report"
-                            >
-                              <FileText className="w-5 h-5" />
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            onClick={() => { setSelectedJobId(jobId); setActivePage('dashboard') }}
-                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                            title="View Details"
-                          >
-                            <Eye className="w-5 h-5" />
-                          </button>
+                        {(status === 'processing' || status === 'running' || status === 'pending') && (
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm text-gray-600">
+                                {status === 'pending'
+                                  ? 'Queued for processing'
+                                  : progress == null
+                                    ? 'Starting...'
+                                    : job.current_step || 'Processing...'}
+                              </span>
+                              <span className={`text-sm font-semibold ${status === 'pending' ? 'text-yellow-600' : 'text-blue-600'}`}>
+                                {status === 'pending' ? 'Queued' : progress == null ? 'Starting...' : `${progress}%`}
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                              {progress == null && (status === 'running' || status === 'processing') ? (
+                                <div className="h-2 rounded-full bg-blue-600 animate-pulse w-1/3" />
+                              ) : (
+                                <div
+                                  className={`h-2 rounded-full transition-all duration-500 ${status === 'pending' ? 'bg-yellow-600' : 'bg-blue-600'}`}
+                                  style={{ width: `${progress ?? 0}%` }}
+                                />
+                              )}
+                            </div>
+                          </div>
                         )}
-                        <button
-                          onClick={(e) => handleDelete(jobId, e)}
-                          disabled={deletingId === jobId}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                          title="Delete job"
-                        >
-                          {deletingId === jobId ? (
-                            <span className="inline-block w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-                          ) : (
-                            <Trash2 className="w-5 h-5" />
-                          )}
-                        </button>
+                        {status === 'failed' && job.error_message && (
+                          <div className="mt-3 max-h-52 overflow-auto bg-red-50 border border-red-200 rounded-lg p-3">
+                            <p className="text-sm text-red-800 font-semibold">Job Failed</p>
+                            <details className="text-xs mt-1">
+                              <summary className="cursor-pointer text-red-700 font-semibold">Show error details</summary>
+                              <pre className="mt-2 p-2 bg-red-100 rounded overflow-auto max-h-32 border border-red-200 whitespace-pre-wrap break-words">{job.error_message}</pre>
+                            </details>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -269,8 +269,11 @@ class MRIProcessor:
         """
         Get a safe thread count for FreeSurfer inside Docker.
 
-        Use a fixed thread count for predictable parallelization.
+        Use fewer threads on arm64 hosts where FreeSurfer runs under x86 emulation
+        to reduce peak memory use.
         """
+        if self._is_arm64_docker_host():
+            return 2
         return 5
 
     def _get_freesurfer_thread_env(self, flag: str = "-e") -> list:
@@ -289,6 +292,56 @@ class MRIProcessor:
             flag, "OMP_PROC_BIND=TRUE",
             flag, "OMP_PLACES=cores",
         ]
+
+    def _get_freesurfer_docker_platform_args(self) -> list:
+        """
+        Return Docker --platform args for FreeSurfer nested containers.
+
+        The official FreeSurfer image is linux/amd64 only. When the worker spawns
+        containers via a mounted Docker socket on Apple Silicon (or other arm64
+        hosts), the platform must be requested explicitly or Docker warns and
+        may kill the container under emulation (exit 137 / OOM).
+        """
+        override = os.getenv("FREESURFER_DOCKER_PLATFORM")
+        if override is not None:
+            override = override.strip()
+            return ["--platform", override] if override else []
+
+        # Host daemon architecture (accurate with docker.sock mounted)
+        try:
+            result = subprocess_module.run(
+                ["docker", "info", "--format", "{{.Architecture}}"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                arch = result.stdout.strip().lower()
+                if arch in ("aarch64", "arm64"):
+                    return ["--platform", "linux/amd64"]
+        except Exception:
+            pass
+
+        machine = platform.machine().lower()
+        if machine in ("aarch64", "arm64"):
+            return ["--platform", "linux/amd64"]
+
+        return ["--platform", "linux/amd64"]
+
+    def _is_arm64_docker_host(self) -> bool:
+        """True when the Docker daemon host is arm64 (e.g. Apple Silicon Mac)."""
+        try:
+            result = subprocess_module.run(
+                ["docker", "info", "--format", "{{.Architecture}}"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                return result.stdout.strip().lower() in ("aarch64", "arm64")
+        except Exception:
+            pass
+        return platform.machine().lower() in ("aarch64", "arm64")
 
     def _capture_container_failure_artifacts(self, container_name: str, subject_output_dir: Path) -> None:
         """
@@ -1057,7 +1110,13 @@ class MRIProcessor:
             logger.warning("network_check_failed", error=str(e))
             # Don't fail processing if we can't check network
 
-    def _download_docker_image_with_progress(self, image_name: str, display_name: str, env: Dict = None) -> None:
+    def _download_docker_image_with_progress(
+        self,
+        image_name: str,
+        display_name: str,
+        env: Dict = None,
+        extra_docker_args: list | None = None,
+    ) -> None:
         """
         Download Docker image with enhanced progress messages and error handling.
 
@@ -1065,6 +1124,7 @@ class MRIProcessor:
             image_name: Full Docker image name (e.g., 'deepmi/fastsurfer:latest')
             display_name: Human-readable name for progress messages
             env: Environment variables for Docker command
+            extra_docker_args: Optional args inserted after ``docker pull`` (e.g. --platform)
 
         Raises:
             subprocess_module.CalledProcessError: If Docker pull fails
@@ -1086,20 +1146,25 @@ class MRIProcessor:
             'DOCKER_CLI_EXPERIMENTAL': 'disabled'
         })
 
+        pull_cmd = ["docker", "pull"]
+        if extra_docker_args:
+            pull_cmd.extend(extra_docker_args)
+        pull_cmd.append(image_name)
+
         try:
             # First, try to pull without quiet flag to show progress (if supported)
             # Fall back to quiet mode if progress display fails
             try:
-                logger.info("attempting_docker_pull_with_progress")
+                logger.info("attempting_docker_pull_with_progress", command=" ".join(pull_cmd))
                 result = subprocess_module.run(
-                    ["docker", "pull", image_name],
+                    pull_cmd,
                     capture_output=False,  # Let user see progress
                     timeout=FREESURFER_DOWNLOAD_TIMEOUT_MINUTES*60,
                     env=env
                 )
             except subprocess_module.TimeoutExpired:
                 raise subprocess_module.TimeoutExpired(
-                    cmd=["docker", "pull", image_name],
+                    cmd=pull_cmd,
                     timeout=FREESURFER_DOWNLOAD_TIMEOUT_MINUTES*60,
                     output=None,
                     stderr=f"Docker image download timed out after {FREESURFER_DOWNLOAD_TIMEOUT_MINUTES} minutes"
@@ -1128,7 +1193,7 @@ class MRIProcessor:
                 logger.error(f"{image_name.replace('/', '_')}_download_failed", error=error_msg)
                 raise subprocess_module.CalledProcessError(
                     result.returncode,
-                    ["docker", "pull", image_name],
+                    pull_cmd,
                     None,
                     error_msg
                 )
@@ -1965,7 +2030,16 @@ class MRIProcessor:
 
                 # Download with timeout - disable TTY requirements
                 # Enhanced Docker image download with progress messages
-                self._download_docker_image_with_progress(image_name, display_name)
+                pull_platform_args = (
+                    self._get_freesurfer_docker_platform_args()
+                    if image_name == FREESURFER_CONTAINER_IMAGE
+                    else None
+                )
+                self._download_docker_image_with_progress(
+                    image_name,
+                    display_name,
+                    extra_docker_args=pull_platform_args,
+                )
 
                 if result.returncode == 0:
                     logger.info(f"{image_name.replace('/', '_')}_download_successful")
@@ -2729,25 +2803,19 @@ class MRIProcessor:
             print(f"DEBUG: Input dir: {abs_input_dir}")
             print(f"DEBUG: Output dir: {abs_freesurfer_dir}")
 
-            # Provide a minimal hostname script to avoid missing binary/glibc mismatches
-            import tempfile
-            hostname_script_path = Path(tempfile.gettempdir()) / "ni-hostname"
-            try:
-                hostname_script_path.write_text("#!/bin/sh\n\necho \"${HOSTNAME:-localhost}\"\n")
-                hostname_script_path.chmod(0o755)
-            except Exception as script_error:
-                logger.warning("failed_to_prepare_hostname_script", path=str(hostname_script_path), error=str(script_error))
-            hostname_mount = ["-v", f"{hostname_script_path}:/usr/bin/hostname:ro"]
+            # HOSTNAME=localhost is set below; avoid bind-mounting over /usr/bin/hostname
+            # (read-only mounts can cause "Permission denied" inside nested FreeSurfer containers).
 
             # Use traditional FreeSurfer recon-all command format
             docker_cmd = [
-                "docker", "run", "--user", "root",  # Run as root to avoid nonroot user issues
+                "docker", "run",
+                *self._get_freesurfer_docker_platform_args(),
+                "--user", "root",  # Run as root to avoid nonroot user issues
                 "--name", container_name,  # Named container for tracking
                 # Removed memory limits - let FreeSurfer use what it needs (system has 30GB available)
                 "-v", f"{abs_freesurfer_dir}:/subjects",
                 "-v", f"{abs_input_dir}:/input:ro",
                 "-v", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
-                *hostname_mount,
                 "-e", "FS_LICENSE=/usr/local/freesurfer/license.txt",
                 "-e", "SUBJECTS_DIR=/subjects",
                 "-e", "PATH=/usr/bin:/usr/local/bin:$PATH",
@@ -2851,9 +2919,23 @@ class MRIProcessor:
                 # Extract more detailed error information
                 error_details = []
                 if result.returncode == 137:
+                    oom_hint = (
+                        "Process was killed (exit 137). This usually means the system ran out of memory."
+                    )
+                    if self._is_arm64_docker_host():
+                        oom_hint += (
+                            " On Apple Silicon, FreeSurfer runs as x86 emulation and needs substantial RAM: "
+                            "set Docker Desktop → Settings → Resources → Memory to at least 16 GB (32 GB recommended), "
+                            "then retry with only one job running."
+                        )
+                    else:
+                        oom_hint += (
+                            " Try running on a machine with more RAM or run fewer jobs at once."
+                        )
+                    error_details.append(oom_hint)
+                if "platform" in stderr_output.lower() and "does not match" in stderr_output.lower():
                     error_details.append(
-                        "Process was killed (exit 137). This usually means the system ran out of memory. "
-                        "Try running on a machine with more RAM or run fewer jobs at once."
+                        "Docker platform mismatch — FreeSurfer requires --platform linux/amd64 on arm64 hosts."
                     )
                 if "license" in stderr_output.lower():
                     error_details.append("FreeSurfer license issue - check license.txt file")
@@ -2921,10 +3003,11 @@ class MRIProcessor:
                 # (already calculated with Docker-in-Docker host path support)
                 
                 segstats_cmd = [
-                    "docker", "run", "--rm",  # Removed user mapping - FreeSurfer needs to run as root
+                    "docker", "run",
+                    *self._get_freesurfer_docker_platform_args(),
+                    "--rm",  # Removed user mapping - FreeSurfer needs to run as root
                     "-v", f"{abs_freesurfer_dir}:/subjects",
                     "-v", f"{abs_license_path}:/usr/local/freesurfer/license.txt:ro",
-                    *hostname_mount,
                     "-e", "FS_LICENSE=/usr/local/freesurfer/license.txt",
                     "-e", "SUBJECTS_DIR=/subjects",
                     FREESURFER_CONTAINER_IMAGE,

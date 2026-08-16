@@ -56,7 +56,7 @@ class Settings(BaseSettings):
 
     # Application Metadata
     app_name: str = "NeuroInsight-AutoHS"
-    app_version: str = "1.0.0"
+    app_version: str = "1.1.5"
     environment: str = Field(default="production", env="ENVIRONMENT")
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
     # When True, serve the native single-file frontend (index.dev.html) at / so Docker matches native deployment UI

@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CONTAINER_NAME="neuroinsight-autohs"
-IMAGE_NAME="phindagijimana321/neuroinsight-autohs:latest"
+IMAGE_NAME="${IMAGE_NAME:-phindagijimana321/neuroinsight-autohs:latest}"
 FREESURFER_IMAGE="${FREESURFER_IMAGE:-freesurfer/freesurfer:7.4.1}"
 VOLUME_NAME="neuroinsight-autohs-data"
 MIN_DISK_GB="${NEUROINSIGHT_MIN_DISK_GB:-50}"
@@ -54,9 +54,16 @@ check_docker() {
 
 # Optional platform flag for Apple Silicon / arm64 hosts (published image is linux/amd64)
 docker_platform_args() {
-    local arch
+    local arch img_arch
     arch="$(uname -m 2>/dev/null || echo unknown)"
     if [ "$arch" = "arm64" ] || [ "$arch" = "aarch64" ]; then
+        # Local arm64 builds run natively; only Hub amd64 images need forcing
+        if [ -n "${IMAGE_NAME:-}" ]; then
+            img_arch="$(docker image inspect "${IMAGE_NAME}" --format '{{.Architecture}}' 2>/dev/null || echo unknown)"
+            if [ "$img_arch" = "arm64" ]; then
+                return 0
+            fi
+        fi
         echo "--platform linux/amd64"
     fi
 }
@@ -385,6 +392,10 @@ Get a free research license:
 
 # Pull application and processing images
 pull_required_images() {
+    if [ "${NEUROINSIGHT_SKIP_PULL:-}" = "1" ]; then
+        log_info "Skipping image pull (NEUROINSIGHT_SKIP_PULL=1) — using local images"
+        return 0
+    fi
     local platform_args
     platform_args="$(docker_platform_args)"
     # shellcheck disable=SC2086
@@ -788,9 +799,15 @@ cmd_install() {
     log_info "  MinIO API: http://localhost:${minio_api_port}"
     log_info "  MinIO Console: http://localhost:${minio_console_port}"
     log_info "Docker socket, platform, and entrypoint are configured automatically"
+    log_info "Using image: ${IMAGE_NAME}"
+
+    local pull_flag=""
+    if [ "${NEUROINSIGHT_SKIP_PULL:-}" = "1" ]; then
+        pull_flag="--pull=never"
+    fi
 
     # shellcheck disable=SC2086
-    docker run -d \
+    docker run -d ${pull_flag} \
         --name "${CONTAINER_NAME}" \
         -p "${port}:8000" \
         -p "${minio_api_port}:9000" \

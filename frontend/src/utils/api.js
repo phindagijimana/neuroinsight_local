@@ -15,7 +15,7 @@ export const API_BASE_URL = (() => {
 const normalizeStatus = (status) => {
   if (!status) return 'queued';
   const normalized = String(status).toLowerCase();
-  if (normalized === 'running' || normalized === 'processing') return 'processing';
+  if (normalized === 'running' || normalized === 'processing') return 'running';
   if (normalized === 'pending') return 'pending';
   if (normalized === 'queued') return 'pending';
   if (normalized === 'completed') return 'completed';

@@ -102,7 +102,9 @@ async function loadAppUi(webUrl, backendUrl) {
   if (!mainWindow) return;
   runtime = { webUrl, backendUrl, webPort: new URL(webUrl).port || '8000' };
   resizeForApp();
-  await mainWindow.loadURL(webUrl);
+  const appUrl = new URL(webUrl);
+  appUrl.searchParams.set('api', backendUrl);
+  await mainWindow.loadURL(appUrl.toString());
   await mainWindow.webContents.executeJavaScript(
     `window.BACKEND_URL = ${JSON.stringify(backendUrl)};`,
     true

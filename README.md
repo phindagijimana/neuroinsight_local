@@ -1,13 +1,26 @@
 # NeuroInsight-AutoHS
 
-**NeuroInsight-AutoHS** is the web application ([neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local)) for automated hippocampal segmentation and analysis from T1-weighted MRI — dashboard, job queue, PDF reports, and deployment tooling.
+**NeuroInsight-AutoHS** is the deployable application for the **AutoHS** workflow inside the **NeuroInsight** platform — web and desktop UI, API, job queue, PDF reports, and deployment tooling ([neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local)).
 
-It uses the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** for processing: a two-step workflow (FreeSurfer → AI post-processing and reporting) defined in the separate [AutoHS repository](https://github.com/phindagijimana/AutoHS).
+## NeuroInsight platform
+
+**NeuroInsight** is the umbrella program for automated neuroimaging **workflows**. Each workflow is a defined scientific pipeline; each shipped tool follows the name **NeuroInsight-AutoHS** pattern (`NeuroInsight-<Workflow>`).
+
+```text
+NeuroInsight (platform — workflows and shared application patterns)
+  └── AutoHS — hippocampal asymmetry / HS screening from T1w MRI
+        └── NeuroInsight-AutoHS — this repository (app that runs AutoHS)
+  └── (future workflows)
+        └── NeuroInsight-<Workflow> — future tools
+```
 
 | Name | Repository | What it is |
 |------|------------|------------|
-| **NeuroInsight-AutoHS** | This repo (`neuroinsight_local`) | Web UI, API, Celery workers, deployment |
-| **AutoHS** | [AutoHS](https://github.com/phindagijimana/AutoHS) | Pipeline specification, CLI, and BIDS App |
+| **NeuroInsight** | [Landing page](https://phindagijimana.github.io/neuroinsight_landing_web/) | Platform brand; workflow catalog (more workflows planned) |
+| **AutoHS** | [AutoHS](https://github.com/phindagijimana/AutoHS) | **Workflow:** pipeline spec, CLI, BIDS App, method from the publication |
+| **NeuroInsight-AutoHS** | This repo (`neuroinsight_local`) | **Tool:** UI, API, workers, deployment for AutoHS |
+
+Processing logic for AutoHS is defined in **[AutoHS](https://github.com/phindagijimana/AutoHS)** (FreeSurfer → AI post-processing and reporting).
 
 ## Research Software and Licensing
 

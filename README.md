@@ -17,7 +17,7 @@ NeuroInsight (platform — workflows and shared application patterns)
 | Name | Repository | What it is |
 |------|------------|------------|
 | **NeuroInsight** | [Landing page](https://phindagijimana.github.io/neuroinsight_landing_web/) | Platform brand; workflow catalog (more workflows planned) |
-| **AutoHS** | [AutoHS](https://github.com/phindagijimana/AutoHS) | **Workflow:** pipeline spec, CLI, BIDS App, method from the publication |
+| **AutoHS** | [AutoHS](https://github.com/phindagijimana/AutoHS) | **Workflow:** pipeline spec, CLI, BIDS App (incoming), method from the publication |
 | **NeuroInsight-AutoHS** | This repo (`neuroinsight_local`) | **Tool:** UI, API, workers, deployment for AutoHS |
 
 Processing logic for AutoHS is defined in **[AutoHS](https://github.com/phindagijimana/AutoHS)** (FreeSurfer → AI post-processing and reporting).

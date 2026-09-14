@@ -1,280 +1,34 @@
 # NeuroInsight-AutoHS User Guide
 
-Complete guide for deploying and using **NeuroInsight-AutoHS** — the application for the **AutoHS** workflow on the **NeuroInsight** platform ([neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local)).
+Hub for deploying and operating **NeuroInsight-AutoHS** — the application for the **AutoHS** workflow on the **NeuroInsight** platform ([`neuroinsight_local`](https://github.com/phindagijimana/neuroinsight_local)).
 
-**NeuroInsight** comprises multiple neuroimaging workflows over time; **AutoHS** is the hippocampal asymmetry workflow from the Brain Communications publication. **NeuroInsight-AutoHS** is the tool that runs AutoHS (FreeSurfer segmentation, asymmetry indexing, and research HS screening). Pipeline details live in the [AutoHS](https://github.com/phindagijimana/AutoHS) repository.
+- **Documentation map (all repos):** [DOCUMENTATION.md](DOCUMENTATION.md) · [NeuroInsight landing](https://phindagijimana.github.io/neuroinsight_landing_web/) · [Software from the paper](https://phindagijimana.github.io/neuroinsight_landing_web/#publication)
+- **AutoHS pipeline (BIDS CLI, methods, citation):** [AutoHS Read the Docs](https://autohs.readthedocs.io/en/latest/) — not duplicated here.
+
+## Quick links
+
+| I want to… | Document |
+|------------|----------|
+| Set up Windows (WSL) | [deploy/wsl-setup.md](deploy/wsl-setup.md) |
+| Install Docker (Linux / WSL) | [deploy/docker-installation.md](deploy/docker-installation.md) |
+| Choose native vs Docker vs desktop | [Deployment options](#deployment-options) (below) |
+| Diagnose failures | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) |
+| Docker-only deploy details | [deploy/README_DOCKER.md](../deploy/README_DOCKER.md) |
+| Desktop builds | [electron/README.md](../electron/README.md) |
 
 ## Prerequisites
 
-- Ubuntu 20.04+ Linux system
-- 16GB+ RAM (32GB recommended)
-- 4+ CPU cores, 50GB storage
-- Docker and Docker Compose
-- FreeSurfer license (free for research)
-- **System sleep timeout set to 7+ hours** (critical for long-running processing)
-
-### System Verification Commands
-
-Check if your system meets the requirements:
+- Ubuntu 20.04+ Linux system (or WSL2 on Windows — see [WSL setup](deploy/wsl-setup.md))
+- 16GB+ RAM (32GB recommended), 4+ CPU cores, 50GB storage
+- Docker and Docker Compose ([install guide](deploy/docker-installation.md))
+- FreeSurfer license (`license.txt`) for real MRI processing
+- **System sleep timeout set to 7+ hours** during long FreeSurfer jobs
 
 ```bash
-# Check CPU cores
-nproc
-
-# Check available RAM (in GB)
-free -h
-
-# Check available storage (in GB)
-df -h /
-
-# Check Ubuntu version
-lsb_release -a
+nproc && free -h && df -h / && lsb_release -a
 ```
 
-## WSL Setup (Windows Users)
-
-If you're using Windows, you can run NeuroInsight-AutoHS using Windows Subsystem for Linux (WSL). Here's how to set it up:
-
-### Enable WSL Feature
-
-1. **Open PowerShell as Administrator**:
-   - Press `Win + X` and select "Windows PowerShell (Admin)" or "Terminal (Admin)"
-
-2. **Enable WSL feature**:
-   ```powershell
-   dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
-   ```
-
-3. **Enable Virtual Machine Platform** (required for WSL 2):
-   ```powershell
-   dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
-   ```
-
-4. **Restart your computer** when prompted.
-
-### Install WSL and Ubuntu
-
-1. **Open PowerShell/Terminal as Administrator** again after restart.
-
-2. **Set WSL 2 as default version**:
-   ```powershell
-   wsl --set-default-version 2
-   ```
-
-3. **Install Ubuntu distribution**:
-   ```powershell
-   wsl --install -d Ubuntu
-   ```
-
-4. **Set up Ubuntu**:
-   - The Ubuntu installation will start automatically
-   - Create a username and password when prompted
-   - Wait for installation to complete
-
-### Verify WSL Installation
-
-1. **Open Ubuntu from Start Menu** or run `wsl` in PowerShell/Terminal.
-
-2. **Update Ubuntu packages**:
-   ```bash
-   sudo apt update && sudo apt upgrade -y
-   ```
-
-3. **Verify WSL version**:
-   ```bash
-   wsl --version
-   ```
-
-### Important WSL Notes
-
-- **File Access**: Windows files are accessible at `/mnt/c/` from WSL
-- **Performance**: Keep project files inside WSL for better Docker performance
-- **Memory**: WSL may need memory allocation adjustments in `.wslconfig`
-- **Integration**: Docker Desktop integrates with WSL for container operations
-
-Once WSL is set up, continue with the Docker installation instructions below.
-
-## Docker Installation
-
-Docker is required for NeuroInsight-AutoHS to run PostgreSQL, Redis, and MinIO services. Choose the appropriate installation method for your platform.
-
-### For Linux (Native Ubuntu/Debian)
-
-#### Step 1: Install Docker Engine
-
-```bash
-# Download Docker installation script
-curl -fsSL https://get.docker.com -o get-docker.sh
-
-# Run installation script
-sudo sh get-docker.sh
-
-# Start Docker service
-sudo systemctl start docker
-sudo systemctl enable docker
-```
-
-#### Step 2: Add User to Docker Group (REQUIRED)
-
-```bash
-# Add current user to docker group
-sudo usermod -aG docker $USER
-
-# Verify you were added
-groups $USER
-```
-
-**IMPORTANT:** You MUST log out and log back in for the group change to take effect.
-
-```bash
-# Log out
-exit
-
-# Then log back in and verify Docker works without sudo
-docker ps
-```
-
-#### Step 3: Verify Installation
-
-```bash
-# Check Docker version
-docker --version
-
-# Check Docker Compose version
-docker compose version
-
-# Test Docker (should work without sudo)
-docker run hello-world
-```
-
-**Troubleshooting:**
-
-If you get "permission denied" errors:
-```bash
-# Verify you're in docker group
-groups
-
-# If "docker" is not listed, you haven't logged out/in yet
-# Log out completely and log back in
-```
-
-### For Windows (WSL2)
-
-#### Step 1: Install Docker Desktop for Windows
-
-1. Download Docker Desktop from: https://www.docker.com/products/docker-desktop/
-2. Run the installer: `Docker Desktop Installer.exe`
-3. During installation, ensure "Use WSL 2 instead of Hyper-V" is checked
-4. Complete installation and restart if prompted
-
-#### Step 2: Configure Docker Desktop for WSL
-
-After Docker Desktop starts:
-
-1. Click the Docker icon in the system tray
-2. Go to Settings (gear icon)
-3. Navigate to: **Resources** → **WSL Integration**
-4. Enable: "Enable integration with my default WSL distro"
-5. Enable your Ubuntu distribution
-6. Click "Apply & Restart"
-
-#### Step 3: Enable Systemd in WSL (REQUIRED)
-
-Open Ubuntu from Start Menu:
-
-```bash
-# Create/edit WSL configuration
-sudo nano /etc/wsl.conf
-
-# Add these lines:
-[boot]
-systemd=true
-
-# Save and exit (Ctrl+O, Enter, Ctrl+X)
-```
-
-**IMPORTANT:** Shutdown WSL completely for changes to take effect.
-
-Exit Ubuntu terminal, then in PowerShell:
-
-```powershell
-# Shutdown WSL
-wsl --shutdown
-
-# Wait 10 seconds, then reopen Ubuntu from Start Menu
-```
-
-#### Step 4: Verify Docker in WSL
-
-Open Ubuntu terminal:
-
-```bash
-# Check Docker version
-docker --version
-
-# Check Docker Compose
-docker compose version
-
-# Test Docker connectivity
-docker ps
-
-# Run test container
-docker run hello-world
-```
-
-**Troubleshooting:**
-
-If you get "permission denied":
-```bash
-# Add user to docker group in WSL
-sudo usermod -aG docker $USER
-
-# Exit WSL terminal completely
-exit
-```
-
-Then in PowerShell:
-```powershell
-wsl --shutdown
-```
-
-Reopen Ubuntu and test again.
-
-#### Step 5: Configure WSL Resources (Optional but Recommended)
-
-Create/edit `C:\Users\YourUsername\.wslconfig` in Windows:
-
-```ini
-[wsl2]
-memory=12GB
-processors=6
-swap=4GB
-localhostForwarding=true
-```
-
-Restart WSL:
-```powershell
-wsl --shutdown
-```
-
-### Verification Checklist
-
-Before installing NeuroInsight-AutoHS, verify:
-
-**Linux:**
-- `docker --version` shows v20.10+ or v24.0+
-- `docker compose version` shows v2.0+
-- `docker ps` works WITHOUT sudo
-- `docker run hello-world` succeeds
-- You logged out and back in after adding user to docker group
-
-**WSL:**
-- Docker Desktop is running (green icon in Windows system tray)
-- `wsl --list --verbose` shows VERSION 2 for Ubuntu
-- Systemd enabled: `systemctl --version` works in Ubuntu
-- WSL was shut down after systemd configuration
-- `docker ps` works in Ubuntu terminal without errors
-
+---
 ## Deployment Options
 
 NeuroInsight-AutoHS offers four deployment methods:
@@ -1144,140 +898,33 @@ Displays an interactive menu where you can select:
 
 **Note:** All management commands should be run from the NeuroInsight-AutoHS project root directory where the `neuroinsight-autohs` script is located.
 
+
 ## Troubleshooting
 
-### Common Issues
+Use the canonical **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** for desktop, Docker, Celery, FreeSurfer, and job issues.
 
-**Jobs stuck in pending:**
-- Check `./neuroinsight-autohs status` to verify all services are running (including Celery workers)
-- Ensure Redis is running: `redis-cli ping`
-- Check Celery worker logs: `ps aux | grep celery`
-- If workers not running, restart services: `./neuroinsight-autohs stop && ./neuroinsight-autohs start`
-- For detailed troubleshooting, see [TROUBLESHOUTING.md](TROUBLESHOUTING.md#jobs-stuck-in-pending-status)
+Quick checks:
 
-**Processing fails:**
-- **T1 Validation**: Ensure filename contains T1 indicators (t1, mprage, spgr, etc.)
-- **File Format**: Only .nii and .nii.gz files accepted
-- **File Size**: Must be under 500MB limit
-- Check RAM (16GB+ required)
-- Ensure license.txt is present
-- **Failed jobs display detailed error messages** explaining exactly what went wrong (FreeSurfer issues, validation failures, etc.)
-
-**Web interface won't load:**
-- Confirm services are running (`./neuroinsight-autohs status`)
-- Check port 8000 availability
-- Clear browser cache
-
-**Jobs interrupted or fail unexpectedly:**
-- **System Sleep/Hibernation**: FreeSurfer processing takes 3-7 hours depending on image characteristics. **Set sleep timeout to 7+ hours** during processing to prevent interruptions.
-- **Power Settings**: Set power management to 7+ hours sleep when plugged in
-- **Screen Lock**: Disable automatic screen lock during long processing jobs
-- **Virtual Machines**: Ensure host system won't sleep while VM is running
-- **Docker Containers**: Containerized processing may be interrupted by system sleep
-
-### Important System Configuration
-
-#### Sleep/Hibernation Prevention
-**Critical for successful processing:** FreeSurfer jobs run for extended periods (3-7 hours) depending on image resolution and quality. System sleep or hibernation will interrupt processing and cause job failures.
-
-**Recommended Settings:**
-- **Ubuntu**: System Settings → Power → Set to 7+ hours sleep when inactive
-- **VMWare/VirtualBox**: Host power settings to 7+ hours sleep
-- **Laptop Users**: Keep system plugged in and prevent lid close actions
-- **Server Environments**: Configure power management policies for 7+ hour timeouts
-
-**Warning:** Jobs interrupted by sleep/hibernation cannot be resumed and must be restarted from the beginning.
-
-#### Memory Stability Tuning (Recommended)
-These host-level tweaks reduce memory spikes and improve stability during CA Reg and other heavy FreeSurfer steps.
-
-**1) Allow overcommit (helps large allocations succeed):**
 ```bash
-sudo sysctl -w vm.overcommit_memory=1
+./neuroinsight-autohs status
+./neuroinsight-autohs health
 ```
-
-Persist across reboot:
-```bash
-echo 'vm.overcommit_memory=1' | sudo tee /etc/sysctl.d/99-neuroinsight-autohs.conf
-sudo sysctl --system
-```
-
-**2) Lower swappiness (use swap only when needed):**
-```bash
-sudo sysctl -w vm.swappiness=10
-```
-
-Persist across reboot:
-```bash
-echo 'vm.swappiness=10' | sudo tee -a /etc/sysctl.d/99-neuroinsight-autohs.conf
-sudo sysctl --system
-```
-
-**3) Disable Transparent Huge Pages (reduces fragmentation stalls):**
-Immediate (runtime):
-```bash
-echo never | sudo tee /sys/kernel/mm/transparent_hugepage/enabled
-echo never | sudo tee /sys/kernel/mm/transparent_hugepage/defrag
-```
-
-Persist via systemd:
-```bash
-sudo tee /etc/systemd/system/disable-thp.service >/dev/null <<'EOF'
-[Unit]
-Description=Disable Transparent Huge Pages (THP)
-
-[Service]
-Type=oneshot
-ExecStart=/bin/sh -c 'echo never > /sys/kernel/mm/transparent_hugepage/enabled; echo never > /sys/kernel/mm/transparent_hugepage/defrag'
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now disable-thp
-```
-
-**Notes:**
-- `vm.swappiness` is a 0-100 tuning value (not GB or %); 10-20 is a balanced range.
-- Use `sudo sysctl vm.overcommit_memory vm.swappiness` to verify active values.
 
 ## FAQ
 
-### What is NeuroInsight-AutoHS?
-Automated platform for hippocampal segmentation and analysis from T1-weighted MRI scans using FreeSurfer.
-
-### System requirements?
-Ubuntu 20.04+, 16GB+ RAM, 4+ CPU cores, 50GB storage, Docker, FreeSurfer license.
-
-### How long does processing take?
-3-7 hours per scan, depending on hardware, scan quality, and image resolution. **Important:** Set system sleep timeout to 7+ hours to prevent interruptions during processing.
-
-### Is it free?
-Yes. NeuroInsight-AutoHS is publicly available source-available research software under the repository [LICENSE](../LICENSE) (non-commercial use for permitted research purposes). Commercial use requires a separate license — see [COMMERCIAL.md](../COMMERCIAL.md). FreeSurfer requires a separate license for research use.
-
-### Can I process multiple scans?
-Yes, supports queuing system with configurable concurrency limits.
-
-### What's processed?
-Hippocampal volume measurements, shape analysis, asymmetry calculations, quality metrics.
-
-### File formats supported?
-NIfTI (.nii, .nii.gz) only. DICOM files must be converted to NIfTI format before upload. We recommend using **MRIcron** (free, cross-platform tool available at https://www.nitrc.org/projects/mricron).
-
-### Can I export results?
-Yes: PDF reports, CSV data, PNG/PDF images.
-
-### Is it FDA approved?
-No, research software only. Not for clinical diagnosis.
-
+| Question | Answer |
+|----------|--------|
+| What is NeuroInsight-AutoHS? | Local web/desktop app that runs the [AutoHS](https://github.com/phindagijimana/AutoHS) workflow (hippocampal asymmetry from T1w MRI). |
+| System requirements? | See [Prerequisites](#prerequisites). |
+| How long per scan? | Typically 3–7 hours; prevent system sleep during processing. |
+| License? | Research use under [LICENSE](../LICENSE); commercial use — [COMMERCIAL.md](../COMMERCIAL.md). FreeSurfer requires its own license. |
+| FDA cleared? | No — research software only. |
 
 ## Support
 
-- **GitHub Issues**: Report bugs and request features
-- **Documentation**: Check troubleshooting guide
-- **FreeSurfer**: https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
-
+- **GitHub Issues:** [neuroinsight_local/issues](https://github.com/phindagijimana/neuroinsight_local/issues)
+- **AutoHS pipeline:** [AutoHS issues](https://github.com/phindagijimana/AutoHS/issues) · [RTD FAQ](https://autohs.readthedocs.io/en/latest/faq.html)
+- **FreeSurfer:** https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSupport
 
 ---
 

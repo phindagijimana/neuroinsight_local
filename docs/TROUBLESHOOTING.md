@@ -1,5 +1,7 @@
 # Troubleshooting Guide
 
+Canonical troubleshooting for **NeuroInsight-AutoHS** (app, Docker, desktop, jobs). For **AutoHS BIDS CLI** errors, see [AutoHS troubleshooting on Read the Docs](https://autohs.readthedocs.io/en/latest/troubleshooting.html). Index: [DOCUMENTATION.md](DOCUMENTATION.md).
+
 ## Quick Diagnosis
 
 ```bash

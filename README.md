@@ -24,6 +24,8 @@ NeuroInsight (platform — workflows and shared application patterns)
 
 Processing logic for AutoHS is defined in **[AutoHS](https://github.com/phindagijimana/AutoHS)** (FreeSurfer → AI post-processing and reporting).
 
+**Documentation map:** [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md) · [NeuroInsight landing](https://phindagijimana.github.io/neuroinsight_landing_web/) · [Software from the paper](https://phindagijimana.github.io/neuroinsight_landing_web/#publication)
+
 ## Research Software and Licensing
 
 NeuroInsight-AutoHS is **publicly available, source-available research software** — the application layer (dashboard, API, job management, reporting, deployment) for the hippocampal asymmetry method described in:

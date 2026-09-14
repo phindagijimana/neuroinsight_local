@@ -1278,7 +1278,7 @@
               ))}
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-blue-100">
               <div className="px-6 py-4 border-b border-blue-100 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">Recent Jobs</h2>
                 <div className="text-sm text-gray-500">
@@ -1304,19 +1304,17 @@
               <div className="divide-y divide-blue-100">
                 {jobs.map((job) => (
                   <div key={job.id} className="p-6 hover:bg-blue-50 transition">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
                         {getStatusIcon(job.status)}
-                        
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold text-gray-900 truncate">{job.filename}</h3>
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(job.status)}`}>
-                              {job.status.toUpperCase()}
+                              {(job.status === 'running' || job.status === 'processing') ? 'RUNNING' : job.status.toUpperCase()}
                             </span>
                           </div>
-                          
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
                             <span>ID: {job.id}</span>
                             <span>•</span>
                             <span>Uploaded: {job.uploadedAt}</span>
@@ -1347,210 +1345,90 @@
                           )}
 
                           {job.status === 'failed' && job.errorMessage && (
-                            <div className="mt-3 bg-red-50 border-2 border-red-300 rounded-lg p-4 shadow-sm">
-                              <div className="flex items-start gap-3">
-                                <XCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
-                                <div className="flex-1">
-                                  <p className="text-base font-bold text-red-900 mb-3"> Job Failed</p>
-                                  {(() => {
-                                    // More robust error detection
-                                    const errMsg = job.errorMessage.toLowerCase();
-                                    const isDockerError = errMsg.includes('docker') && 
-                                                         (errMsg.includes('not running') || 
-                                                          errMsg.includes('not installed') || 
-                                                          errMsg.includes('not available'));
-                                    const isFilenameError = errMsg.includes('filename') && 
-                                                           (errMsg.includes('does not contain') || 
-                                                            errMsg.includes('rename'));
-                                    const isT1wError = (errMsg.includes('t1') || 
-                                                       errMsg.includes('t2') ||
-                                                       errMsg.includes('flair') ||
-                                                       errMsg.includes('dwi') ||
-                                                       errMsg.includes('image type') ||
-                                                       errMsg.includes('sequence')) && !isFilenameError;
-                                    
-                                    if (isDockerError) {
-                                      return (
-                                        <div>
-                                          <p className="text-base text-red-900 mb-4 font-semibold">
-                                            Docker Desktop is not running
-                                          </p>
-                                          <p className="text-sm text-red-800 mb-3">
-                                            NeuroInsight-AutoHS requires Docker to process MRI scans.
-                                          </p>
-                                          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-md p-4 mb-3">
-                                            <p className="text-sm font-bold text-gray-900 mb-3"> Quick Fix:</p>
-                                            <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
-                                              <li className="pl-2">Open <strong className="font-bold">Docker Desktop</strong> from your Applications folder</li>
-                                              <li className="pl-2">Wait for the whale icon to appear in your menu bar (Mac) or system tray (Windows/Linux)</li>
-                                              <li className="pl-2">The icon should be <strong>steady</strong> (not animating)</li>
-                                              <li className="pl-2">Return here and upload your MRI file again</li>
-                                            </ol>
-                                          </div>
-                                          <details className="text-xs">
-                                            <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold"> Show full error details</summary>
-                                            <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.errorMessage}</pre>
-                                          </details>
-                                        </div>
-                                      );
-                                    } else if (isFilenameError) {
-                                      return (
-                                        <div>
-                                          <p className="text-base text-red-900 mb-4 font-semibold">
-                                            Please rename your file
-                                          </p>
-                                          <p className="text-sm text-red-800 mb-3">
-                                            Your filename must contain <strong>'T1'</strong> to indicate it's a T1-weighted MRI scan.
-                                          </p>
-                                          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-md p-4 mb-3">
-                                            <p className="text-sm font-bold text-gray-900 mb-3"> Good filename examples:</p>
-                                            <ul className="text-sm text-gray-800 space-y-2 list-disc list-inside ml-4 mb-4">
-                                              <li className="pl-1 font-mono">subject_T1w.nii</li>
-                                              <li className="pl-1 font-mono">brain_T1.nii</li>
-                                              <li className="pl-1 font-mono">patient_01_MPRAGE_T1.nii</li>
-                                              <li className="pl-1 font-mono">scan_T1-weighted.nii</li>
-                                            </ul>
-                                            <p className="text-sm font-bold text-gray-900 mb-2"> Steps to fix:</p>
-                                            <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
-                                              <li className="pl-2">Rename your file to include <strong>'T1'</strong> in the filename</li>
-                                              <li className="pl-2">Make sure you're using a T1-weighted scan (MPRAGE, SPGR, or 3D T1)</li>
-                                              <li className="pl-2">Upload the renamed file</li>
-                                            </ol>
-                                          </div>
-                                          <p className="text-xs text-gray-700 italic mb-2">
- Why? This helps ensure you're uploading the correct scan type. FreeSurfer requires T1-weighted images.
-                                          </p>
-                                          <details className="text-xs">
-                                            <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold"> Show full error details</summary>
-                                            <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.errorMessage}</pre>
-                                          </details>
-                                        </div>
-                                      );
-                                    } else if (isT1wError) {
-                                      return (
-                                        <div>
-                                          <p className="text-base text-red-900 mb-4 font-semibold">
- Wrong MRI sequence type detected
-                                          </p>
-                                          <p className="text-sm text-red-800 mb-3">
-                                            This file appears to be a <strong>non-T1w</strong> MRI scan.
-                                          </p>
-                                          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-md p-4 mb-3">
-                                            <p className="text-sm font-bold text-green-800 mb-2"> Accepted T1w sequences:</p>
-                                            <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside ml-4 mb-4">
-                                              <li className="pl-1"><strong>MPRAGE</strong> (most common)</li>
-                                              <li className="pl-1"><strong>SPGR</strong> (Spoiled Gradient Recalled Echo)</li>
-                                              <li className="pl-1"><strong>T1-FLAIR</strong></li>
-                                              <li className="pl-1"><strong>3D T1</strong> (volumetric)</li>
-                                            </ul>
-                                            <p className="text-sm font-bold text-red-800 mb-2"> NOT supported:</p>
-                                            <ul className="text-sm text-gray-800 space-y-1 list-disc list-inside ml-4 mb-3">
-                                              <li className="pl-1">T2-weighted</li>
-                                              <li className="pl-1">FLAIR (unless T1-FLAIR)</li>
-                                              <li className="pl-1">DWI/DTI</li>
-                                              <li className="pl-1">fMRI/BOLD</li>
-                                            </ul>
-                                            <p className="text-sm font-bold text-gray-900 mb-2"> What to do:</p>
-                                            <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
-                                              <li className="pl-2">Find your T1-weighted scan in your MRI data</li>
-                                              <li className="pl-2">Rename the file to include <strong>'T1'</strong></li>
-                                              <li className="pl-2">Upload the correct T1-weighted file</li>
-                                            </ol>
-                                          </div>
-                                          <p className="text-xs text-gray-700 italic mb-2">
- Tip: Look for "T1" or "MPRAGE" in your scan series names
-                                          </p>
-                                          <details className="text-xs">
-                                            <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold"> Show full error details</summary>
-                                            <pre className="mt-2 p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.errorMessage}</pre>
-                                          </details>
-                                        </div>
-                                      );
-                                    } else {
-                                      return (
-                                        <div>
-                                          <p className="text-sm text-red-800 mb-3 font-semibold">An error occurred during processing</p>
-                                          <details className="text-xs" open>
-                                            <summary className="cursor-pointer text-red-700 hover:text-red-900 font-semibold mb-2"> Error details</summary>
-                                            <pre className="p-3 bg-red-100 rounded text-xs overflow-auto max-h-40 border border-red-200">{job.errorMessage}</pre>
-                                          </details>
-                                        </div>
-                                      );
-                                    }
-                                  })()}
-                                </div>
-                              </div>
+                            <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
+                              <p className="text-sm text-red-800 font-semibold">Job Failed</p>
+                              <p className="text-sm text-red-700 mt-1 break-words">
+                                {(() => {
+                                  const summary = (job.errorMessage.split(/STDERR:|;/)[0] || job.errorMessage).trim();
+                                  return summary.length > 160 ? `${summary.slice(0, 160)}…` : summary;
+                                })()}
+                              </p>
+                              <details className="text-xs mt-2">
+                                <summary className="cursor-pointer text-red-700 font-semibold">Show full error details</summary>
+                                <pre className="mt-2 p-2 bg-red-100 rounded text-xs overflow-auto max-h-32 border border-red-200 whitespace-pre-wrap break-words">{job.errorMessage}</pre>
+                              </details>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-shrink-0 self-start">
                         {job.status === 'completed' && (
-                            <>
-                          <button
-                                onClick={() => {
-                                  setSelectedJobId(job.id);
-                                  setActivePage('dashboard');
-                                }}
-                            className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                                title="View Statistics"
-                          >
-                            <Eye className="w-5 h-5" />
-                          </button>
-                              <button
-                                onClick={() => {
-                                  setSelectedJobId(job.id);
-                                  setActivePage('viewer');
-                                }}
-                                className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition"
-                                title="View 2D Slices"
-                              >
-                                <Activity className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    const response = await fetch(`${CONFIG.api.baseUrl}/reports/${job.id}/pdf`);
-                                    if (response.ok) {
-                                      const blob = await response.blob();
-                                      const url = window.URL.createObjectURL(blob);
-                                      const a = document.createElement('a');
-                                      a.href = url;
-                                      a.download = `neuroinsight_report_${job.id}.pdf`;
-                                      document.body.appendChild(a);
-                                      a.click();
-                                      document.body.removeChild(a);
-                                      window.URL.revokeObjectURL(url);
-                                    } else {
-                                      alert('Failed to generate report. Please try again.');
-                                    }
-                                  } catch (error) {
-                                    console.error('Report generation failed:', error);
+                          <>
+                            <button
+                              onClick={() => {
+                                setSelectedJobId(job.id);
+                                setActivePage('dashboard');
+                              }}
+                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                              title="View Statistics"
+                            >
+                              <Eye className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedJobId(job.id);
+                                setActivePage('viewer');
+                              }}
+                              className="p-2 text-purple-600 hover:bg-purple-100 rounded-lg transition"
+                              title="View 2D Slices"
+                            >
+                              <Activity className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`${CONFIG.api.baseUrl}/reports/${job.id}/pdf`);
+                                  if (response.ok) {
+                                    const blob = await response.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `neuroinsight_report_${job.id}.pdf`;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    document.body.removeChild(a);
+                                    window.URL.revokeObjectURL(url);
+                                  } else {
                                     alert('Failed to generate report. Please try again.');
                                   }
-                                }}
-                                className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition"
-                                title="Generate PDF Report"
-                              >
-                                <Download className="w-5 h-5" />
-                              </button>
-                            </>
-                          )}
-                          <button
-                            onClick={async () => {
-                              if (confirm('Delete this job?')) {
-                                try {
-                                  await ApiService.deleteJob(job.id);
-                                  setJobs(jobs.filter(j => j.id !== job.id));
                                 } catch (error) {
-                                  console.error('Delete failed:', error);
-                                  alert('Failed to delete job');
+                                  console.error('Report generation failed:', error);
+                                  alert('Failed to generate report. Please try again.');
                                 }
+                              }}
+                              className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition"
+                              title="Generate PDF Report"
+                            >
+                              <Download className="w-5 h-5" />
+                            </button>
+                          </>
+                        )}
+                        <button
+                          onClick={async () => {
+                            if (confirm('Delete this job? This cannot be undone.')) {
+                              try {
+                                await ApiService.deleteJob(job.id);
+                                setJobs(jobs.filter(j => j.id !== job.id));
+                              } catch (error) {
+                                console.error('Delete failed:', error);
+                                alert('Failed to delete job');
                               }
-                            }}
-                            className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition"
-                          >
+                            }
+                          }}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition border border-red-200 bg-red-50"
+                          title="Delete job"
+                        >
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </div>

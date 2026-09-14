@@ -186,7 +186,8 @@ Includes:
 .\neuroinsight-autohs-docker.ps1 remove
 
 # Remove Docker volumes (deletes all data)
-docker volume rm neuroinsight_data
+docker compose down -v
+# Older installs may have used: docker volume rm neuroinsight_data
 ```
 
 ## Support

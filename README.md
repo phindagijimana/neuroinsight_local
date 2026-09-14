@@ -57,7 +57,7 @@ Choose **one** way to run NeuroInsight-AutoHS:
 | **Requires** | Ubuntu 20.04+, systemd | Docker Desktop or Engine | Docker Desktop + installer or dev build |
 | **Install** | `./neuroinsight-autohs install` | `./neuroinsight-autohs-docker setup` | Download `.dmg` / `.exe` / `.AppImage`, or `npm start` |
 | **Manage** | `./neuroinsight-autohs start\|stop\|status` | `./neuroinsight-autohs-docker …` | App menu + Docker in background |
-| **Data** | `~/.local/share/neuroinsight-autohs/` | Docker volume `neuroinsight-autohs-data` | Same Docker volume as Docker option |
+| **Data** | `~/.local/share/neuroinsight-autohs/` (legacy: `…/neuroinsight/` if it already holds your uploads) | Docker volume `neuroinsight-autohs-data` | Same Docker volume as Docker option |
 | **Docs** | [Commands](#commands-native-linux) below | [`deploy/README_DOCKER.md`](deploy/README_DOCKER.md) | [`electron/README.md`](electron/README.md) |
 
 All three options need a **FreeSurfer license** (`license.txt`) for real MRI processing. See [FreeSurfer setup](#freesurfer-setup).
@@ -166,7 +166,8 @@ Example layout:
 
 ```
 neuroinsight_local/
-├── neuroinsight-autohs      # native CLI
+├── neuroinsight-autohs      # native CLI (primary)
+├── neuroinsight             # deprecated alias → neuroinsight-autohs
 ├── license.txt
 ├── deploy/
 │   └── neuroinsight-autohs-docker

@@ -261,7 +261,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
           {[
             { label: 'Total Jobs', value: String(stats.total), icon: FileText, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
             { label: 'Completed', value: String(stats.completed), icon: CheckCircle, bgColor: 'bg-green-100', iconColor: 'text-green-600' },
-            { label: 'Processing', value: String(stats.processing), icon: Clock, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
+            { label: 'Running', value: String(stats.processing), icon: Clock, bgColor: 'bg-blue-100', iconColor: 'text-blue-600' },
             { label: 'Pending', value: String(stats.pending), icon: Clock, bgColor: 'bg-yellow-100', iconColor: 'text-yellow-600' },
             { label: 'Failed', value: String(stats.failed), icon: XCircle, bgColor: 'bg-red-100', iconColor: 'text-red-600' }
           ].map((stat, idx) => (
@@ -318,64 +318,16 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                 const filename = job.input_file || job.filename || `Job ${String(jobId).slice(-8)}`
                 return (
                   <div key={jobId} className="p-6 hover:bg-blue-50 transition">
-                    <div className="flex items-start gap-4">
-                      {getStatusIcon(job.status)}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <div className="flex items-center gap-3 min-w-0 flex-1 flex-wrap">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
+                        {getStatusIcon(job.status)}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3 mb-2">
                             <h3 className="font-semibold text-gray-900 truncate">{filename}</h3>
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(job.status)}`}>
-                              {(job.status || 'pending').toUpperCase()}
+                              {status === 'running' || status === 'processing' ? 'RUNNING' : (job.status || 'pending').toUpperCase()}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            {isCompleted ? (
-                              <>
-                                <button
-                                  onClick={() => { setSelectedJobId(jobId); setActivePage('dashboard') }}
-                                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                                  title="View Statistics"
-                                >
-                                  <Activity className="w-5 h-5" />
-                                </button>
-                                <button
-                                  onClick={() => { setSelectedJobId(jobId); setActivePage('viewer') }}
-                                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                                  title="View 2D Slices"
-                                >
-                                  <Eye className="w-5 h-5" />
-                                </button>
-                                <button
-                                  onClick={(e) => handleGeneratePdf(jobId, e)}
-                                  className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                                  title="Generate PDF Report"
-                                >
-                                  <FileText className="w-5 h-5" />
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                onClick={() => { setSelectedJobId(jobId); setActivePage('dashboard') }}
-                                className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
-                                title="View Details"
-                              >
-                                <Eye className="w-5 h-5" />
-                              </button>
-                            )}
-                            <button
-                              onClick={(e) => handleDelete(jobId, e)}
-                              disabled={deletingId === jobId}
-                              className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition disabled:opacity-50 border border-red-200 bg-red-50"
-                              title="Delete job"
-                            >
-                              {deletingId === jobId ? (
-                                <span className="inline-block w-5 h-5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
-                              ) : (
-                                <Trash2 className="w-5 h-5" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
                         <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
                           <span>ID: {jobId}</span>
                           <span>•</span>
@@ -395,7 +347,7 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                                   ? 'Queued for processing'
                                   : progress == null
                                     ? 'Starting...'
-                                    : job.current_step || 'Processing...'}
+                                    : (job.current_step || 'Starting...').replace(/^Processing\.\.\./i, 'Running:')}
                               </span>
                               <span className={`text-sm font-semibold ${status === 'pending' ? 'text-yellow-600' : 'text-blue-600'}`}>
                                 {status === 'pending' ? 'Queued' : progress == null ? 'Starting...' : `${progress}%`}
@@ -414,14 +366,61 @@ function JobsPage({ setActivePage, setSelectedJobId, jobs, jobsLoading, onJobsUp
                           </div>
                         )}
                         {status === 'failed' && job.error_message && (
-                          <div className="mt-3 max-h-52 overflow-auto bg-red-50 border border-red-200 rounded-lg p-3">
+                          <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
                             <p className="text-sm text-red-800 font-semibold">Job Failed</p>
-                            <details className="text-xs mt-1">
-                              <summary className="cursor-pointer text-red-700 font-semibold">Show error details</summary>
-                              <pre className="mt-2 p-2 bg-red-100 rounded overflow-auto max-h-32 border border-red-200 whitespace-pre-wrap break-words">{job.error_message}</pre>
+                            <p className="text-sm text-red-700 mt-1 break-words">
+                              {(() => {
+                                const summary = (job.error_message.split(/STDERR:|;/)[0] || job.error_message).trim()
+                                return summary.length > 160 ? `${summary.slice(0, 160)}…` : summary
+                              })()}
+                            </p>
+                            <details className="text-xs mt-2">
+                              <summary className="cursor-pointer text-red-700 font-semibold">Show full error details</summary>
+                              <pre className="mt-2 p-2 bg-red-100 rounded text-xs overflow-auto max-h-32 border border-red-200 whitespace-pre-wrap break-words">{job.error_message}</pre>
                             </details>
                           </div>
                         )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0 self-start">
+                        {isCompleted ? (
+                          <>
+                            <button
+                              onClick={() => { setSelectedJobId(jobId); setActivePage('dashboard') }}
+                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                              title="View Statistics"
+                            >
+                              <Activity className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => { setSelectedJobId(jobId); setActivePage('viewer') }}
+                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                              title="View 2D Slices"
+                            >
+                              <Eye className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={(e) => handleGeneratePdf(jobId, e)}
+                              className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition"
+                              title="Generate PDF Report"
+                            >
+                              <FileText className="w-5 h-5" />
+                            </button>
+                          </>
+                        ) : null}
+                        <button
+                          onClick={(e) => handleDelete(jobId, e)}
+                          disabled={deletingId === jobId}
+                          className="p-2 text-red-600 hover:bg-red-100 rounded-lg transition disabled:opacity-50 border border-red-200 bg-red-50"
+                          title="Delete job"
+                        >
+                          {deletingId === jobId ? (
+                            <span className="inline-block w-5 h-5 border-2 border-red-300 border-t-red-600 rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="w-5 h-5" />
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>

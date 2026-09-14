@@ -1254,7 +1254,7 @@ Ubuntu 20.04+, 16GB+ RAM, 4+ CPU cores, 50GB storage, Docker, FreeSurfer license
 3-7 hours per scan, depending on hardware, scan quality, and image resolution. **Important:** Set system sleep timeout to 7+ hours to prevent interruptions during processing.
 
 ### Is it free?
-Yes, MIT licensed. FreeSurfer license is free for research use.
+Yes. NeuroInsight-AutoHS is publicly available source-available research software under the repository [LICENSE](../LICENSE) (non-commercial use for permitted research purposes). Commercial use requires a separate license — see [COMMERCIAL.md](../COMMERCIAL.md). FreeSurfer requires a separate license for research use.
 
 ### Can I process multiple scans?
 Yes, supports queuing system with configurable concurrency limits.

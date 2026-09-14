@@ -9,6 +9,44 @@ It uses the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** for 
 | **NeuroInsight-AutoHS** | This repo (`neuroinsight_local`) | Web UI, API, Celery workers, deployment |
 | **AutoHS** | [AutoHS](https://github.com/phindagijimana/AutoHS) | Pipeline specification, CLI, and BIDS App |
 
+## Research Software and Licensing
+
+NeuroInsight-AutoHS is **publicly available, source-available research software** — the application layer (dashboard, API, job management, reporting, deployment) for the hippocampal asymmetry method described in:
+
+Ndagijimana P, Brennan D, Shinohara RT, Gugger JJ.
+*MRI derived hippocampal asymmetry identifies hippocampal sclerosis in epilepsy surgical specimens.*
+Brain Communications. 2026;8(4):fcag320.
+https://doi.org/10.1093/braincomms/fcag320
+
+The underlying pipeline is defined in [AutoHS](https://github.com/phindagijimana/AutoHS).
+
+### Research and validation use
+
+The source code is publicly available to support scientific research, reproducibility, independent validation, education, and evaluation on independent datasets, subject to the [LICENSE](LICENSE).
+
+Independent validation by other research groups is encouraged. See [VALIDATION.md](VALIDATION.md).
+
+### Commercial use
+
+The current release is distributed under a non-commercial, source-available license. **Commercial use requires a separate commercial license.** Organizations interested in commercial deployment, hosting, integration, or products should see [COMMERCIAL.md](COMMERCIAL.md).
+
+### Clinical status
+
+This software is research software and has not been cleared or approved by the U.S. Food and Drug Administration as a medical device. Outputs should not be interpreted as a substitute for professional clinical judgment.
+
+### Licensing history
+
+The software associated with the original publication was released under the MIT License and described in the publication as open-source software.
+
+Beginning with the first commit **after** git tag **`publication-v1.0`**, subsequent releases are distributed under the license in the current [LICENSE](LICENSE) file.
+
+The licensing transition does not alter the terms under which earlier versions were validly distributed.
+
+| Release | License |
+|---------|---------|
+| Tag **`publication-v1.0`** (same commit as **`v1.1.5`**, `cf91038`) — publication-associated MIT implementation | MIT License |
+| Commits after **`publication-v1.0`** on the default branch | PolyForm Noncommercial License 1.0.0 |
+
 ## Deployment options
 
 Choose **one** way to run NeuroInsight-AutoHS:
@@ -184,6 +222,8 @@ See [AutoHS](https://github.com/phindagijimana/AutoHS) for the full pipeline spe
 
 ## License
 
-MIT License. FreeSurfer requires a separate license for research use.
+Current releases are distributed under the [PolyForm Noncommercial License 1.0.0](LICENSE) unless you obtained an earlier release under MIT (see **Licensing history** above).
 
-© 2025 University of Rochester. All rights reserved.
+FreeSurfer and other third-party components remain subject to their respective licenses.
+
+Copyright (c) 2025 University of Rochester. All rights reserved.

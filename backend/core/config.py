@@ -18,6 +18,36 @@ from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
+def _dir_has_user_data(path: Path) -> bool:
+    """True if path looks like an active data directory (legacy or current)."""
+    if not path.is_dir():
+        return False
+    for sub in ("uploads", "outputs", "results"):
+        subdir = path / sub
+        if subdir.is_dir() and any(subdir.iterdir()):
+            return True
+    return False
+
+
+def _resolve_linux_data_base_dir() -> Path:
+    """Prefer neuroinsight-autohs; fall back to legacy ~/.local/share/neuroinsight if it holds data."""
+    new_dir = Path.home() / ".local" / "share" / "neuroinsight-autohs"
+    legacy_dir = Path.home() / ".local" / "share" / "neuroinsight"
+    if _dir_has_user_data(new_dir) or not _dir_has_user_data(legacy_dir):
+        return new_dir
+    return legacy_dir
+
+
+def _resolve_windows_data_base_dir() -> Path:
+    """Prefer NeuroInsight-AutoHS under APPDATA; fall back to legacy NeuroInsight folder."""
+    appdata = Path(os.environ.get("APPDATA", tempfile.gettempdir()))
+    new_dir = appdata / "NeuroInsight-AutoHS"
+    legacy_dir = appdata / "NeuroInsight"
+    if _dir_has_user_data(new_dir) or not _dir_has_user_data(legacy_dir):
+        return new_dir
+    return legacy_dir
+
+
 def get_platform_defaults():
     """
     Get platform-appropriate default paths for uploads and outputs.
@@ -29,11 +59,9 @@ def get_platform_defaults():
     system = platform.system()
 
     if system == "Windows":
-        # Windows: Use APPDATA for persistent storage
-        base_dir = Path(os.environ.get("APPDATA", tempfile.gettempdir())) / "NeuroInsight-AutoHS"
+        base_dir = _resolve_windows_data_base_dir()
     else:
-        # Linux: Use XDG Base Directory standard
-        base_dir = Path.home() / ".local" / "share" / "neuroinsight-autohs"
+        base_dir = _resolve_linux_data_base_dir()
 
     return {
         "upload_dir": str(base_dir / "uploads"),

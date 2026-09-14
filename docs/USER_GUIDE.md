@@ -1,8 +1,8 @@
 # NeuroInsight-AutoHS User Guide
 
-Complete guide for deploying and using **NeuroInsight-AutoHS** — the [neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local) web application.
+Complete guide for deploying and using **NeuroInsight-AutoHS** — the application for the **AutoHS** workflow on the **NeuroInsight** platform ([neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local)).
 
-This app uses the **[AutoHS pipeline](https://github.com/phindagijimana/AutoHS)** for MRI processing (FreeSurfer segmentation, asymmetry indexing, and HS classification). The pipeline itself is maintained separately in the [AutoHS GitHub repository](https://github.com/phindagijimana/AutoHS).
+**NeuroInsight** comprises multiple neuroimaging workflows over time; **AutoHS** is the hippocampal asymmetry workflow from the Brain Communications publication. **NeuroInsight-AutoHS** is the tool that runs AutoHS (FreeSurfer segmentation, asymmetry indexing, and research HS screening). Pipeline details live in the [AutoHS](https://github.com/phindagijimana/AutoHS) repository.
 
 ## Prerequisites
 
@@ -1254,7 +1254,7 @@ Ubuntu 20.04+, 16GB+ RAM, 4+ CPU cores, 50GB storage, Docker, FreeSurfer license
 3-7 hours per scan, depending on hardware, scan quality, and image resolution. **Important:** Set system sleep timeout to 7+ hours to prevent interruptions during processing.
 
 ### Is it free?
-Yes, MIT licensed. FreeSurfer license is free for research use.
+Yes. NeuroInsight-AutoHS is publicly available source-available research software under the repository [LICENSE](../LICENSE) (non-commercial use for permitted research purposes). Commercial use requires a separate license — see [COMMERCIAL.md](../COMMERCIAL.md). FreeSurfer requires a separate license for research use.
 
 ### Can I process multiple scans?
 Yes, supports queuing system with configurable concurrency limits.

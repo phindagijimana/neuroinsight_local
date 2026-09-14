@@ -922,9 +922,24 @@ class JobService:
                            count=len(orphaned_containers),
                            containers=list(orphaned_containers.values()))
                 
-                # Remove each orphaned container
+                # Remove each orphaned container (skip still-running containers)
                 for job_id, container_name in orphaned_containers.items():
                     try:
+                        state_result = subprocess.run(
+                            ["docker", "inspect", "--format", "{{.State.Status}}", container_name],
+                            capture_output=True,
+                            text=True,
+                            timeout=10,
+                        )
+                        container_state = (state_result.stdout or "").strip()
+                        if container_state == "running":
+                            logger.warning(
+                                "skipping_orphan_running_container",
+                                job_id=job_id,
+                                container_name=container_name,
+                            )
+                            continue
+
                         remove_result = subprocess.run(
                             ["docker", "rm", "-f", container_name],
                             capture_output=True,

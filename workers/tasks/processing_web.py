@@ -168,6 +168,19 @@ def update_job_progress(db: Session, job_id, progress: int, current_step: str):
         db.rollback()
 
 
+def update_job_progress_sync(job_id, progress: int, current_step: str):
+    """
+    Thread-safe progress update using a fresh DB session.
+
+    Used by the FreeSurfer progress monitor thread (cannot share the worker session).
+    """
+    db = SessionLocal()
+    try:
+        update_job_progress(db, job_id, progress, current_step)
+    finally:
+        db.close()
+
+
 def fail_job_sync(job_id: str, error_message: str):
     """
     Synchronously mark a job as failed from progress monitor thread.
@@ -296,11 +309,21 @@ def process_mri_task(self, job_id: str):
             logger.info("job_started_at_set_by_worker", job_id=job_id)
 
         # Check container concurrency limits BEFORE starting processing
-        # This prevents jobs from starting when FreeSurfer containers are already at capacity
+        # Skip when this job's FreeSurfer container is already running (worker recovery)
         try:
             from pipeline.processors import MRIProcessor
+            from backend.core.config import get_settings
+            settings = get_settings()
+            own_container = f"{settings.freesurfer_container_prefix}{job_id}"
             processor = MRIProcessor(job_id=job_id, db_session=db, progress_callback=lambda p, s: None)
-            processor._check_container_concurrency_limit()
+            if processor._is_named_container_running(own_container):
+                logger.info(
+                    "skipping_concurrency_check_own_container_running",
+                    job_id=job_id,
+                    container=own_container,
+                )
+            else:
+                processor._check_container_concurrency_limit()
             logger.info("container_concurrency_check_passed", job_id=job_id)
         except RuntimeError as concurrency_error:
             # Concurrency limit exceeded - fail the job with clear error message

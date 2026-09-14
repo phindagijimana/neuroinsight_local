@@ -186,7 +186,8 @@ Includes:
 .\neuroinsight-autohs-docker.ps1 remove
 
 # Remove Docker volumes (deletes all data)
-docker volume rm neuroinsight_data
+docker compose down -v
+# Older installs may have used: docker volume rm neuroinsight_data
 ```
 
 ## Support
@@ -206,7 +207,7 @@ docker volume rm neuroinsight_data
 
 ## License
 
-MIT License. FreeSurfer requires separate license for research use.
+Publicly available source-available research software under the repository [LICENSE](../LICENSE). Commercial use requires a separate license — see [COMMERCIAL.md](../COMMERCIAL.md). FreeSurfer requires a separate license for research use.
 
 ---
 

@@ -762,6 +762,20 @@ class MRIProcessor:
         self._resource_sampler_stop_event = new_stop
         self._resource_sampler_thread = new_thread
 
+    def _is_named_container_running(self, container_name: str) -> bool:
+        """Return True if a named Docker container is currently running."""
+        try:
+            result = subprocess_module.run(
+                ["docker", "ps", "--filter", f"name=^{container_name}$", "--format", "{{.Names}}"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            return result.returncode == 0 and container_name in (result.stdout or "")
+        except Exception as exc:
+            logger.warning("container_running_check_failed", container=container_name, error=str(exc))
+            return False
+
     def _cleanup_named_container(self, container_name: str) -> None:
         """Best-effort stop for a named Docker container."""
         try:
@@ -789,13 +803,12 @@ class MRIProcessor:
         capped_progress = min(progress, 100)
         self._current_progress = max(self._get_current_progress(), capped_progress)
 
-        # Update database if we're in a worker context (has db_session)
-        if hasattr(self, 'db_session') and self.db_session:
-            try:
-                from workers.tasks.processing_web import update_job_progress
-                update_job_progress(self.db_session, self.job_id, self._current_progress, step)
-            except Exception as e:
-                logger.warning("failed_to_update_job_progress_in_db", error=str(e), progress=progress, step=step)
+        # Persist progress (fresh session — safe from monitor thread and worker thread)
+        try:
+            from workers.tasks.processing_web import update_job_progress_sync
+            update_job_progress_sync(self.job_id, self._current_progress, step)
+        except Exception as e:
+            logger.warning("failed_to_update_job_progress_in_db", error=str(e), progress=progress, step=step)
 
         # Notify callback if available (for Celery task state)
         if self.progress_callback:
@@ -1680,7 +1693,9 @@ class MRIProcessor:
 
             if result.returncode == 0:
                 running_containers = [line.strip() for line in result.stdout.strip().split('\n') if line.strip()]
-                current_count = len(running_containers)
+                own_container = f"{settings.freesurfer_container_prefix}{self.job_id}"
+                other_running = [c for c in running_containers if c != own_container]
+                current_count = len(other_running)
 
                 logger.info("container_concurrency_check",
                           current_running=current_count,
@@ -1688,7 +1703,7 @@ class MRIProcessor:
                           job_id=str(self.job_id))
 
                 if current_count >= settings.max_concurrent_jobs:
-                    running_names = ", ".join(running_containers) if running_containers else "none"
+                    running_names = ", ".join(other_running) if other_running else "none"
                     raise RuntimeError(
                         f"Container concurrency limit exceeded. "
                         f"Currently running: {current_count} FreeSurfer containers ({running_names}). "
@@ -2862,52 +2877,89 @@ class MRIProcessor:
                 subject_id=subject_id,
             )
 
-            # Clean up any leftover containers from previous failed runs
-            try:
-                self._cleanup_job_containers()
-                print(f"DEBUG: Cleaned up any leftover containers")
-            except Exception as cleanup_error:
-                print(f"DEBUG: Cleanup warning: {cleanup_error}")
+            # Clean up leftover containers unless this job's FreeSurfer container is still running
+            container_already_running = self._is_named_container_running(container_name)
 
-            # Start resource sampling while the container runs
-            sampler_stop_event, sampler_thread = self._start_resource_sampling(
-                container_name,
-                subject_output_dir,
-                interval_seconds=30,
-            )
-            self._resource_sampler_stop_event = sampler_stop_event
-            self._resource_sampler_thread = sampler_thread
-
-            # Capture output to debug Docker issues
-            print(f"DEBUG: Executing Docker command now...")
-            try:
-                result = subprocess_module.run(
-                    docker_cmd,
-                    capture_output=True,  # Capture output for debugging
-                    timeout=FREESURFER_PROCESSING_TIMEOUT_MINUTES*60,
-                    env=self._get_extended_env()
-                )
-                print(f"DEBUG: Docker command completed with return code: {result.returncode}")
+            if container_already_running:
                 logger.info(
-                    "freesurfer_container_lifecycle_exit",
+                    "freesurfer_container_already_running_recovering",
+                    container=container_name,
+                    job_id=str(self.job_id),
+                )
+                print(f"DEBUG: FreeSurfer container already running — waiting for completion")
+                wait_result = subprocess_module.run(
+                    ["docker", "wait", container_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=FREESURFER_PROCESSING_TIMEOUT_MINUTES * 60,
+                    env=self._get_extended_env(),
+                )
+                exit_code = 0
+                if wait_result.stdout:
+                    try:
+                        exit_code = int(wait_result.stdout.strip())
+                    except ValueError:
+                        exit_code = 1
+                result = subprocess_module.CompletedProcess(
+                    args=["docker", "wait", container_name],
+                    returncode=exit_code,
+                    stdout=wait_result.stdout.encode() if wait_result.stdout else b"",
+                    stderr=wait_result.stderr.encode() if wait_result.stderr else b"",
+                )
+                print(f"DEBUG: Recovered wait completed with return code: {result.returncode}")
+                logger.info(
+                    "freesurfer_container_recovered_wait_complete",
                     container=container_name,
                     job_id=str(self.job_id),
                     returncode=result.returncode,
                 )
-            except Exception as docker_exec_error:
-                sampler_stop_event.set()
-                sampler_thread.join(timeout=2)
-                self._resource_sampler_stop_event = None
-                self._resource_sampler_thread = None
-                print(f"DEBUG: Docker command execution failed: {docker_exec_error}")
-                # Attempt to capture container artifacts before raising
-                self._capture_container_failure_artifacts(container_name, subject_output_dir)
-                raise docker_exec_error
-            finally:
-                sampler_stop_event.set()
-                sampler_thread.join(timeout=2)
-                self._resource_sampler_stop_event = None
-                self._resource_sampler_thread = None
+            else:
+                # Clean up any leftover containers from previous failed runs
+                try:
+                    self._cleanup_job_containers()
+                    print(f"DEBUG: Cleaned up any leftover containers")
+                except Exception as cleanup_error:
+                    print(f"DEBUG: Cleanup warning: {cleanup_error}")
+
+                # Start resource sampling while the container runs
+                sampler_stop_event, sampler_thread = self._start_resource_sampling(
+                    container_name,
+                    subject_output_dir,
+                    interval_seconds=30,
+                )
+                self._resource_sampler_stop_event = sampler_stop_event
+                self._resource_sampler_thread = sampler_thread
+
+                # Capture output to debug Docker issues
+                print(f"DEBUG: Executing Docker command now...")
+                try:
+                    result = subprocess_module.run(
+                        docker_cmd,
+                        capture_output=True,  # Capture output for debugging
+                        timeout=FREESURFER_PROCESSING_TIMEOUT_MINUTES*60,
+                        env=self._get_extended_env()
+                    )
+                    print(f"DEBUG: Docker command completed with return code: {result.returncode}")
+                    logger.info(
+                        "freesurfer_container_lifecycle_exit",
+                        container=container_name,
+                        job_id=str(self.job_id),
+                        returncode=result.returncode,
+                    )
+                except Exception as docker_exec_error:
+                    sampler_stop_event.set()
+                    sampler_thread.join(timeout=2)
+                    self._resource_sampler_stop_event = None
+                    self._resource_sampler_thread = None
+                    print(f"DEBUG: Docker command execution failed: {docker_exec_error}")
+                    # Attempt to capture container artifacts before raising
+                    self._capture_container_failure_artifacts(container_name, subject_output_dir)
+                    raise docker_exec_error
+                finally:
+                    sampler_stop_event.set()
+                    sampler_thread.join(timeout=2)
+                    self._resource_sampler_stop_event = None
+                    self._resource_sampler_thread = None
 
             print(f"DEBUG: Docker command completed with exit code: {result.returncode}")
             print(f"DEBUG: Command executed successfully (output not captured to avoid memory issues)")
@@ -5352,7 +5404,7 @@ class MRIProcessor:
                                                 if current_phase and current_phase in phase_info:
                                                     completion_progress = phase_info[current_phase]["completion_percent"]
                                                     prev_phase_display_name = current_phase.replace('_', ' ').title()
-                                                    self._update_progress(completion_progress, f"Completed...({prev_phase_display_name})")
+                                                    self._update_progress(completion_progress, f"Completed: {prev_phase_display_name}")
                                                     logger.info(
                                                         "freesurfer_phase_completed",
                                                         phase=current_phase,
@@ -5398,7 +5450,7 @@ class MRIProcessor:
                                                     start_progress = min(prev_completion + 1, end_progress)
 
                                                 phase_display_name = phase.replace('_', ' ').title()
-                                                self._update_progress(start_progress, f"Processing...({phase_display_name})")
+                                                self._update_progress(start_progress, f"Running: {phase_display_name}")
                                                 logger.info("freesurfer_phase_started",
                                                            phase=phase,
                                                            progress=start_progress,

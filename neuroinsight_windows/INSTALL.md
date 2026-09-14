@@ -341,7 +341,8 @@ To completely remove NeuroInsight-AutoHS:
 
 2. **Remove Docker volumes** (deletes all data)
    ```powershell
-   docker volume rm neuroinsight_data
+   docker compose down -v
+   # Older installs: docker volume rm neuroinsight_data
    ```
 
 3. **Remove folder**

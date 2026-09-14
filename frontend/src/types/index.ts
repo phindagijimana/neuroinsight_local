@@ -1,4 +1,4 @@
-// Type definitions for NeuroInsight
+// Type definitions for NeuroInsight-AutoHS
 
 export interface Job {
   id: string;

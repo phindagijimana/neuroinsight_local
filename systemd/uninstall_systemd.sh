@@ -30,28 +30,31 @@ echo ""
 
 SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
 
-# Stop all services
+# Stop all services (current and legacy unit names)
 log_info "Stopping all services..."
-systemctl --user stop neuroinsight-autohs-backend.service 2>/dev/null || true
-systemctl --user stop neuroinsight-autohs-worker.service 2>/dev/null || true
-systemctl --user stop neuroinsight-autohs-beat.service 2>/dev/null || true
-systemctl --user stop neuroinsight-autohs-monitor.service 2>/dev/null || true
+for unit in \
+  neuroinsight-autohs-backend neuroinsight-autohs-worker neuroinsight-autohs-beat neuroinsight-autohs-monitor \
+  neuroinsight-backend neuroinsight-worker neuroinsight-beat neuroinsight-monitor; do
+  systemctl --user stop "${unit}.service" 2>/dev/null || true
+done
 log_success "Services stopped"
 
 # Disable all services
 log_info "Disabling all services..."
-systemctl --user disable neuroinsight-autohs-backend.service 2>/dev/null || true
-systemctl --user disable neuroinsight-autohs-worker.service 2>/dev/null || true
-systemctl --user disable neuroinsight-autohs-beat.service 2>/dev/null || true
-systemctl --user disable neuroinsight-autohs-monitor.service 2>/dev/null || true
+for unit in \
+  neuroinsight-autohs-backend neuroinsight-autohs-worker neuroinsight-autohs-beat neuroinsight-autohs-monitor \
+  neuroinsight-backend neuroinsight-worker neuroinsight-beat neuroinsight-monitor; do
+  systemctl --user disable "${unit}.service" 2>/dev/null || true
+done
 log_success "Services disabled"
 
 # Remove service files
 log_info "Removing service files..."
-rm -f "$SYSTEMD_USER_DIR/neuroinsight-autohs-backend.service"
-rm -f "$SYSTEMD_USER_DIR/neuroinsight-autohs-worker.service"
-rm -f "$SYSTEMD_USER_DIR/neuroinsight-autohs-beat.service"
-rm -f "$SYSTEMD_USER_DIR/neuroinsight-autohs-monitor.service"
+for unit in \
+  neuroinsight-autohs-backend neuroinsight-autohs-worker neuroinsight-autohs-beat neuroinsight-autohs-monitor \
+  neuroinsight-backend neuroinsight-worker neuroinsight-beat neuroinsight-monitor; do
+  rm -f "$SYSTEMD_USER_DIR/${unit}.service"
+done
 log_success "Service files removed"
 
 # Reload systemd daemon

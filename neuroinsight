@@ -1,0 +1,12 @@
+#!/bin/bash
+# Deprecated alias for ./neuroinsight-autohs (kept for older docs and muscle memory).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TARGET="$SCRIPT_DIR/neuroinsight-autohs"
+if [[ ! -f "$TARGET" ]]; then
+  echo "neuroinsight-autohs not found in $SCRIPT_DIR" >&2
+  exit 1
+fi
+if [[ -t 2 ]]; then
+  echo "Note: use ./neuroinsight-autohs (./neuroinsight is a compatibility alias)." >&2
+fi
+exec "$TARGET" "$@"

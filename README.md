@@ -1,6 +1,8 @@
 # NeuroInsight-AutoHS
 
-**NeuroInsight-AutoHS** is the deployable application for the **AutoHS** workflow inside the **NeuroInsight** platform — web and desktop UI, API, job queue, PDF reports, and deployment tooling ([neuroinsight_local](https://github.com/phindagijimana/neuroinsight_local)).
+**NeuroInsight-AutoHS** is the deployable application for the **AutoHS** workflow inside the **NeuroInsight** platform — web and desktop UI, API, job queue, PDF reports, and deployment tooling.
+
+**GitHub repository:** [`neuroinsight_local`](https://github.com/phindagijimana/neuroinsight_local) — the product and release name is **NeuroInsight-AutoHS** (the repo name is historical).
 
 ## NeuroInsight platform
 
@@ -55,10 +57,16 @@ Beginning with the first commit **after** git tag **`publication-v1.0`**, subseq
 
 The licensing transition does not alter the terms under which earlier versions were validly distributed.
 
+Each repository (**neuroinsight_local** and **AutoHS**) defines its own git tag **`publication-v1.0`**; see that repository’s README for the exact release commit and version.
+
 | Release | License |
 |---------|---------|
 | Tag **`publication-v1.0`** (same commit as **`v1.1.5`**, `cf91038`) — publication-associated MIT implementation | MIT License |
 | Commits after **`publication-v1.0`** on the default branch | PolyForm Noncommercial License 1.0.0 |
+
+### Legacy naming (still in paths and filenames)
+
+Older installs and scripts may use **`neuroinsight`** (CLI alias), data under `~/.local/share/neuroinsight/`, or PDF downloads named `neuroinsight_report_*.pdf`. Current commands and defaults use **`neuroinsight-autohs`** / **`neuroinsight-autohs-data`**; legacy paths are kept when they already contain your data (see deployment table below).
 
 ## Deployment options
 

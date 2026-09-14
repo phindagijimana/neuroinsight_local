@@ -12,7 +12,7 @@ function Navigation({ activePage, setActivePage }) {
             <div className="flex items-center gap-3">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">NeuroInsight-AutoHS</h1>
-                <p className="text-xs text-gray-500">Hippocampal Analysis Platform</p>
+                <p className="text-xs text-gray-500">AutoHS workflow · web and desktop</p>
               </div>
             </div>
           </div>
